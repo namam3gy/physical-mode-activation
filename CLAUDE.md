@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project rules (load every session)
+
+These are the hard constraints set by the user — follow them automatically without being asked each time.
+
+1. **Use Context7 MCP for library / API documentation, code generation, setup or configuration steps**, even when the user does not explicitly ask. Anytime you would have answered from training data about a library API (transformers, sklearn, torch, diffusers, sentencepiece, etc.), call Context7 first to get current docs.
+2. **Always run Python through `uv`** (`uv run python ...`, `uv run python -m pytest`, `uv add <pkg>`). Never call bare `python` or `pip` from this project.
+3. **Adhere to the project file structure** (see "Repository layout" below). New artifacts go into the matching directory; do not invent ad-hoc top-level folders.
+4. **`references/` is the staging area for materials useful during work** — papers, raw spec PDFs, downloaded datasets schemas, etc. `project.md` and `roadmap.md` always live here.
+5. **`references/project.md` is the research plan; `references/roadmap.md` is the living execution doc derived from it.** At every step, refer to both. Update `roadmap.md` (status table, hypothesis scorecard, additional ideas, change log) whenever a milestone completes or a finding contradicts a hypothesis. Treat `project.md` as read-only; major spec revisions go into the roadmap.
+6. **Bilingual file requirement**: every file in `references/{project,roadmap}.md` and `docs/insights/*.md` MUST have a paired Korean translation `*_ko.md`. English is canonical; translations follow English. Other docs (`docs/architecture.md`, `docs/experiments/*.md`, etc.) may be bilingual but are not required to be.
+7. **After completing hypothesis validation or implementation, write a reproduction notebook** at `notebooks/<slug>.ipynb` that runs cell-by-cell and reproduces the result. Use the existing `notebooks/demo.ipynb` (M1) as the template.
+8. **Work in English; speak to the user in Korean.** All committed code, comments, docstrings, commit messages, and English markdown files are English. All terminal-visible messages to the user (chat replies, status updates, summaries) are Korean. Mid-sentence English technical terms are fine.
+
 ## Status
 
 **Read `references/roadmap.md` at the project root FIRST.** It is the single
@@ -36,9 +49,7 @@ tests/         pytest suite (no model-in-the-loop)
 notebooks/     demo.ipynb walkthrough
 ```
 
-All `*.md` files except CLAUDE.md and README.md have `*_ko.md` Korean
-translations. English is canonical; if translations drift, the English
-version wins.
+Bilingual `*_ko.md` Korean translations are **required** for `references/{project,roadmap}.md` and every file under `docs/insights/`. They are also currently provided as a courtesy for the rest of `docs/*.md` and `docs/experiments/*.md`, but those are not required by the project rules; English is canonical regardless.
 
 ## Research intent (summary)
 
