@@ -16,7 +16,7 @@ negative α는 physics-mode를 억제하지 않는다 — 그러나 **label-comp
 
 ## 2. 양방향성 테스트 (Exp 1)
 
-### 2.1 Setup
+### 2.1 실험 설정
 
 Run log §Experiment 1 참조.
 
@@ -56,9 +56,9 @@ Exp 1은 negative α가 physical → abstract를 push하지 않는다는 것을 
 중간 baseline PMR(약 0.5)의 `textured/blank/none` stimulus를 사용해야 한다.
 이는 차후 과제로 남긴다.
 
-## 3. Label × steering (Exp 2)
+## 3. Label × steering 상호작용 (Exp 2)
 
-### 3.1 Setup
+### 3.1 실험 설정
 
 Run log §Experiment 2 참조.
 
