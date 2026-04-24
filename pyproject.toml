@@ -1,7 +1,53 @@
 [project]
 name = "physical-mode-activation"
 version = "0.1.0"
-description = "Add your description here"
+description = "When does a circle become a ball? Probing VLM physical-mode activation triggers."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "accelerate>=1.10.0",
+    "huggingface_hub>=0.34.0",
+    "matplotlib>=3.9.0",
+    "numpy>=1.26.0",
+    "pandas>=2.2.0",
+    "pillow>=10.4.0",
+    "pyarrow>=17.0.0",
+    "qwen-vl-utils>=0.0.14",
+    "safetensors>=0.6.0",
+    "scikit-learn>=1.5.0",
+    "sentencepiece>=0.2.0",
+    "torch>=2.5.0",
+    "torchvision>=0.20.0",
+    "tqdm>=4.66.0",
+    "transformers>=4.57.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "jupyter>=1.1.0",
+    "ipykernel>=6.29.0",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu130" }
+torchvision = { index = "pytorch-cu130" }
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

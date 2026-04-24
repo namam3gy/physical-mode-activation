@@ -4,7 +4,20 @@ __pycache__/
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
+src/*.egg-info/
 
 # Virtual environments
 .venv
+
+# Experiment artifacts (large / generated)
+inputs/
+outputs/
+*.safetensors
+*.parquet
+*.npz
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

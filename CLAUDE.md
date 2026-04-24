@@ -4,60 +4,73 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Scaffold only. `uv init` created `main.py`, `pyproject.toml`, `README.md` (empty),
-and `.python-version` (3.11). No implementation exists yet. Dependencies in
-`pyproject.toml` is currently `[]` — add packages via `uv add <pkg>` rather
-than editing the file by hand.
+Sub-task 1 MVP implemented. Package at `src/physical_mode/`, entry scripts at
+`scripts/0{1,2,3}_*.py`, configs at `configs/{pilot,mvp_full}.py`, tests at
+`tests/`. Read `docs/00_architecture.md` **first** — it is the implementation
+contract and names every module. Read `research_plan.md` (Korean) for the
+scientific motivation.
+
+Sub-tasks 2-5 (probing, logit lens, causal patching, multi-model sweep) are
+scaffolded but not implemented. See `docs/04_next_steps.md` for concrete
+plug-in points.
 
 This project sits alongside `vlm_anchroing/`, `eval_sufficiency/`, and
 `agent_orchestration/` under `/mnt/ddn/prod-runs/thyun.park/src/`. The parent
 `../CLAUDE.md` covers workspace-wide conventions (each subproject is its own
 git repo with its own `.venv/` and `uv.lock`; always `uv run` from inside the
-project dir). Do not reuse sibling projects' venvs here.
+project dir).
 
-## Research intent
+## Research intent (summary)
 
-The canonical spec is `research_plan.md` (Korean). **Read it before writing
-code** — it is the source of truth for the experimental design, hypotheses,
-and venue framing. Short English summary so future Claude instances can
-orient quickly:
+Canonical spec: `research_plan.md`. One-sentence: at what visual-cue threshold
+does an open-source VLM stop processing an abstract shape (circle) as geometry
+and start processing it as a physical object (ball)?
 
-- **Research question**: at what visual-cue threshold does an open-source VLM
-  stop processing an abstract shape (circle) as geometry and start processing
-  it as a physical object (ball)?
-- **Target models**: LLaVA-1.5 / LLaVA-Next, Qwen2-VL, InternVL2 (the same
-  open-source trio as Pixels-to-Principles, Ballout et al. 2025).
-- **Five sub-tasks** (§2 of the plan):
-  1. `PhysCue` — controlled factorial stimulus set (abstraction × background ×
-     cue × label × scene-consistency) + next-state-prediction prompts.
-     Behavioral metrics: PMR (physics-mode priming rate), GAR (gravity-align
-     rate), RC (response consistency).
-  2. Vision-encoder probing (CLIP-ViT / SigLIP / InternViT) — layer- and
-     head-wise linear probes on PMR labels; Gandelsman-style head
-     decomposition; Pach et al. SAE features.
-  3. LLM-backbone layer-wise emergence — logit lens + per-layer probes at
-     visual-token positions following Neo et al. 2024.
-  4. Causal localization — Semantic Image Pairs (NOTICE recipe) + activation
-     patching / attention knockout / VTI-style steering vectors / SAE
-     interventions.
-  5. Cross-model + prompt-steering generalization (Gavrikov et al. 2024 style).
-- **Headline claims being set up**: S-shaped switching curve across
-  abstraction axis; encoder-decoder "boomerang" (probe AUC high while
-  behavioral PMR lags); a small number of causally necessary "physics heads";
-  a residual-stream steering direction that forces physics-mode on line
-  drawings.
-- **Venue framing**: EMNLP long (grounding angle) as primary, NeurIPS main
-  (interpretability angle) as stretch. See §3.1.
-
-When the user asks for a "minimum viable" vs "ambitious" scope, map to
-§2.7 of the plan (subset of axes + single model for MVP; full 5 subtasks +
-SAE + 5-model sweep for the ambitious version).
+- **Target model (this round)**: Qwen2.5-VL-7B-Instruct. Matches
+  `eval_sufficiency/`'s proven setup; plan §2.6 lists LLaVA-1.5, LLaVA-Next,
+  Qwen2-VL, InternVL2 for the multi-model round.
+- **Five sub-tasks**: PhysCue (behavioral thresholds), vision-encoder probing,
+  LLM logit-lens / layer-wise probing, causal patching / SIP / VTI / SAE,
+  cross-model + prompt-steering. This round covers only the first.
+- **Metrics**: PMR (physics-mode priming rate), GAR (gravity-align rate),
+  RC (response consistency). Definitions in `docs/02_scoring_rubric.md`.
+- **Venue framing**: EMNLP long primary, NeurIPS stretch.
 
 ## Commands
 
 ```bash
-uv sync                          # create .venv and install
-uv add <pkg>                     # add a dependency
-uv run python main.py            # run the current stub
-uv run python -m pytest          # no tests exist yet
+uv sync                                   # install deps (uses pytorch-cu130 index)
+
+# Unit tests (no model required).
+uv run python -m pytest
+
+# Generate stimuli for a config.
+uv run python scripts/01_generate_stimuli.py --config configs/pilot.py
+
+# Smoke: 5-stimulus end-to-end with the 15 GB Qwen2.5-VL-7B download on first run.
+uv run python scripts/02_run_inference.py --config configs/pilot.py --limit 5
+
+# Full pilot (~30-60 min on H200).
+uv run python scripts/02_run_inference.py --config configs/pilot.py
+
+# Score + summarize.
+uv run python scripts/03_score_and_summarize.py --run-dir outputs/<run_id>
+
+# Walkthrough notebook with plots + demo inferences.
+uv run jupyter lab notebooks/demo.ipynb
 ```
+
+## Key conventions
+
+- Configs are Python files exposing `CONFIG = EvalConfig(...)`, not YAML.
+  Loaded via `importlib.util` in scripts.
+- Outputs always triple: `predictions.jsonl` (streamed, crash-safe) +
+  `predictions.parquet` (flat) + `predictions.csv`.
+- `inputs/` and `outputs/` are gitignored. Activation `.safetensors` are
+  big — gitignored too.
+- VLM loading uses generic `AutoModelForImageTextToText` + `AutoProcessor`
+  so the same `PhysModeVLM` class works across Qwen/LLaVA/InternVL families.
+  Do not hardcode `Qwen2_5_VLForConditionalGeneration` — it breaks the
+  cross-model plan for Sub-task 5.
+- Append a new entry to `docs/03_run_log.md` after each real run, with
+  the exact command, wall-clock, and headline PMR-by-object_level table.
