@@ -35,6 +35,7 @@ class PhysModeVLM:
         device: str | None = None,
         capture_lm_layers: tuple[int, ...] | None = None,
         capture_vision_layers: tuple[int, ...] | None = None,
+        capture_lm_attentions: bool = False,
     ) -> None:
         from transformers import AutoModelForImageTextToText, AutoProcessor
 
@@ -57,6 +58,7 @@ class PhysModeVLM:
 
         self.capture_lm_layers = tuple(capture_lm_layers) if capture_lm_layers else ()
         self.capture_vision_layers = tuple(capture_vision_layers) if capture_vision_layers else ()
+        self.capture_lm_attentions = bool(capture_lm_attentions)
 
         # Resolve the visual image-token id once. Processors expose it via
         # image_token, image_token_id, or tokenizer.convert_tokens_to_ids.
@@ -207,11 +209,11 @@ class PhysModeVLM:
         out = self.model(
             **inputs,
             output_hidden_states=True,
-            output_attentions=True,
+            output_attentions=self.capture_lm_attentions,
             return_dict=True,
         )
         hidden_states = out.hidden_states  # tuple: (embed, layer1, ..., layerN)
-        attentions = getattr(out, "attentions", None) or ()
+        attentions = getattr(out, "attentions", None) or () if self.capture_lm_attentions else ()
 
         # Locate visual tokens in the input sequence.
         ids = inputs["input_ids"][0]

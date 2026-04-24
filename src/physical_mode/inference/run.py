@@ -46,6 +46,8 @@ def run_inference(cfg: EvalConfig, manifest_dir: Path) -> Path:
         torch_dtype=cfg.torch_dtype,
         device=cfg.device,
         capture_lm_layers=cfg.capture_lm_layers,
+        capture_vision_layers=cfg.capture_vision_layers,
+        capture_lm_attentions=cfg.capture_lm_attentions,
     )
     args = InferenceArgs(
         max_new_tokens=cfg.max_new_tokens,

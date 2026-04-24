@@ -8,7 +8,14 @@ from .utils import WORKSPACE
 
 ObjectLevel = Literal["line", "filled", "shaded", "textured", "block_stack"]
 BgLevel = Literal["blank", "ground", "scene"]
-CueLevel = Literal["none", "wind", "arrow_shadow"]
+CueLevel = Literal[
+    "none",
+    "wind",          # legacy (pilot); invisible to Qwen2.5-VL — see docs/05_insights.md §3.4
+    "arrow_shadow",  # legacy (pilot); saturated at PMR=1.0 — split into the two below
+    "cast_shadow",   # shadow only, no arrow (Kersten ground-attachment cue)
+    "motion_arrow",  # red directional arrow only, no shadow
+    "both",          # shadow + arrow (equivalent to legacy arrow_shadow)
+]
 EventTemplate = Literal["fall", "roll_slope", "wall_bounce", "hover", "horizontal"]
 Label = Literal["circle", "ball", "planet", "shape", "object"]
 PromptVariant = Literal["open", "forced_choice"]
@@ -85,6 +92,10 @@ class EvalConfig:
     # None = no capture. Otherwise a list of language-model layer indices.
     capture_lm_layers: tuple[int, ...] | None = None
     capture_vision_layers: tuple[int, ...] | None = None
+    # Attention tensors are ~3-5x the size of hidden states at the same layer.
+    # Keep False for Sub-task 3 (logit lens needs only hidden states); flip to
+    # True for Sub-task 4 (activation patching / attention knockout).
+    capture_lm_attentions: bool = False
 
     # Misc.
     random_seed: int = 42

@@ -51,14 +51,20 @@ def render_scene(row: StimulusRow, size: int = CANVAS) -> Image.Image:
     cx, cy = _object_center_for_event(row.event_template, size, ground_y)
 
     # 3. Context cue rendered *behind* the object where appropriate, *in front* otherwise.
+    shadow_cues = {"cast_shadow", "both", "arrow_shadow"}
+    arrow_cues = {"motion_arrow", "both", "arrow_shadow"}
+
     if row.cue_level == "wind":
-        # Wind marks behind the direction of motion — for horizontal, marks trail to the left.
+        # Legacy pilot cue — invisible to Qwen2.5-VL; kept for reproducibility.
         img = P.draw_wind_marks(img, side="right", cx=cx, cy=cy, seed=row.seed)
-    elif row.cue_level == "arrow_shadow":
-        # Cast shadow on ground (if a ground exists) + trajectory arrow.
-        if row.bg_level in ("ground", "scene"):
-            img = P.draw_cast_shadow(img, cx, cy, OBJ_RADIUS, ground_y)
-        # Arrow: for fall event, down-pointing; for horizontal, rightward.
+
+    if row.cue_level in shadow_cues:
+        # Cast shadow anchors the object to the (implicit or explicit) ground plane.
+        # Draw regardless of bg_level so "shadow alone" cells are measurable.
+        img = P.draw_cast_shadow(img, cx, cy, OBJ_RADIUS, ground_y)
+
+    if row.cue_level in arrow_cues:
+        # Arrow direction by event template.
         if row.event_template == "fall":
             img = P.draw_trajectory_arrow(img, (cx, cy + OBJ_RADIUS + 10), (cx, cy + OBJ_RADIUS + 90))
         elif row.event_template == "horizontal":

@@ -36,14 +36,15 @@
 
 연구계획 §2.2의 원래 H1-H3 + pilot 에서 도출된 H4-H6. pilot 결과는 `docs/05_insights.md` 근거.
 
-| ID | 가설 | 상태 | 근거 / 다음 검증 |
+| ID | 가설 | 상태 (M2 후) | 근거 / 다음 검증 |
 |---|---|---|---|
-| **H1** | PMR이 추상화 축(line → textured)에 따라 S자형 증가; 3D 음영·지면 도입이 가장 큰 단계 증가. | **부분 지지** | 양 끝점 (0.58 → 0.81) 맞음; 중간 tie. MVP-full에서 더 큰 n, 더 좁은 abstraction step으로 재검. |
-| **H2** | "ball" 라벨은 선화에서도 PMR을 크게 증가시킨다 → 언어 prior 독립 기여. | **강하게 지지** | Open-ended PMR 0.80, abstract_reject 0.00. MVP-full에서 axis D를 {circle, ball, planet}로 확장하여 정량화. |
-| **H3** | 장면 불일치는 RC를 저하시킨다. | **미검증** | Pilot 은 scene inconsistency 축 없음 + T=0 이라 RC=1 포화. MVP-full에서 `temperature=0.7`, seeds≥10, axis E 포함. |
-| **H4** (pilot-derived) | Open vs forced-choice PMR gap 은 **언어 prior ↔ 시각 증거** 충돌의 안정적 signature다. 모든 object_level, 모든 모델에서 나타난다. | **후보** | ST1 full 에서 gap을 object_level 별로 쪼개 재검; ST5 에서 LLaVA/InternVL도 같은 gap 보이는지. |
-| **H5** (pilot-derived) | 지면 한 줄(ground line) 단독이 텍스처 공 + no ground 보다 **더 큰** PMR 증가를 만든다. | **일방향 증거** | Pilot: bg (+36pp) > object_level endpoint gap (+23pp). 다른 모델에서도 같은 ordering이면 scene-over-object 주장. |
-| **H6** (pilot-derived) | arrow+shadow cue의 포화는 **cast shadow 단독**으로도 일어나며, arrow는 annotation에 가깝다. | **분해 필요** | MVP-full axis C 재설계로 shadow/arrow 분리 → 각각의 marginal 기여 측정. |
+| **H1** | PMR이 추상화 축(line → textured)에 따라 S자형 증가; 3D 음영·지면 도입이 가장 큰 단계 증가. | **지지** | M2: 4개 object_level 모두 monotone (0.744 → 0.790 → 0.822 → 0.832). T=0.7 + 10 seeds가 pilot의 중간 tie를 해소. |
+| **H2** | "ball" 라벨은 선화에서도 PMR을 크게 증가시킨다 → 언어 prior 독립 기여. | **정량화** | M2: `ball` vs `circle` = +15 pp (line 0.85 vs 0.69; textured 0.93 vs 0.78). `ball+line` > `circle+textured` — 언어가 시각보다 강함. |
+| **H3** | 장면 불일치는 RC를 저하시킨다. | **미검증** | axis E 는 M2에서 빠짐 (complexity); 별도 mini-실험으로 처리. RC 인프라는 M2에서 검증됨 (103/288 cells RC<1). |
+| **H4** (pilot-derived) | Open vs forced-choice PMR gap 은 **언어 prior ↔ 시각 증거** 충돌의 안정적 signature다. | **지지 — 확장** | M2: gap이 모든 object_level에 존재 (line 32pp → textured 22pp). 추상도 ↑ 일수록 gap ↑ — abstraction 이 vision 증거를 약화시켜 언어가 더 지배한다는 structural prediction. 다음 검증: ST5 cross-model. |
+| **H5** (pilot-derived) | 지면 한 줄(ground line) 단독이 텍스처 공 + no ground 보다 **더 큰** PMR 증가를 만든다. | **혼재** | M2: bg delta (blank 0.67 → scene 0.88 = +21pp) > object delta (line 0.74 → textured 0.83 = +9pp). 방향은 맞음; 단 scene 이 ground 를 또 넘음. |
+| **H6** (pilot-derived) | arrow+shadow cue의 포화는 **cast shadow 단독**으로도 일어나며, arrow는 annotation에 가깝다. | **지지 (수정)** | M2 분해: cast_shadow 단독 = +17.5 pp above none (Kersten 지면 부착 cue 확인); **그러나 arrow 도 단독으로 0.96 에 saturate** — "arrow 는 annotation" 부분은 반증. Arrow 가 dominant cue, shadow 가 secondary. |
+| **H7** (M2-derived) | 라벨은 PMR 을 toggle 하는 것이 아니라 **어떤 물리 regime** 을 선택한다. | **후보** | M2: 같은 이미지에 `circle/ball/planet` 이면 응답은 "static / rolls down incline / orbits the Sun". GAR: ball 0.79 / circle 0.70 / planet 0.48. 다음: open-ended 응답을 범주별로 annotation — 중력 / 관성 / 궤도 / 정적. |
 
 ### 1.4 Target 모델 & venue
 
@@ -59,8 +60,8 @@
 |---|---|---|---|---|
 | M0 | 인프라 스캐폴드 | Package layout, configs, scripts, tests, docs 기본 set | ✅ | 2026-04-24 |
 | M1 | **ST1 Pilot** (Qwen2.5-VL-7B) | 240 stim × 2 prompts = 480 inferences; behavioral S-curve 1차 측정 | ✅ | 2026-04-24 |
-| **M2** | **ST1 MVP-full** (pilot 교훈 반영) | axis C 재설계, axis D 확장, T=0.7, 활성화 capture 활성화, ~10-15k inferences | ▶ **다음** | — |
-| M3 | ST2 — Vision encoder probing | M2 captured vision acts에 linear probe + Gandelsman head decomposition | 대기 | — |
+| M2 | **ST1 MVP-full** (pilot 교훈 반영) | axis C 분해, axis D 확장, T=0.7, LM hidden-state capture, 2880 inferences | ✅ | 2026-04-24 |
+| **M3** | **ST2 — Vision encoder probing** | M2 LM 활성화 + vision encoder capture 추가. Linear probe + (stretch) Gandelsman head decomposition | ▶ **다음** | — |
 | M4 | ST3 — LM logit lens / layer-wise probe | M2 captured LM acts에 logit lens + per-layer probe | 대기 | — |
 | M5 | ST4 — Causal localization | SIP + activation patching + VTI steering + SAE intervention | 대기 | — |
 | M6 | ST5 — Cross-model sweep | LLaVA-1.5/Next, InternVL2, (optional) Qwen2-VL | 대기 | — |
@@ -109,9 +110,33 @@
 - `predictions.jsonl` streaming flush가 crash-safe.
 - Factorial 축 중 **event_template**이 behavioral output에 영향 없음 → MVP-full에서 downgrade.
 
-### M2 — ST1 MVP-full ▶ (다음 마일스톤)
+### M2 — ST1 MVP-full ✅ (2026-04-24)
 
-**목표**: pilot 교훈을 반영한 깨끗한 behavioral S-curve + Sub-task 2/3 용 activation 확보.
+실행: `uv run python scripts/02_run_inference.py --config configs/mvp_full.py`.
+출력: `outputs/mvp_full_20260424-094103_8ae1fa3d/` — 2880 predictions, 55 분 wall clock, 5.2 GB LM activations.
+
+**성공 기준 결과** (상세: `docs/03_run_log.md` M2 항목):
+
+| criterion | status |
+|---|---|
+| Monotone S-curve over object_level (forced-choice) | ✅ 0.583 < 0.647 < 0.711 < 0.714 |
+| Open-vs-forced gap at every object_level | ✅ 22-32 pp, abstraction 과 양의 상관 |
+| cast_shadow alone > none + 20 pp | ✅ +17.5 pp 평균 (blank 조건에서 +23) |
+| RC < 1 cells exist (T>0 확인) | ✅ 103/288 (36%) cells RC<1 |
+| `outputs/*/activations/` 채워짐 | ✅ 480 safetensors, 5 layers, bf16 hidden states |
+
+**새로 도출된 헤드라인**:
+1. 추상화 axis monotone S-curve 이제 깨끗히 확인 (H1).
+2. 라벨이 물리 regime 을 선택 — 같은 이미지에 `circle/ball/planet` → static / rolls / orbits the Sun (H7, 신규).
+3. cast_shadow 단독이 +17.5 pp; arrow 가 dominant cue (H6 수정).
+4. Open-ended PMR 0.93, abstract_reject 0.002 (3/1440) — 언어 prior 지배성 재확인 + 확장 (H4).
+
+**블로킹 해결**: 
+- primitives motion-trail 은 결국 미사용 (axis C 재설계가 wind 축 자체를 대체).
+- axis E (scene consistency) 는 M2에서 제외; `docs/04_next_steps.md` 에 별도 mini-experiment 로 이관 예정.
+- `capture_lm_attentions=False` 플래그가 성공 — disk 가 예상의 1/3 (5.2 GB vs 15+ GB if attentions on).
+
+### M3 — ST2 Vision encoder probing ▶ (다음 마일스톤)
 
 **설정 변경** (`configs/mvp_full.py`를 pilot 기반으로 재작성):
 
@@ -137,9 +162,9 @@
 - 현재 `FactorialSpec` 에 axis E (scene_consistency) 없음 → 추가 필요.
 - 기존 pilot config 와 호환성은 신경 쓸 필요 없음 (새 config 하나 만들면 끝).
 
-### M3 — ST2 Vision encoder probing
+### M3 — ST2 Vision encoder probing (작업 상세)
 
-**전제**: M2 에서 vision-encoder activations 추가 capture. 현재 `PhysModeVLM.capture()` 는 LM 만 커버 → `resolve_vision_layer_path(model)` 헬퍼 + vision hooks 추가 필요.
+**전제**: M2 LM activations 는 이미 확보 (`outputs/mvp_full_20260424-094103_8ae1fa3d/activations/` — 480 stimuli × 5 LM layers × 324 visual tokens × 3584 dim, bf16). Vision encoder activations 는 없음 — capture 코드 확장 + mini-rerun 필요 (전체 2880 대신 factorial 축 대표 ~120 stimuli 만).
 
 **작업 분할**:
 1. `PhysModeVLM.capture()` 에 `capture_vision_layers` 경로 구현 (Qwen2.5-VL 은 `model.visual.blocks[i]`; LLaVA 는 `model.vision_tower.vision_model.encoder.layers[i]`).
@@ -249,6 +274,10 @@ H-class (Qwen2.5-VL-7B/32B/72B), LLaVA-1.5-7B/13B 에서 모델 크기별 PMR. M
 
 Captured attentions 로 interactive heatmap (notebook 기반). Per-stimulus, per-layer, per-head 의 visual token attention. 논문 appendix figure 용.
 
+### 4.11 H7 follow-up — label-regime 범주 주석
+
+M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static / ball → rolls / planet → orbits) 의 체계적 검증. Open-ended 응답을 5범주 (gravity-fall / gravity-roll / orbital / inertial / static) 로 hand-annotation 또는 zero-shot classification → axis D × 범주 분포를 confusion-matrix 로. 라벨별 GAR 차이 (ball 0.79 / planet 0.48) 가 실제로 "어떤 물리인가" 의 categorical split 인지 수치 검증.
+
 ---
 
 ## 5. 작업 시 참조 규칙
@@ -282,4 +311,5 @@ Captured attentions 로 interactive heatmap (notebook 기반). Per-stimulus, per
 
 | 날짜 | 변경 | commit |
 |---|---|---|
-| 2026-04-24 | 최초 작성 — M0/M1 완료, M2 준비 상태까지 반영 | (this commit) |
+| 2026-04-24 | 최초 작성 — M0/M1 완료, M2 준비 상태까지 반영 | `23171b6` |
+| 2026-04-24 | M2 완료 반영: 가설 스코어카드 (H1→지지, H2→정량화, H4→지지, H5→혼재, H6→지지 수정, H7 신규), M3 를 다음 마일스톤으로, §4 에 H7 follow-up 추가 | (this commit) |
