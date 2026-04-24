@@ -4,15 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Sub-task 1 MVP implemented. Package at `src/physical_mode/`, entry scripts at
-`scripts/0{1,2,3}_*.py`, configs at `configs/{pilot,mvp_full}.py`, tests at
-`tests/`. Read `docs/00_architecture.md` **first** — it is the implementation
-contract and names every module. Read `research_plan.md` (Korean) for the
-scientific motivation.
+**Read `ROADMAP.md` at the project root FIRST.** It is the single source of
+truth for "what milestone we're on, what's next, what hypotheses have been
+tested, what ideas are still open." Update it when a milestone completes or
+a new hypothesis/idea surfaces.
+
+Sub-task 1 MVP implemented and pilot executed (M0 + M1 complete; M2
+MVP-full run is the next milestone — see ROADMAP §3). Package at
+`src/physical_mode/`, entry scripts at `scripts/0{1,2,3}_*.py`, configs at
+`configs/{pilot,mvp_full}.py`, tests at `tests/`. Read
+`docs/00_architecture.md` for the implementation contract and
+`research_plan.md` (Korean) for the original scientific motivation.
 
 Sub-tasks 2-5 (probing, logit lens, causal patching, multi-model sweep) are
-scaffolded but not implemented. See `docs/04_next_steps.md` for concrete
-plug-in points.
+scaffolded but not implemented. See `docs/04_next_steps.md` for code-level
+plug-in points and `ROADMAP.md` §3 for milestone-level framing.
 
 This project sits alongside `vlm_anchroing/`, `eval_sufficiency/`, and
 `agent_orchestration/` under `/mnt/ddn/prod-runs/thyun.park/src/`. The parent
