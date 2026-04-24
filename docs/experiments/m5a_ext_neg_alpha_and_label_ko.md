@@ -96,4 +96,4 @@ Design spec: `docs/superpowers/specs/2026-04-24-m5a-extensions-design.md`.
 ## 부수적 관찰
 
 - 실험 1 α=0 baseline 은 9/10 A + 1/10 other (완전 포화 아님). 모든 negative α → 10/10 A. 따라서 -α 는 physics-mode 를 억제하지 않으며, 오히려 "other" edge case 를 A 로 수렴시킴.
-- 실험 2 α=0 baseline 은 10/10 D — 이는 M2 의 `ball+line+blank+none` PMR≈0.85 와 다름. Likely caused by the forced-choice prompt template in the steering script differing from M2's inference prompts. (M5a 의 original circle+line+blank+none baseline 에서도 동일 패턴 관찰: `docs/insights/m5_vti_steering_ko.md` §3.2 기준 10/10 D.) 향후 reconciliation 필요로 기록.
+- 실험 2 α=0 baseline 은 10/10 D — 이는 M2 의 `ball+line+blank+none` PMR≈0.85 와 다름. Steering script 의 forced-choice prompt template 이 M2 의 inference prompt 와 달라서일 가능성이 큼. (M5a 의 original circle+line+blank+none baseline 에서도 동일 패턴 관찰: `docs/insights/m5_vti_steering_ko.md` §3.2 기준 10/10 D.) 향후 reconciliation 필요로 기록.
