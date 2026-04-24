@@ -95,8 +95,9 @@ uv run python scripts/05_lm_probing.py --run-dir outputs/<run>
 # VTI steering causal intervention (M5).
 uv run python scripts/06_vti_steering.py --run-dir outputs/<run> --stimulus-dir inputs/<run> --test-subset line/blank/none --label circle --layers 10,15,20,25 --alphas 0,5,10,20,40
 
-# Walkthrough notebook with plots + demo inferences.
-uv run jupyter lab notebooks/demo.ipynb
+# Walkthrough notebooks (cell-by-cell reproductions).
+uv run jupyter lab notebooks/demo.ipynb               # M1 pilot + general pipeline tour
+uv run jupyter lab notebooks/m5_vti_steering.ipynb    # M5a VTI causal steering reproduction
 ```
 
 ## Key conventions

@@ -16,7 +16,7 @@ Documentation is bilingual — English canonical, Korean translation as `*_ko.md
 - **Per-milestone insights** (deep dives): `docs/insights/m{1,3,4,5}_*.md`
 - **Per-milestone run logs** (numbers only): `docs/experiments/m{1,2,3,4,5}_*.md`
 - **Code-level next steps**: `docs/next_steps.md`
-- **Walkthrough notebook**: `notebooks/demo.ipynb`
+- **Walkthrough notebooks**: `notebooks/demo.ipynb` (M1 pilot tour) · `notebooks/m5_vti_steering.ipynb` (M5a causal steering reproduction)
 
 ## Quick start
 
@@ -33,6 +33,7 @@ uv run python scripts/04_capture_vision.py --stimulus-dir inputs/<run> --output-
 uv run python scripts/05_lm_probing.py --run-dir outputs/<run>
 uv run python scripts/06_vti_steering.py --run-dir outputs/<run> --stimulus-dir inputs/<run> --test-subset line/blank/none --label circle --layers 10,15,20,25 --alphas 0,5,10,20,40
 
-# Open the demo notebook.
-uv run jupyter lab notebooks/demo.ipynb
+# Open the demo notebooks.
+uv run jupyter lab notebooks/demo.ipynb               # M1 pilot + general tour
+uv run jupyter lab notebooks/m5_vti_steering.ipynb    # M5a causal steering reproduction
 ```
