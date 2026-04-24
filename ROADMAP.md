@@ -62,8 +62,8 @@
 | M1 | **ST1 Pilot** (Qwen2.5-VL-7B) | 240 stim × 2 prompts = 480 inferences; behavioral S-curve 1차 측정 | ✅ | 2026-04-24 |
 | M2 | **ST1 MVP-full** (pilot 교훈 반영) | axis C 분해, axis D 확장, T=0.7, LM hidden-state capture, 2880 inferences | ✅ | 2026-04-24 |
 | M3 | **ST2 — Vision encoder probing** | Vision blocks capture (8 layers, 12 GB) + layer-wise linear probes. **Boomerang 확인**: encoder AUC=1.0 on every axis; behavioral PMR 0.28-0.95. | ✅ | 2026-04-24 |
-| **M4** | **ST3 — LM logit lens / layer-wise probe** | M2 LM acts에 logit lens + per-layer probe. Switching-layer 식별. | ▶ **다음** | — |
-| M5 | ST4 — Causal localization | SIP + activation patching + VTI steering + SAE intervention | 대기 | — |
+| M4 | **ST3 — LM logit lens / layer-wise probe** | LM hidden @ visual tokens AUC 0.94-0.95 전 구간; L20 peak. Label prior 가 L5 부터 physics margin shift; object_level effect 는 7배 더 작음. | ✅ | 2026-04-24 |
+| **M5** | **ST4 — Causal localization** | SIP + activation patching + VTI steering + SAE intervention. 타겟: LM layer 20-27 + decoding head. | ▶ **다음** | — |
 | M6 | ST5 — Cross-model sweep | LLaVA-1.5/Next, InternVL2, (optional) Qwen2-VL | 대기 | — |
 | M7 | 인간 baseline + 논문 작성 | Prolific 20명 × 50 stim + EMNLP/NeurIPS 초안 | optional | — |
 
@@ -182,7 +182,21 @@
 - `PhysModeVLM.capture()` 에 vision hook 구현 완료 (`_resolve_vision_blocks` 헬퍼가 Qwen/LLaVA/InternVL 모두 커버).
 - 프로그램 자극이 encoder AUC 1.0 을 trivially 만든다는 methodological caveat 기록. 포토리얼 stimulus 확장이 검증 단계로 필요 — §4 연동.
 
-### M4 — ST3 LM backbone logit lens / layer-wise probing (작업 상세)
+### M4 — ST3 LM backbone logit lens / layer-wise probing ✅ (2026-04-24)
+
+실행: `uv run python scripts/05_lm_probing.py --run-dir outputs/mvp_full_20260424-094103_8ae1fa3d`.
+출력: `outputs/mvp_full_20260424-094103_8ae1fa3d/probing_lm/*.{csv,parquet}`.
+심층 인사이트: `docs/07_m4_insights.md`.
+
+**핵심 결과**:
+- LM per-layer probe AUC (forced-choice PMR) = **0.94-0.95 across all layers**, peak L20 = 0.953.
+- Logit lens: physics logit > geometry logit from L5 onwards because "ball" label primes the LM.
+- Object_level 효과 (L25 line 3.76 vs textured 4.35, margin +0.6) 는 **label effect (+4.0 전체 shift)** 의 ~14%.
+- Switching-layer 메트릭은 label-primed 프롬프트에서 무력화됨 (모두 L5) → §4.9 "label 없는 프롬프트" 테스트를 M5 전 mini-실험으로 승격.
+
+**Boomerang 정확한 위치**: vision encoder (0.94-1.0) → LM hidden (0.95) 은 정보 보존. Decoding 단계에서 ~29 pp accuracy 손실 발생. ST4 의 개입 우선순위는 LM final layers + logit head.
+
+### M5 — ST4 Causal localization (작업 상세)
 
 **작업 분할**:
 1. `PhysModeVLM.capture()` 에 `capture_vision_layers` 경로 구현 (Qwen2.5-VL 은 `model.visual.blocks[i]`; LLaVA 는 `model.vision_tower.vision_model.encoder.layers[i]`).
@@ -198,21 +212,6 @@
 **성공 기준**:
 - 최소 1 개 layer 에서 PMR probe AUC > 0.75.
 - Encoder AUC 와 behavioral PMR 의 per-cell gap 이 유의미 (paired t-test / bootstrap).
-
-### M4 — ST3 LM backbone logit lens / layer-wise probing
-
-**전제**: M2 에서 `capture_lm_layers` 로 captured activations 존재.
-
-**작업 분할**:
-1. `src/physical_mode/probing/lm.py` 에:
-   - `logit_lens_trajectory(activations, token_idx)` — 각 layer 의 hidden state 에 `model.lm_head` 적용, physics-verb tokens vs geometry-noun tokens 의 logit 추적.
-   - `per_layer_pmr_probe(activations, y)` — 각 captured layer 에서 sklearn probe.
-2. Figure (후보):
-   - Layer × token-position heatmap: "물리 개념 부상 시공간도" (Neo et al. 2024 Fig 3 유사).
-   - Per-object_level logit lens trajectory: `line` 원은 물리 동사가 후기 층까지 안 뜨고 `textured` 는 중간 층에서 뜸.
-3. **Cross-model 비교** (M6 에서): LLaVA-1.5 vs Qwen2.5-VL vs InternVL2 의 switching layer 차이.
-
-**가설**: 물리 모드는 중간 층(~15-20)에서 emerge. 연구계획 §2.4 의 Neo et al. prediction 과 align.
 
 ### M5 — ST4 Causal localization
 
@@ -305,7 +304,13 @@ M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static 
 1. 이 파일 (`ROADMAP.md`) 을 제일 먼저 읽어 "지금 어느 M에 있나" 확인.
 2. 현재 M 의 **성공 기준** 과 **블로킹 이슈** 를 체크.
 3. 세부 기술 질문은 `docs/00_architecture.md` → `docs/04_next_steps.md` 순서로 drilldown.
-4. 최신 실험 결과가 필요하면 `docs/03_run_log.md` (수치) + `docs/05_insights.md` (해석).
+4. 최신 실험 결과가 필요하면 `docs/03_run_log.md` (수치) + `docs/0X_*.md` (각 milestone 심층 인사이트).
+
+**Insights 파일 규칙**: 각 주요 마일스톤 완료 시 `docs/0X_<milestone>_insights.md` 를 한 개 작성한다 — 한국어, 원본 수치 링크 + 해석 + 가설 스코어카드 업데이트 + paper implications. 현재 트리:
+- `docs/05_insights.md` — M1 pilot insights (legacy 이름)
+- `docs/06_m3_insights.md` — M3 encoder boomerang
+- `docs/07_m4_insights.md` — M4 LM logit lens
+- (M5, M6 ... 추가 예정)
 
 **마일스톤 하나를 완료할 때마다**:
 
@@ -331,4 +336,5 @@ M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static 
 |---|---|---|
 | 2026-04-24 | 최초 작성 — M0/M1 완료, M2 준비 상태까지 반영 | `23171b6` |
 | 2026-04-24 | M2 완료 반영: 가설 스코어카드 (H1→지지, H2→정량화, H4→지지, H5→혼재, H6→지지 수정, H7 신규), M3 를 다음 마일스톤으로, §4 에 H7 follow-up 추가 | `1d17252` |
-| 2026-04-24 | M3 완료: vision encoder probing — boomerang 확인 (encoder AUC=1.0 / behavioral 0.28-0.95), M4 를 다음 마일스톤으로. | (this commit) |
+| 2026-04-24 | M3 완료: vision encoder probing — boomerang 확인 (encoder AUC=1.0 / behavioral 0.28-0.95), M4 를 다음 마일스톤으로. | `1205821` |
+| 2026-04-24 | M4 완료: LM logit lens + per-layer probe. LM AUC 0.94-0.95 전 구간 (peak L20=0.953); label 이 L5 부터 physics margin 주도. M5 를 다음 마일스톤으로. | (this commit) |
