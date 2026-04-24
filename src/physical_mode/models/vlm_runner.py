@@ -203,16 +203,44 @@ class PhysModeVLM:
         later round because each family (CLIP/SigLIP/InternViT) exposes layers
         under different attribute paths.
         """
-        if not self.capture_lm_layers:
+        if not self.capture_lm_layers and not self.capture_vision_layers:
             return {}
         inputs = self._prepare_inputs(image, prompt, system_prompt)
-        out = self.model(
-            **inputs,
-            output_hidden_states=True,
-            output_attentions=self.capture_lm_attentions,
-            return_dict=True,
-        )
-        hidden_states = out.hidden_states  # tuple: (embed, layer1, ..., layerN)
+
+        # Forward hooks for vision-encoder blocks (Qwen2.5-VL:
+        # model.model.visual.blocks[i]). Each block's output is the fine-grained
+        # patch-token hidden state *before* the merger that downsamples to the
+        # LM-side visual token count.
+        vision_captures: dict[int, torch.Tensor] = {}
+        vision_hooks: list = []
+        if self.capture_vision_layers:
+            blocks = _resolve_vision_blocks(self.model)
+            if blocks is not None:
+                def _make_hook(layer_idx: int):
+                    def hook(_module, _inputs, output):
+                        t = output[0] if isinstance(output, tuple) else output
+                        vision_captures[layer_idx] = t.detach().to(
+                            "cpu", dtype=torch.bfloat16
+                        ).contiguous()
+                    return hook
+                for li in self.capture_vision_layers:
+                    if 0 <= li < len(blocks):
+                        vision_hooks.append(
+                            blocks[li].register_forward_hook(_make_hook(int(li)))
+                        )
+
+        try:
+            out = self.model(
+                **inputs,
+                output_hidden_states=bool(self.capture_lm_layers),
+                output_attentions=bool(self.capture_lm_attentions),
+                return_dict=True,
+            )
+        finally:
+            for h in vision_hooks:
+                h.remove()
+
+        hidden_states = getattr(out, "hidden_states", None) or ()
         attentions = getattr(out, "attentions", None) or () if self.capture_lm_attentions else ()
 
         # Locate visual tokens in the input sequence.
@@ -220,7 +248,6 @@ class PhysModeVLM:
         if self.image_token_id is not None:
             mask = ids == self.image_token_id
         else:
-            # Fallback: capture all positions (caller can slice later).
             mask = torch.ones_like(ids, dtype=torch.bool)
 
         lm_hidden: dict[int, torch.Tensor] = {}
@@ -241,6 +268,7 @@ class PhysModeVLM:
         return {
             "lm_hidden": lm_hidden,
             "lm_attn": lm_attn,
+            "vision_hidden": vision_captures,
             "visual_token_mask": mask.detach().to("cpu"),
             "input_ids": ids.detach().to("cpu"),
         }
@@ -256,12 +284,39 @@ class PhysModeVLM:
             tensors[f"lm_hidden_{li}"] = h
         for li, a in capture.get("lm_attn", {}).items():
             tensors[f"lm_attn_{li}"] = a
+        for li, h in capture.get("vision_hidden", {}).items():
+            tensors[f"vision_hidden_{li}"] = h
         if "visual_token_mask" in capture:
             tensors["visual_token_mask"] = capture["visual_token_mask"].to(torch.uint8)
         if "input_ids" in capture:
             tensors["input_ids"] = capture["input_ids"].to(torch.int64)
         path.parent.mkdir(parents=True, exist_ok=True)
         save_file(tensors, str(path))
+
+
+def _resolve_vision_blocks(model) -> Any:
+    """Return the vision-encoder block list for the given model, or None.
+
+    Qwen2.5-VL: model.model.visual.blocks (ModuleList of 32 Qwen2_5_VLVisionBlock).
+    LLaVA-family: model.vision_tower.vision_model.encoder.layers.
+    InternVL2: model.vision_model.encoder.layers.
+    """
+    inner = getattr(model, "model", model)
+    # Qwen2.5-VL / Qwen2-VL
+    visual = getattr(inner, "visual", None)
+    if visual is not None and hasattr(visual, "blocks"):
+        return visual.blocks
+    # LLaVA
+    vt = getattr(model, "vision_tower", None) or getattr(inner, "vision_tower", None)
+    if vt is not None:
+        vm = getattr(vt, "vision_model", None)
+        if vm is not None and hasattr(vm, "encoder") and hasattr(vm.encoder, "layers"):
+            return vm.encoder.layers
+    # InternVL
+    vm = getattr(model, "vision_model", None) or getattr(inner, "vision_model", None)
+    if vm is not None and hasattr(vm, "encoder") and hasattr(vm.encoder, "layers"):
+        return vm.encoder.layers
+    return None
 
 
 def _to_pil(image_like: Any) -> Image.Image:

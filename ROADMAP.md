@@ -61,8 +61,8 @@
 | M0 | 인프라 스캐폴드 | Package layout, configs, scripts, tests, docs 기본 set | ✅ | 2026-04-24 |
 | M1 | **ST1 Pilot** (Qwen2.5-VL-7B) | 240 stim × 2 prompts = 480 inferences; behavioral S-curve 1차 측정 | ✅ | 2026-04-24 |
 | M2 | **ST1 MVP-full** (pilot 교훈 반영) | axis C 분해, axis D 확장, T=0.7, LM hidden-state capture, 2880 inferences | ✅ | 2026-04-24 |
-| **M3** | **ST2 — Vision encoder probing** | M2 LM 활성화 + vision encoder capture 추가. Linear probe + (stretch) Gandelsman head decomposition | ▶ **다음** | — |
-| M4 | ST3 — LM logit lens / layer-wise probe | M2 captured LM acts에 logit lens + per-layer probe | 대기 | — |
+| M3 | **ST2 — Vision encoder probing** | Vision blocks capture (8 layers, 12 GB) + layer-wise linear probes. **Boomerang 확인**: encoder AUC=1.0 on every axis; behavioral PMR 0.28-0.95. | ✅ | 2026-04-24 |
+| **M4** | **ST3 — LM logit lens / layer-wise probe** | M2 LM acts에 logit lens + per-layer probe. Switching-layer 식별. | ▶ **다음** | — |
 | M5 | ST4 — Causal localization | SIP + activation patching + VTI steering + SAE intervention | 대기 | — |
 | M6 | ST5 — Cross-model sweep | LLaVA-1.5/Next, InternVL2, (optional) Qwen2-VL | 대기 | — |
 | M7 | 인간 baseline + 논문 작성 | Prolific 20명 × 50 stim + EMNLP/NeurIPS 초안 | optional | — |
@@ -162,9 +162,27 @@
 - 현재 `FactorialSpec` 에 axis E (scene_consistency) 없음 → 추가 필요.
 - 기존 pilot config 와 호환성은 신경 쓸 필요 없음 (새 config 하나 만들면 끝).
 
-### M3 — ST2 Vision encoder probing (작업 상세)
+### M3 — ST2 Vision encoder probing ✅ (2026-04-24)
 
-**전제**: M2 LM activations 는 이미 확보 (`outputs/mvp_full_20260424-094103_8ae1fa3d/activations/` — 480 stimuli × 5 LM layers × 324 visual tokens × 3584 dim, bf16). Vision encoder activations 는 없음 — capture 코드 확장 + mini-rerun 필요 (전체 2880 대신 factorial 축 대표 ~120 stimuli 만).
+실행: `uv run python scripts/04_capture_vision.py --stimulus-dir inputs/mvp_full_... --output-dir outputs/mvp_full_.../vision_activations --layers 3,7,11,15,19,23,27,31`
+출력: `outputs/mvp_full_20260424-094103_8ae1fa3d/vision_activations/` (480 safetensors, 12 GB) + `probing_vision/*.csv`
+
+**핵심 발견** (상세: `docs/03_run_log.md` M3 항목):
+
+- **Encoder AUC = 1.00 on every factorial axis, from layer 3 onward**. Vision 인코더는 bg/object/cue 모든 속성을 완벽히 인코딩. 정보 병목 없음.
+- **Behavioral forced-choice PMR은 0.28 (cue=none) ~ 0.95 (both)** 범위. LM 의 gating 이 gap을 만든다.
+- **Controlled no-cue subset (120 stimuli)**: encoder AUC 0.89 vs behavioral PMR 0.28 → encoder 가 "어떤 cells 가 physics-mode 를 trigger할지" 를 알지만 LM 은 일부만 통과시킴.
+- **Per-object-level encoder AUC ~0.95 constant while behavior 0.58-0.71**: gap 은 line (가장 추상) 에서 +36 pp 로 최대 — H4 (추상도 ↑ ⇒ 언어 prior ↑) 의 내부 메커니즘 증거.
+
+**가설 업데이트**:
+- H-boomerang (원래 §1.4 의 "encoder knows, decoder doesn't"): **지지 (증거 포화)**.
+- H4, H6 모두 mechanism-level 증거 확보.
+
+**블로킹 해결 / 소득**:
+- `PhysModeVLM.capture()` 에 vision hook 구현 완료 (`_resolve_vision_blocks` 헬퍼가 Qwen/LLaVA/InternVL 모두 커버).
+- 프로그램 자극이 encoder AUC 1.0 을 trivially 만든다는 methodological caveat 기록. 포토리얼 stimulus 확장이 검증 단계로 필요 — §4 연동.
+
+### M4 — ST3 LM backbone logit lens / layer-wise probing (작업 상세)
 
 **작업 분할**:
 1. `PhysModeVLM.capture()` 에 `capture_vision_layers` 경로 구현 (Qwen2.5-VL 은 `model.visual.blocks[i]`; LLaVA 는 `model.vision_tower.vision_model.encoder.layers[i]`).
@@ -312,4 +330,5 @@ M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static 
 | 날짜 | 변경 | commit |
 |---|---|---|
 | 2026-04-24 | 최초 작성 — M0/M1 완료, M2 준비 상태까지 반영 | `23171b6` |
-| 2026-04-24 | M2 완료 반영: 가설 스코어카드 (H1→지지, H2→정량화, H4→지지, H5→혼재, H6→지지 수정, H7 신규), M3 를 다음 마일스톤으로, §4 에 H7 follow-up 추가 | (this commit) |
+| 2026-04-24 | M2 완료 반영: 가설 스코어카드 (H1→지지, H2→정량화, H4→지지, H5→혼재, H6→지지 수정, H7 신규), M3 를 다음 마일스톤으로, §4 에 H7 follow-up 추가 | `1d17252` |
+| 2026-04-24 | M3 완료: vision encoder probing — boomerang 확인 (encoder AUC=1.0 / behavioral 0.28-0.95), M4 를 다음 마일스톤으로. | (this commit) |
