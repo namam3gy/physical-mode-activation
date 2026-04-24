@@ -1,6 +1,6 @@
 """MVP-full config — Sub-task 1 main run with pilot-informed revisions.
 
-Changes vs pilot (see ROADMAP.md §3 M2 and docs/05_insights.md §6):
+Changes vs pilot (see references/roadmap.md §3 M2 and docs/insights/m1_pilot.md §6):
   1. Axis C redesigned to decompose the saturating `arrow_shadow` cue:
      none / cast_shadow / motion_arrow / both (4 levels).
   2. Wind cue removed from the factorial (invisible to Qwen2.5-VL per §3.4).

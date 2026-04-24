@@ -11,7 +11,7 @@ file in sync with `src/physical_mode/stimuli/` and `src/physical_mode/config.py`
 
 ## Axis A — object abstraction
 
-| Level | Rendering | Cue claim (research_plan.md §1.3) |
+| Level | Rendering | Cue claim (`references/project.md` §1.3) |
 |---|---|---|
 | `line` | 3-px black outline, white fill | pure geometric; weakest physical cue |
 | `filled` | 2-px outline, uniform medium-gray fill | some mass cue; still geometric |
@@ -35,8 +35,11 @@ it's reserved for a follow-up that targets the "physical object ≠ ball" axis.
 | Level | Rendering |
 |---|---|
 | `none` | no additions |
-| `wind` | five clusters of short grey arcs anchored to one side of the object, suggesting airflow |
-| `arrow_shadow` | elliptical cast shadow on the ground (only if a ground exists) + red directional arrow whose heading is chosen per event template |
+| `cast_shadow` | elliptical cast shadow on the ground (Kersten et al. 1997 ground-attachment cue); rendered even when bg = blank |
+| `motion_arrow` | red directional arrow whose heading is chosen per event template |
+| `both` | cast_shadow + motion_arrow |
+| `wind` (legacy) | five clusters of short grey arcs anchored to one side of the object — found invisible to Qwen2.5-VL in the pilot, retained for reproducibility |
+| `arrow_shadow` (legacy) | the pilot's combined cue, equivalent to `both` |
 
 ## Axis D — object label (prompt-time)
 
@@ -49,7 +52,7 @@ it's reserved for a follow-up that targets the "physical object ≠ ball" axis.
 | `object` | "The image shows an object. …" |
 
 Controls whether language prior alone can force physics-mode (research H2).
-The pilot uses a single label (`ball`) to keep volume small.
+The pilot uses a single label (`ball`); MVP-full uses `(circle, ball, planet)`.
 
 ## Event templates
 
@@ -61,8 +64,9 @@ The pilot uses a single label (`ball`) to keep volume small.
 | `wall_bounce` | right-mid (cx=358, cy=230) | bounces back |
 | `roll_slope` | left-lower (cx=128, cy=307) | rolls down the ramp |
 
-Pilot uses `fall` + `horizontal` only. MVP-full uses the same two; the last
-three are scaffolded for a later round that adds more event types.
+Pilot uses `fall` + `horizontal`; MVP-full uses `fall` only (pilot showed
+the two were behaviorally indistinguishable). The remaining three are
+scaffolded for a later round.
 
 ## Seed discipline
 

@@ -10,7 +10,7 @@ ObjectLevel = Literal["line", "filled", "shaded", "textured", "block_stack"]
 BgLevel = Literal["blank", "ground", "scene"]
 CueLevel = Literal[
     "none",
-    "wind",          # legacy (pilot); invisible to Qwen2.5-VL — see docs/05_insights.md §3.4
+    "wind",          # legacy (pilot); invisible to Qwen2.5-VL — see docs/insights/m1_pilot.md §3.4
     "arrow_shadow",  # legacy (pilot); saturated at PMR=1.0 — split into the two below
     "cast_shadow",   # shadow only, no arrow (Kersten ground-attachment cue)
     "motion_arrow",  # red directional arrow only, no shadow

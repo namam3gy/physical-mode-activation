@@ -1,7 +1,7 @@
 """Word lists for PMR / GAR scoring.
 
 The lexicons are deliberately conservative and hand-curated. Expand them via
-docs/02_scoring_rubric.md whenever a false negative is observed in run_log.
+docs/scoring_rubric.md whenever a false negative is observed in the run logs.
 """
 
 from __future__ import annotations
