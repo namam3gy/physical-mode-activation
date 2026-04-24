@@ -26,6 +26,7 @@ import torch
 from tqdm import tqdm
 
 from physical_mode.inference.prompts import render as render_prompt
+from physical_mode.metrics.first_letter import extract_first_letter
 from physical_mode.metrics.pmr import score_rows
 from physical_mode.models.vlm_runner import InferenceArgs, PhysModeVLM
 from physical_mode.probing.steering import load_steering_vectors
@@ -74,6 +75,9 @@ def main() -> None:
     p.add_argument("--temperature", type=float, default=0.0,
                    help="T=0 for deterministic flip-rate measurement")
     p.add_argument("--model-id", default="Qwen/Qwen2.5-VL-7B-Instruct")
+    p.add_argument("--output-subdir", default=None,
+                   help="subdir under steering_experiments/ for this run "
+                   "(keeps M5a's original outputs intact when set)")
     args = p.parse_args()
 
     # -------- test stimuli --------
@@ -149,9 +153,12 @@ def main() -> None:
     # -------- score + summarize --------
     df = pd.DataFrame(records)
     df = score_rows(df)
+    df["first_letter"] = df["raw_text"].apply(extract_first_letter)
 
     outdir = args.run_dir / "steering_experiments"
-    outdir.mkdir(exist_ok=True)
+    if args.output_subdir:
+        outdir = outdir / args.output_subdir
+    outdir.mkdir(parents=True, exist_ok=True)
     df.to_parquet(outdir / "intervention_predictions.parquet", index=False)
     df.to_csv(outdir / "intervention_predictions.csv", index=False)
 
@@ -162,6 +169,18 @@ def main() -> None:
     pv = df.groupby(["layer", "alpha"])["pmr"].mean().unstack("alpha").round(3)
     print(pv.to_string())
     pv.to_csv(outdir / "pmr_by_layer_alpha.csv")
+
+    print()
+    print("=" * 72)
+    print("First-letter distribution by (layer, alpha)")
+    print("=" * 72)
+    fl_pivot = (
+        df.groupby(["layer", "alpha", "first_letter"])
+          .size()
+          .unstack("first_letter", fill_value=0)
+    )
+    print(fl_pivot.to_string())
+    fl_pivot.to_csv(outdir / "first_letter_by_layer_alpha.csv")
 
     # Also grab a representative raw-text sample per (layer, highest alpha)
     print()
@@ -189,6 +208,7 @@ def main() -> None:
         "temperature": args.temperature,
         "n_stimuli": len(sub),
         "n_total_inferences": len(df),
+        "output_subdir": args.output_subdir,
     }, indent=2))
     print(f"\nResults saved to {outdir}/")
 
