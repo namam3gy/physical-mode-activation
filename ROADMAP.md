@@ -63,7 +63,8 @@
 | M2 | **ST1 MVP-full** (pilot 교훈 반영) | axis C 분해, axis D 확장, T=0.7, LM hidden-state capture, 2880 inferences | ✅ | 2026-04-24 |
 | M3 | **ST2 — Vision encoder probing** | Vision blocks capture (8 layers, 12 GB) + layer-wise linear probes. **Boomerang 확인**: encoder AUC=1.0 on every axis; behavioral PMR 0.28-0.95. | ✅ | 2026-04-24 |
 | M4 | **ST3 — LM logit lens / layer-wise probe** | LM hidden @ visual tokens AUC 0.94-0.95 전 구간; L20 peak. Label prior 가 L5 부터 physics margin shift; object_level effect 는 7배 더 작음. | ✅ | 2026-04-24 |
-| **M5** | **ST4 — Causal localization** | SIP + activation patching + VTI steering + SAE intervention. 타겟: LM layer 20-27 + decoding head. | ▶ **다음** | — |
+| M5a | **ST4 Phase 1+2 — VTI steering** | 방향 추출 + residual-stream injection. **L10 α=40 이 10/10 D→B flip** — "physical object-ness" direction 인과 확인. | ✅ | 2026-04-24 |
+| **M5b** | **ST4 Phase 3 — SIP + patching + SAE** | Semantic Image Pairs + activation patching (attention 필요 → re-capture) + SAE feature decomposition. | ▶ **다음 (선택)** | — |
 | M6 | ST5 — Cross-model sweep | LLaVA-1.5/Next, InternVL2, (optional) Qwen2-VL | 대기 | — |
 | M7 | 인간 baseline + 논문 작성 | Prolific 20명 × 50 stim + EMNLP/NeurIPS 초안 | optional | — |
 
@@ -196,7 +197,26 @@
 
 **Boomerang 정확한 위치**: vision encoder (0.94-1.0) → LM hidden (0.95) 은 정보 보존. Decoding 단계에서 ~29 pp accuracy 손실 발생. ST4 의 개입 우선순위는 LM final layers + logit head.
 
-### M5 — ST4 Causal localization (작업 상세)
+### M5a — ST4 Phase 1+2 VTI steering ✅ (2026-04-24)
+
+실행:
+- Phase 1: inline Python driver, `compute_steering_vectors` from `src/physical_mode/probing/steering.py`
+- Phase 2: `uv run python scripts/06_vti_steering.py --run-dir outputs/mvp_full_... --test-subset line/blank/none --label circle --layers 10,15,20,25 --alphas 0,5,10,20,40`
+
+출력: `outputs/mvp_full_20260424-094103_8ae1fa3d/probing_steering/` (vectors) + `steering_experiments/` (intervention predictions). 심층 인사이트: `docs/08_m5_insights.md`.
+
+**핵심 결과**:
+- Steering vectors `v_L = mean(h|PMR=1) - mean(h|PMR=0)`. Norm 이 layer 통해 5× 증폭 (L5: 5.9 → L25: 31).
+- Projection@L20 이 factorial cue axis 와 정렬 (none 22.3 → both 42.7).
+- **Layer 10 α=40 주입 → 10/10 `line/blank/none` 응답이 "D: abstract" → "B: stays still" 로 flipping**. L15/L20/L25 는 같은 α 로 flipping 없음.
+- Intervention 은 "abstract → physical object" 의 binary shift 를 만듦. "A: falls" 아닌 "B: stays" 로 감 → direction 은 object-ness, not gravity. H7/H-regime 일관.
+
+**가설 업데이트**:
+- H-boomerang: 확장 + **인과 지지**
+- H-locus: **지지 (early-mid layer L10)**
+- H-regime (신규): **후보** — steering direction 은 coarse "object-ness", regime 선택은 label-driven.
+
+### M5b — ST4 Phase 3 (SIP patching + SAE) — 작업 상세
 
 **작업 분할**:
 1. `PhysModeVLM.capture()` 에 `capture_vision_layers` 경로 구현 (Qwen2.5-VL 은 `model.visual.blocks[i]`; LLaVA 는 `model.vision_tower.vision_model.encoder.layers[i]`).
@@ -310,7 +330,8 @@ M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static 
 - `docs/05_insights.md` — M1 pilot insights (legacy 이름)
 - `docs/06_m3_insights.md` — M3 encoder boomerang
 - `docs/07_m4_insights.md` — M4 LM logit lens
-- (M5, M6 ... 추가 예정)
+- `docs/08_m5_insights.md` — M5 VTI steering causal intervention
+- (M5b, M6 ... 추가 예정)
 
 **마일스톤 하나를 완료할 때마다**:
 
@@ -337,4 +358,5 @@ M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static 
 | 2026-04-24 | 최초 작성 — M0/M1 완료, M2 준비 상태까지 반영 | `23171b6` |
 | 2026-04-24 | M2 완료 반영: 가설 스코어카드 (H1→지지, H2→정량화, H4→지지, H5→혼재, H6→지지 수정, H7 신규), M3 를 다음 마일스톤으로, §4 에 H7 follow-up 추가 | `1d17252` |
 | 2026-04-24 | M3 완료: vision encoder probing — boomerang 확인 (encoder AUC=1.0 / behavioral 0.28-0.95), M4 를 다음 마일스톤으로. | `1205821` |
-| 2026-04-24 | M4 완료: LM logit lens + per-layer probe. LM AUC 0.94-0.95 전 구간 (peak L20=0.953); label 이 L5 부터 physics margin 주도. M5 를 다음 마일스톤으로. | (this commit) |
+| 2026-04-24 | M4 완료: LM logit lens + per-layer probe. LM AUC 0.94-0.95 전 구간 (peak L20=0.953); label 이 L5 부터 physics margin 주도. M5 를 다음 마일스톤으로. | `2abdc32` |
+| 2026-04-24 | M5a 완료 (VTI steering): L10 α=40 이 "line/blank/none" 10/10 을 D(abstract) → B(physical-static) flip. "object-ness" direction 인과 확인. M5b (SIP+SAE), M6 이 남음. | (this commit) |
