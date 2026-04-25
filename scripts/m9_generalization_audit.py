@@ -193,6 +193,11 @@ def fig_summary(summary: pd.DataFrame, out: Path) -> None:
         "SigLIP-SO400M": "#5fa8d3",
         "InternViT": "#2ca02c",
     }
+    # Override per (model, encoder) when multiple models share an encoder family
+    # (LLaVA-1.5 + LLaVA-Next both use CLIP-ViT-L; pick a 2nd shade for LLaVA-Next).
+    color_by_model = {
+        "llava_next": "#ff7f0e",
+    }
     width = 0.8 / max(len(model_order), 1)
     x = np.arange(len(stim_order))
     offset0 = -(len(model_order) - 1) / 2 * width
@@ -218,7 +223,7 @@ def fig_summary(summary: pd.DataFrame, out: Path) -> None:
                 else:
                     errs_low.append(float("nan"))
                     errs_high.append(float("nan"))
-            color = color_by_encoder.get(encs[0], "gray") if encs[0] else "gray"
+            color = color_by_model.get(model) or color_by_encoder.get(encs[0], "gray") if encs[0] else "gray"
             bar_x = x + offset0 + k * width
             bars = ax.bar(bar_x, vals, width,
                           label=f"{model} ({encs[0]})" if encs[0] else model,

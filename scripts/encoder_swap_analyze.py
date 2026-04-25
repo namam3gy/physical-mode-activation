@@ -43,6 +43,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ENCODER_TABLE: tuple[tuple[str, str, str], ...] = (
     ("qwen", "SigLIP", "Qwen2-7B"),
     ("llava", "CLIP-ViT-L", "Vicuna-7B"),
+    ("llava_next", "CLIP-ViT-L", "Mistral-7B"),
     ("idefics2", "SigLIP-SO400M", "Mistral-7B"),
     ("internvl3", "InternViT", "InternLM2-7B"),
 )
@@ -53,18 +54,21 @@ PREFIXES: dict[str, dict[str, str]] = {
     "m8a": {
         "qwen": "m8a_qwen",
         "llava": "m8a_llava",
+        "llava_next": "encoder_swap_llava_next_m8a",
         "idefics2": "encoder_swap_idefics2",
         "internvl3": "encoder_swap_internvl3_m8a",
     },
     "m8d": {
         "qwen": "m8d_qwen",
         "llava": "m8d_llava",
+        "llava_next": "encoder_swap_llava_next_m8d",
         "idefics2": "encoder_swap_idefics2_m8d",
         # InternVL3 M8d not yet run — encoder_swap_analyze tolerates missing data.
     },
     "m8c": {
         "qwen": "m8c_qwen",
         "llava": "m8c_llava",
+        "llava_next": "encoder_swap_llava_next_m8c",
         "idefics2": "encoder_swap_idefics2_m8c",
         # InternVL3 M8c not yet run.
     },
