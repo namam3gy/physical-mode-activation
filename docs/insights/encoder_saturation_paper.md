@@ -92,14 +92,20 @@ which rules out CLIP-as-encoder explanations for the LLaVA-1.5 PMR floor.
 |-------------|------------------:|---------------------:|---------------:|
 | Qwen2.5-VL  | 0.550             | 0.582                | **1.000**      |
 | LLaVA-1.5   | 0.283             | 0.785                | **0.988**      |
+| LLaVA-Next  | 0.417             | 0.883                | **1.000**      |
 | Idefics2    | 0.417             | 0.745                | **0.992**      |
 | InternVL3   | 0.533             | 0.661                | **0.996**      |
 
-**Behavioral-y AUC inverts cross-stim** (M8a → M8c): Qwen 0.88→0.58,
-Idefics2 0.93→0.75, InternVL3 0.89→0.66; LLaVA 0.77→0.79 (stable). Encoder-
-behavior alignment differs by stim.
+**Behavioral-y AUC splits along encoder family cross-stim** (M8a → M8c):
+3 non-CLIP models drop sharply (Qwen 0.88→0.58, Idefics2 0.93→0.75,
+InternVL3 0.89→0.66), 2 CLIP models *rise* (LLaVA-1.5 0.77→0.79,
+LLaVA-Next 0.81→0.88). The CLIP/non-CLIP behavioral-y split is preserved
+across stim sources but with **opposite directions** — consistent with
+the stim-y reframe: behavioral-y AUC measures encoder ↔ behavior
+alignment, not encoder discriminability.
 
-**Stim-y AUC stays at 1.0** — encoder discriminability is also stim-invariant.
+**Stim-y AUC stays at 1.0 across all 5 models × 3 stim sources** —
+encoder discriminability is uniform AND stim-invariant.
 
 ## Mechanism (revised)
 

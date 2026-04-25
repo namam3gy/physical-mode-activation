@@ -195,6 +195,39 @@ LLaVA-1.5 가 M8d 에서 프로젝트 최강 H7 (+0.31). LLaVA-Next 아키텍처
 의 architecture 변경에서 보존되지 않음** — architecture-level reframe 과
 부합.
 
+### 4. Vision-encoder 프로브 — 5번째 모델 × 3 stim 에서 균일성 유지
+
+LLaVA-Next vision-encoder 캡처 (M8d 480 stim × 4 layer, M8c 60 × 4)
+추가됨 (기존 M8a 캡처와 함께). Per-layer 로지스틱 회귀 프로브:
+
+| stim | LLaVA-Next 행동-y AUC (가장 깊은) | LLaVA-Next stim-y AUC (4 레이어 평균) |
+|------|---------------------------------:|---------------------------------:|
+| M8a  | 0.809                            | 1.000                            |
+| M8d  | 0.905                            | 1.000                            |
+| M8c  | 0.883                            | 1.000                            |
+
+**Stim-y AUC = 1.0 3 stim source 모두에서** — 원래 4-모델 M6 r5
+finding 이 5번째 모델에 일반화. CLIP-ViT-L (AnyRes 포함) 이 모든 stim
+source 에서 physics-vs-abstract factorial 셀을 완벽 linear separation.
+
+**행동-y AUC 패턴 (M8a → M8c)** 5 모델 통합:
+
+| model       | M8a behav-y | M8c behav-y |
+|-------------|-----------:|-----------:|
+| Qwen2.5-VL  | 0.88       | 0.44       |
+| LLaVA-1.5   | 0.77       | 0.86       |
+| LLaVA-Next  | 0.81       | 0.88       |
+| Idefics2    | 0.93       | 0.77       |
+| InternVL3   | 0.89       | 0.59       |
+
+2 CLIP 모델이 사진에서 **상승** (LLaVA-1.5 +0.09, LLaVA-Next +0.07);
+3 non-CLIP 모델이 **하락** (Qwen −0.44, Idefics2 −0.16, InternVL3
+−0.30). CLIP/non-CLIP 분할이 cross-stim 보존 *행동-y AUC 에서*, 그러나
+반대 방향으로 — M6 r5 의 stim-y 검증에서 도출된 "행동-y 는
+downstream-conditional, encoder-info 가 아님" 해석과 일치. 행동-y 는
+encoder ↔ behavior 정렬 측정; CLIP encoder 가 자체 LM 의 사진 PMR
+분포와 더 잘 정렬되며, non-CLIP encoder 는 합성 PMR 분포와 더 잘 정렬됨.
+
 **Advisor 경고**: M8d −0.054 효과 크기가 프로젝트 noise floor 안 (CI 가
 0 을 ~0.005 만큼만 배제). **Idefics2 M8d +0.048 과 대칭** — 양쪽 모두
 "0 바로 위/아래"이며 M9 부트스트랩 프레임워크에서 "시사만 / 논문 옹호

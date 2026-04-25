@@ -90,14 +90,19 @@ physics_cell_vs_abstract_cell, within_line_context, within_textured_context)
 |-------------|------------------:|---------------------:|---------------:|
 | Qwen2.5-VL  | 0.550             | 0.582                | **1.000**      |
 | LLaVA-1.5   | 0.283             | 0.785                | **0.988**      |
+| LLaVA-Next  | 0.417             | 0.883                | **1.000**      |
 | Idefics2    | 0.417             | 0.745                | **0.992**      |
 | InternVL3   | 0.533             | 0.661                | **0.996**      |
 
-**Behavioral-y AUC가 cross-stim에서 반전** (M8a → M8c): Qwen 0.88→0.58,
-Idefics2 0.93→0.75, InternVL3 0.89→0.66; LLaVA 0.77→0.79 (안정).
-Encoder-behavior alignment는 stim에 따라 다르다.
+**Behavioral-y AUC가 cross-stim 에서 인코더 family 따라 분할** (M8a → M8c):
+3 non-CLIP 모델 급락 (Qwen 0.88→0.58, Idefics2 0.93→0.75, InternVL3
+0.89→0.66), 2 CLIP 모델 *상승* (LLaVA-1.5 0.77→0.79, LLaVA-Next 0.81→0.88).
+CLIP/non-CLIP 행동-y 분할이 stim source 횡단 보존, 그러나 **반대 방향**
+으로 — stim-y reframe 과 일치: 행동-y AUC 는 encoder ↔ behavior 정렬
+측정, encoder discriminability 가 아님.
 
-**Stim-y AUC는 1.0 유지** — encoder discriminability도 stim-invariant.
+**Stim-y AUC 는 5 모델 × 3 stim source 모두에서 1.0 유지** — encoder
+discriminability 가 균일 AND stim-invariant.
 
 ## 메커니즘 (수정본)
 

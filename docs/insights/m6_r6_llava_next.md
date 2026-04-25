@@ -198,6 +198,43 @@ mid-strong), M8d −0.05 (CI just below 0), M8c +0.02. **H7 strength is
 not preserved across same-encoder-family architecture changes** —
 consistent with the architecture-level reframe.
 
+### 4. Vision-encoder probes — uniformity holds at 5th model × 3 stim
+
+LLaVA-Next vision-encoder captures (480 stim × 4 layers on M8d, 60 × 4
+on M8c) added to the existing M8a captures. Per-layer logistic-regression
+probes:
+
+| stim | LLaVA-Next behavioral-y AUC (deepest) | LLaVA-Next stim-y AUC (mean across 4 layers) |
+|------|-------------------------------------:|---------------------------------------------:|
+| M8a  | 0.809                                | 1.000                                        |
+| M8d  | 0.905                                | 1.000                                        |
+| M8c  | 0.883                                | 1.000                                        |
+
+**Stim-y AUC = 1.0 across all 3 stim sources** — same as the original
+4-model M6 r5 finding generalizes to the 5th model. CLIP-ViT-L (with
+AnyRes) linearly separates physics-vs-abstract factorial cells perfectly
+on every stim source.
+
+**Behavioral-y AUC pattern (M8a → M8c)** for the 5 models, consolidated:
+
+| model       | M8a behav-y | M8c behav-y |
+|-------------|-----------:|-----------:|
+| Qwen2.5-VL  | 0.88       | 0.44       |
+| LLaVA-1.5   | 0.77       | 0.86       |
+| LLaVA-Next  | 0.81       | 0.88       |
+| Idefics2    | 0.93       | 0.77       |
+| InternVL3   | 0.89       | 0.59       |
+
+The 2 CLIP models **rise** on photos (LLaVA-1.5 +0.09, LLaVA-Next +0.07);
+the 3 non-CLIP models **drop** (Qwen −0.44, Idefics2 −0.16, InternVL3
+−0.30). The CLIP/non-CLIP split is preserved cross-stim *for behavioral-y
+AUC*, but with opposite directions — consistent with the
+"behavioral-y is downstream-conditional, not encoder-info" interpretation
+from the M6 r5 stim-y check. Behavioral-y measures encoder ↔ behavior
+alignment; CLIP encoders happen to align better with their LMs' photo
+PMR distributions, while non-CLIP encoders align better with synthetic
+PMR distributions.
+
 **Caveat per advisor**: the M8d −0.054 effect size is in the project's
 noise floor (CI excludes 0 by ~0.005). It is **symmetric to Idefics2 M8d
 +0.048** — both are "barely-above/below 0" and demoted to "suggested only
