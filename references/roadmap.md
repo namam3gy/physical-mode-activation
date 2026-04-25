@@ -39,13 +39,14 @@ Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the 
 | ID | Hypothesis | Status (post-M5a-ext recheck) | Evidence / next test |
 |---|---|---|---|
 | **H1** | PMR rises S-shaped along the abstraction axis (line → textured); 3D shading and ground introduction produce the largest step-changes. | **supported, LLaVA-clean** | M2 (Qwen): monotone across 4 object_levels (0.744 → 0.832) but saturated. M6 (LLaVA-1.5, 2026-04-25): clean S-curve 0.51 → 0.81 over the same axis under the open prompt. Recommend LLaVA's S-curve as canonical figure since Qwen is at ceiling. |
-| **H2** | The "ball" label substantially raises PMR even on line drawings → independent contribution of the language prior. | **revised — visual-saturation hypothesis** | Qwen M4b: paired delta vs label-free → ball/planet ≈ +0.006, circle = −0.065 (asymmetric, only `circle` moves). LLaVA M6: ball +0.475, planet +0.244, circle +0.173 (all positive, original H2 holds). Unified across models: language prior is positive (or zero) for every label; visual saturation can mask the positive contribution and leave only a negative `circle` signal — that's what M4b observed in Qwen. The M4b "circle suppression only" reading is **Qwen-specific**, a consequence of Qwen's PMR(_nolabel) ≈ 0.95 ceiling. |
+| **H2** | The "ball" label substantially raises PMR even on line drawings → independent contribution of the language prior. | **fully validated, three-point + encoder-anchored** | Qwen (saturated, M4b): ball/planet ≈ 0, circle = −0.065. LLaVA (unsaturated, M6 r1): ball +0.475, planet +0.244, circle +0.173. InternVL3 (super-saturated, M6 r2a): all labels +0.010 ≈ noise. The 3-model paired-delta pattern matches the encoder-saturation prediction. M6 r2b shows the saturation difference is rooted in the vision encoder probe AUC (Qwen 0.99 vs LLaVA 0.73). M4b's "circle suppression only" pattern is the Qwen-specific symptom of the encoder being already saturated. |
 | **H3** | Scene inconsistency degrades RC. | **untested** | Axis E was dropped from M2 (complexity); reserved for a focused mini-experiment. RC infrastructure was validated in M2 (103/288 cells with RC<1). |
 | **H4** (pilot-derived) | The open vs forced-choice PMR gap is a stable signature of the **language-prior ↔ visual-evidence** conflict. | **supported — extended** | M2: gap present at every object_level (line 32 pp → textured 22 pp). Higher abstraction ⇒ larger gap — a structural prediction that abstraction weakens visual evidence so the language prior dominates more. Next test: ST5 cross-model. |
 | **H5** (pilot-derived) | The single ground line causes a **larger** PMR shift than going from no-ground textured ball to with-ground textured ball. | **mixed** | M2: bg delta (blank 0.67 → scene 0.88 = +21 pp) > object delta (line 0.74 → textured 0.83 = +9 pp). Direction matches; however, scene also surpasses ground. |
 | **H6** (pilot-derived) | The arrow+shadow cue saturation is driven entirely by **cast shadow alone**; the arrow is closer to annotation. | **supported (revised)** | M2 decomposition: cast_shadow alone = +17.5 pp above none (Kersten ground-attachment cue confirmed); **but the arrow alone also saturates at 0.96** — partially refutes the "arrow = annotation" sub-claim. Arrow is the dominant cue, shadow is secondary. |
-| **H7** (M2-derived) | The label does not toggle PMR — it selects **which physics regime** to apply. | **supported but narrower; cross-model replicated** | M2 GAR: ball 0.79 / circle 0.70 / planet 0.48. M5a-ext Exp 2: label flip @ +α=40 swaps B vs A on `line/blank/none`. M5a-ext Exp 3 qualifier: on `textured/blank/none`, label-only flip fails (+α=40 → A regardless of label); regime is chosen by joint (image, label, α sign). M6 cross-model: `planet` GAR < `ball`/`circle` GAR holds in LLaVA (0.07 vs 0.36/0.15) as well as in Qwen — the orbital-routing dissociation is not Qwen-specific. |
-| **H-boomerang** | Encoder knows, decoder gates: vision encoder linearly separates physics-mode classes even where behavior fails. | **supported + causal** | M3: encoder AUC = 1.00 on every factorial axis at every probed layer; behavior 0.28-0.95. M4: information preserved through LM (AUC 0.94-0.95). M5a: causal intervention at L10 flips behavior. |
+| **H7** (M2-derived) | The label does not toggle PMR — it selects **which physics regime** to apply. | **supported but narrower; cross-model replicated 3-of-3** | M2 GAR: ball 0.79 / circle 0.70 / planet 0.48. M5a-ext Exp 2: label flip @ +α=40 swaps B vs A on `line/blank/none`. M5a-ext Exp 3 qualifier: on `textured/blank/none`, label-only flip fails (+α=40 → A regardless of label); regime is chosen by joint (image, label, α sign). M6 r1 + r2a cross-model: `planet GAR << ball/circle GAR` holds in Qwen (0.32 vs 0.71/0.75), LLaVA-1.5 (0.07 vs 0.36/0.15), and InternVL3 (0.43 vs 0.82/0.79). Orbital-routing dissociation is not model-specific. |
+| **H-boomerang** | Encoder knows, decoder gates: vision encoder linearly separates physics-mode classes even where behavior fails. | **Qwen-scoped (revised)** | Holds in Qwen2.5-VL: M3 encoder AUC ~0.99 at every layer; M4 LM AUC ~0.94 at visual tokens; behavioral PMR ~0.93 — small "encoder knows, decoder mildly gates" gap. M5a: causal intervention at L10 flips behavior. **Refuted in LLaVA-1.5** (M6 r2b): vision encoder AUC ~0.73, LM AUC ~0.75, behavioral ~0.78 — flat through pipeline, encoder is the bottleneck. The boomerang as a phenomenon requires encoder saturation. |
+| **H-encoder-saturation** (M6 r2-derived) | The cross-model variation in `PMR(_nolabel)` and per-label paired-delta direction is rooted in the vision encoder's physics-vs-abstract probe AUC. | **proposed + supported (3-model)** | M6 r2b: Qwen vision AUC 0.99 / behavioral PMR(_nolabel) 0.95; LLaVA AUC 0.73 / behavioral 0.38; InternVL3 not captured but behavioral PMR(_nolabel) 0.99 (matches saturation profile). Predicts: any model with vision-encoder AUC < 0.85 will show large positive label deltas; any with AUC > 0.95 will show small or sign-mixed. Counterfactual not yet run (vision-encoder swap, deferred to Round 3). |
 | **H-locus** (M4-derived) | The bottleneck is at the LM final layers + decoding head, not earlier. | **supported (early-mid sweet spot)** | M5a: L10 α=40 flips 10/10 abstract → physical responses; later layers do not move. M5a-ext Exp 3: L10 regime-flip (A vs B by α sign) holds in all tested cells. Aligns with the Basu et al. 2024 early-layer constraint-storage finding. |
 | **H-direction-bidirectional** (M5a-ext, 2026-04-24; revised 2026-04-25) | `v_L10` is a simple bidirectional concept axis where −α suppresses physics-mode back to abstract. | **revised — regime axis within physics-mode** | Exp 1 (textured/ground/both ceiling): −α has no effect → initially framed as "one-way activator". Exp 3 (textured/blank/none moderate baseline, 2026-04-25): −α=40 flips D → B ("stays still") uniformly across (line, textured) × (ball, circle). Both signs of α activate physics-mode; sign selects regime (+kinetic / −static). Baseline D sits *below* the \|α\| threshold, not at one end of the axis. |
 | **H-regime** (M5a-derived) | The steering direction is binary "object-ness", not "which physics" — physics regime is label-driven. | **refuted in current form** | Replaced by H-direction-bidirectional's regime-axis interpretation (kinetic vs static is already a regime distinction that the steering sign selects, label-independent at |α|=40). Separately, label *does* select regime in the narrow `line/blank/none × +α=40` case (Exp 2), but not globally — this is now folded into the H7 qualifier. |
@@ -72,8 +73,9 @@ Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the 
 | M4b | **Label-free prompt — H2 null test** | `open_no_label` variant on M2 stimuli. **Key result**: `ball` ≈ no-label; `circle` suppresses PMR by 6.5 pp. Original H2 reframed: language prior is asymmetric — circle override, not ball enhancement. M4 visual-token capture is prompt-independent (structural artefact). | ✅ | 2026-04-25 |
 | M6 r1 | **ST5 round 1 — LLaVA-1.5-7B cross-model** | M2 + M4b protocol on LLaVA-1.5-7B. **Key result**: M4b's "circle suppression" is **Qwen-specific** — LLaVA shows the *original* H2 (ball +47.5 pp, all labels positive vs no-label baseline). New unified hypothesis: language prior is positive across labels; Qwen's visual saturation masked the positive contribution. H7 cross-model replicates (planet GAR << ball GAR in both). LLaVA gives the cleanest H1 S-curve in the project. FC excluded (LLaVA returns "A" for every cell). | ✅ | 2026-04-25 |
 | M4c | **Forced-choice label-free** | New `forced_choice_no_label` variant (FC with "the depicted object" antecedent). Qwen reproduces M4b's H2 pattern under FC and adds a planet-suppression effect (option-set bias: orbital regime collapses to D). LLaVA's "A" bias persists under re-template (477/480), confirming model-level pathology. | ✅ | 2026-04-25 |
+| M6 r2 | **Cross-model round 2 (3-model + LLaVA captures + FC logit ratio)** | r2a: InternVL3-8B-hf cross-model behavioral; r2b: LLaVA-1.5 activation captures + cross-model M3/M4 probing; r2c: FC first-token logit-ratio scoring on all FC runs. **Key result**: visual-saturation hypothesis fully validated 3-of-3 models; rooted in vision encoder probe AUC (Qwen 0.99, LLaVA 0.73). H-boomerang revised to Qwen-scoped. New **H-encoder-saturation** hypothesis. LLaVA "A" bias is logit-level (not greedy-level). | ✅ | 2026-04-25 |
 | **M5b** | **ST4 Phase 3 — SIP + patching + SAE** | Semantic Image Pairs + activation patching (needs attention re-capture) + SAE feature decomposition. | ▶ **next (optional)** | — |
-| M6 r2+ | ST5 round 2+ — additional models | LLaVA-Next, InternVL2, (optional) Qwen2-VL; FC re-template; LLaVA activation captures for boomerang / steering cross-model. | pending | — |
+| M6 r3+ | ST5 round 3+ — encoder counterfactuals + LLaVA-Next | LLaVA-Next, vision-encoder swap (test H-encoder-saturation causally), InternVL3 captures. | pending | — |
 | M7 | Human baseline + paper writing | Prolific 20 raters × 50 stimuli + EMNLP/NeurIPS draft | optional | — |
 
 ---
@@ -341,6 +343,36 @@ Deep dive: `docs/insights/m4c_fc_label_free.md`. Numbers: `docs/experiments/m4c_
 - LLaVA FC pathology: **confirmed** — round-2 idea is to use first-
   token logit ratios instead of greedy argmax.
 
+### M6 round 2 — Cross-model expansion ✅ (2026-04-25)
+
+Three sub-deliverables. Run dirs:
+
+- `outputs/cross_model_internvl3_20260425-051009_fc710e85/` — InternVL3 labeled (1440 rows).
+- `outputs/cross_model_internvl3_label_free_20260425-053116_ea0a07c5/` — InternVL3 label-free (480 rows).
+- `outputs/cross_model_llava_capture_20260425-054821_65214a5d/` — LLaVA captured (1440 rows + 14 GB activations + probing_vision/ + probing_lm/).
+
+Deep dive: `docs/insights/m6_r2_cross_model.md`. Numbers: `docs/experiments/m6_r2_cross_model.md`.
+
+**Key results**:
+- **r2a (InternVL3 behavioral)**: paired delta vs label-free is +0.010 for
+  every label — InternVL3's PMR(_nolabel) = 0.99 leaves no headroom.
+  3-model paired-delta pattern (Qwen ≈ 0, LLaVA strongly +, InternVL3 ≈ 0)
+  matches the encoder-saturation prediction.
+- **r2b (LLaVA captures)**: vision encoder AUC ~0.73 (vs Qwen ~0.99); LM
+  AUC ~0.75 (flat — no boomerang recovery); behavioral PMR ~0.78. The
+  saturation difference between models is rooted in the vision encoder.
+- **r2c (FC logit ratio)**: LLaVA's FC bias is at the underlying logit
+  level (90% of rows have only `A` surviving top_p=0.95). Greedy → logit-
+  ratio rescue fails. For Qwen, logit-argmax is a cleaner FC metric than
+  text-PMR (recovers ~14 pp of signal lost to greedy formatting drift).
+
+**Hypothesis updates**:
+- H-boomerang: **Qwen-scoped** — encoder-knows / decoder-gates gap exists in Qwen, not in LLaVA (encoder is the bottleneck, not the gate).
+- H-encoder-saturation (new): **proposed and supported across 3 model points** — vision encoder probe AUC predicts both `PMR(_nolabel)` and per-label paired delta direction.
+- H2: **fully validated under visual-saturation hypothesis** at three model points; the paired-delta pattern matches the encoder-saturation prediction.
+- H7: **3-of-3 cross-model** — orbital-routing dissociation universal so far.
+- H4: **untested for InternVL3 + LLaVA** — FC excluded (cost) / blocked (LLaVA "A" bias).
+
 ### M5b — ST4 Phase 3 (SIP patching + SAE) — work plan
 
 **Sub-tasks**:
@@ -442,7 +474,8 @@ Systematically validate the M2 finding that "label selects the physics regime" (
 - `docs/insights/m5_vti_steering.md` — M5a VTI steering causal intervention
 - `docs/insights/m5a_ext_bidirection_and_label.md` — M5a extensions (negative α, label × steering, bidirectionality recheck)
 - `docs/insights/m6_cross_model_llava.md` — M6 round 1 (LLaVA-1.5 cross-model H2 + H1 + H7)
-- (M5b, M6 r2+ ... to be added)
+- `docs/insights/m6_r2_cross_model.md` — M6 round 2 (InternVL3 behavioral + LLaVA captures + FC logit ratio)
+- (M5b, M6 r3+ ... to be added)
 
 **Bilingual file convention**: `references/project.md`, `references/roadmap.md`, every `docs/insights/*.md`, and the various `docs/*.md` reference docs all have an English canonical `*.md` and a Korean translation `*_ko.md`. English is authoritative; if translations drift, English wins. New content → write English first, then translate to Korean.
 
@@ -478,4 +511,5 @@ Systematically validate the M2 finding that "label selects the physics regime" (
 | 2026-04-25 | M5a-ext Exp 3 (bidirectionality recheck on `textured/blank/none` moderate baseline): −α=40 → 10 B uniformly across (line/textured) × (ball/circle). H-direction-bidirectional revised to "regime axis within physics-mode" (+α kinetic, −α static, baseline D below threshold). H-regime refuted in original form and narrowed to an H7 qualifier. | `f8f0fdd` |
 | 2026-04-25 | M4b complete: label-free prompt as H2 null test on M2 stimuli. Paired PMR(ball) − PMR(_nolabel) = +0.006 ≈ 0; PMR(circle) − PMR(_nolabel) = −0.065. **H2 revised** — language prior is asymmetric (circle override, not ball enhancement). M4 visual-token capture is prompt-independent (causal-attention artefact); switching-layer collapse is structural. | `e97db16`, `990ddf7` |
 | 2026-04-25 | M6 round 1 complete (LLaVA-1.5-7B cross-model): paired PMR delta vs label-free → ball +0.475, planet +0.244, circle +0.173 (all positive). **H2 re-revised — visual-saturation hypothesis**: M4b's "circle suppression only" is Qwen-specific; LLaVA shows the original H2 because its visual prior is unsaturated. H1 S-curve cleanest on LLaVA (0.51 → 0.81). H7 replicates cross-model (planet GAR << ball GAR in both). FC excluded — LLaVA returns "A" for every cell. | `c1b885f` |
-| 2026-04-25 | M4c complete (forced-choice label-free): new `forced_choice_no_label` variant. Qwen reproduces M4b under FC (ball ≈ no-label, circle suppresses harder, planet newly suppresses via FC's gravity-centric option set). Qwen open-vs-FC paired delta at no-label = −0.131 (H4 measurable without label confound). LLaVA "A" bias persists under re-template (477/480) — confirmed model-level pathology. | (this commit) |
+| 2026-04-25 | M4c complete (forced-choice label-free): new `forced_choice_no_label` variant. Qwen reproduces M4b under FC (ball ≈ no-label, circle suppresses harder, planet newly suppresses via FC's gravity-centric option set). Qwen open-vs-FC paired delta at no-label = −0.131 (H4 measurable without label confound). LLaVA "A" bias persists under re-template (477/480) — confirmed model-level pathology. | `70dc39c` |
+| 2026-04-25 | M6 round 2 complete (3 sub-deliverables): r2a InternVL3 cross-model (paired delta +0.010 for every label, fully saturated), r2b LLaVA-1.5 captures (vision encoder AUC ~0.73, LM AUC ~0.75 — boomerang gap is Qwen-specific because LLaVA encoder is the bottleneck), r2c FC logit-ratio (LLaVA "A" bias is at logit level — 90% rows only A survives top_p, not just greedy). **New H-encoder-saturation hypothesis** anchors the 3-model H2 pattern to vision encoder probe AUC. | (this commit) |

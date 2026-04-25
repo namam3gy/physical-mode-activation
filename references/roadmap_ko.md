@@ -39,13 +39,14 @@
 | ID | 가설 | 상태 (post-M5a-ext recheck) | 근거 / 다음 검증 |
 |---|---|---|---|
 | **H1** | PMR이 추상화 축(line → textured)에 따라 S자형 증가; 3D 음영·지면 도입이 가장 큰 단계 증가. | **지지, LLaVA-clean** | M2 (Qwen): 4개 object_level monotone (0.744 → 0.832) 이지만 saturated. M6 (LLaVA-1.5, 2026-04-25): 동일한 axis 위에서 open prompt 로 깔끔한 S-curve 0.51 → 0.81. Qwen 은 ceiling 이므로 LLaVA S-curve 를 canonical figure 로 권장. |
-| **H2** | "ball" 라벨은 선화에서도 PMR을 크게 증가시킨다 → 언어 prior 독립 기여. | **재개정 — visual-saturation 가설** | Qwen M4b: paired delta vs label-free → ball/planet ≈ +0.006, circle = −0.065 (비대칭, `circle` 만 움직임). LLaVA M6: ball +0.475, planet +0.244, circle +0.173 (모두 양수, 원래 H2 성립). 두 모델 통합: language prior 는 모든 label 에서 양수 (또는 0); strong vision prior 모델에서는 visual saturation 이 양의 기여를 mask 하고 음의 `circle` signal 만 남길 수 있음 — M4b 에서 Qwen 에 관찰된 게 그것. M4b 의 "circle suppression only" 해석은 **Qwen 특이적**, Qwen 의 PMR(_nolabel) ≈ 0.95 ceiling 의 결과. |
+| **H2** | "ball" 라벨은 선화에서도 PMR을 크게 증가시킨다 → 언어 prior 독립 기여. | **세 점으로 완전 검증 + encoder-anchored** | Qwen (saturated, M4b): ball/planet ≈ 0, circle = −0.065. LLaVA (unsaturated, M6 r1): ball +0.475, planet +0.244, circle +0.173. InternVL3 (super-saturated, M6 r2a): 모든 label +0.010 ≈ noise. 3-model paired-delta 패턴이 encoder-saturation 예측과 일치. M6 r2b 가 saturation 차이가 vision encoder probe AUC (Qwen 0.99 vs LLaVA 0.73) 에 뿌리내림을 보임. M4b 의 "circle suppression only" 패턴은 encoder 가 이미 saturated 인 Qwen 특이적 증상. |
 | **H3** | 장면 불일치는 RC를 저하시킨다. | **미검증** | axis E 는 M2에서 빠짐 (complexity); 별도 mini-실험으로 처리. RC 인프라는 M2에서 검증됨 (103/288 cells RC<1). |
 | **H4** (pilot-derived) | Open vs forced-choice PMR gap 은 **언어 prior ↔ 시각 증거** 충돌의 안정적 signature다. | **지지 — 확장** | M2: gap이 모든 object_level에 존재 (line 32pp → textured 22pp). 추상도 ↑ 일수록 gap ↑ — abstraction 이 vision 증거를 약화시켜 언어가 더 지배한다는 structural prediction. 다음 검증: ST5 cross-model. |
 | **H5** (pilot-derived) | 지면 한 줄(ground line) 단독이 텍스처 공 + no ground 보다 **더 큰** PMR 증가를 만든다. | **혼재** | M2: bg delta (blank 0.67 → scene 0.88 = +21pp) > object delta (line 0.74 → textured 0.83 = +9pp). 방향은 맞음; 단 scene 이 ground 를 또 넘음. |
 | **H6** (pilot-derived) | arrow+shadow cue의 포화는 **cast shadow 단독**으로도 일어나며, arrow는 annotation에 가깝다. | **지지 (수정)** | M2 분해: cast_shadow 단독 = +17.5 pp above none (Kersten 지면 부착 cue 확인); **그러나 arrow 도 단독으로 0.96 에 saturate** — "arrow 는 annotation" 부분은 반증. Arrow 가 dominant cue, shadow 가 secondary. |
-| **H7** (M2-derived) | 라벨은 PMR 을 toggle 하는 것이 아니라 **어떤 물리 regime** 을 선택한다. | **지지 but narrower; cross-model 재현** | M2 GAR: ball 0.79 / circle 0.70 / planet 0.48. M5a-ext Exp 2: `line/blank/none × +α=40` 에서 label flip 으로 B↔A swap. M5a-ext Exp 3 qualifier: `textured/blank/none` 에서는 label 단독 flip 실패 (+α=40 → label 무관 A); regime 은 joint (image, label, α sign) 로 선택. M6 cross-model: `planet` GAR < `ball`/`circle` GAR 가 LLaVA (0.07 vs 0.36/0.15) 와 Qwen 양쪽에서 성립 — orbital-routing dissociation 이 Qwen 특이적이지 않음. |
-| **H-boomerang** | Encoder 는 알고, decoder 가 gate: vision encoder 가 physics-mode class 를 linear 로 분리하지만 behavior 는 실패. | **지지 + causal** | M3: encoder AUC=1.00 전 factorial 축 전 probed layer; behavior 0.28-0.95. M4: LM 을 통과한 정보 보존 (AUC 0.94-0.95). M5a: L10 의 causal intervention 이 behavior flip. |
+| **H7** (M2-derived) | 라벨은 PMR 을 toggle 하는 것이 아니라 **어떤 물리 regime** 을 선택한다. | **지지 but narrower; 3-of-3 cross-model 재현** | M2 GAR: ball 0.79 / circle 0.70 / planet 0.48. M5a-ext Exp 2: `line/blank/none × +α=40` 에서 label flip 으로 B↔A swap. M5a-ext Exp 3 qualifier: `textured/blank/none` 에서는 label 단독 flip 실패. M6 r1 + r2a cross-model: `planet GAR << ball/circle GAR` 가 Qwen (0.32 vs 0.71/0.75), LLaVA-1.5 (0.07 vs 0.36/0.15), InternVL3 (0.43 vs 0.82/0.79) 모두에서 성립. Orbital-routing dissociation 이 모델 특이적 아님. |
+| **H-boomerang** | Encoder 는 알고, decoder 가 gate: vision encoder 가 physics-mode class 를 linear 로 분리하지만 behavior 는 실패. | **Qwen 특이적 (revised)** | Qwen2.5-VL 에서 성립: M3 encoder AUC ~0.99 모든 layer; M4 LM AUC ~0.94 visual tokens; behavioral PMR ~0.93 — 작은 "encoder knows, decoder mildly gates" gap. M5a: L10 causal intervention 이 behavior flip. **LLaVA-1.5 에서 반증** (M6 r2b): vision encoder AUC ~0.73, LM AUC ~0.75, behavioral ~0.78 — pipeline 평탄, encoder 가 bottleneck. Boomerang 현상은 encoder saturation 필요. |
+| **H-encoder-saturation** (M6 r2-derived) | 모델 간 `PMR(_nolabel)` 변동과 per-label paired-delta 방향이 vision encoder 의 physics-vs-abstract probe AUC 에 뿌리내림. | **제안 + 지지 (3-model)** | M6 r2b: Qwen vision AUC 0.99 / behavioral PMR(_nolabel) 0.95; LLaVA AUC 0.73 / behavioral 0.38; InternVL3 미캡처지만 behavioral PMR(_nolabel) 0.99 (saturation profile 일치). 예측: vision-encoder AUC < 0.85 모델은 큰 양의 label delta; AUC > 0.95 모델은 작거나 sign-mixed. Counterfactual (vision-encoder swap) 미실행, Round 3 deferred. |
 | **H-locus** (M4-derived) | Bottleneck 은 LM final layers + decoding head 에 있으며 그 이전은 아님. | **지지 (early-mid sweet spot)** | M5a: L10 α=40 은 10/10 abstract → physical 응답을 flip; 후반 layer 들은 움직이지 않음. M5a-ext Exp 3: L10 regime-flip (sign 으로 A vs B) 이 모든 cell 에서 성립. Basu et al. 2024 의 early-layer constraint-storage 결과와 정합. |
 | **H-direction-bidirectional** (M5a-ext, 2026-04-24; 개정 2026-04-25) | `v_L10` 은 단순 bidirectional concept axis 로, −α 가 physics-mode 를 abstract 로 억제한다. | **revised — physics-mode 내부의 regime axis** | Exp 1 (textured/ground/both ceiling): −α 효과 없음 → 초기 "one-way activator" 프레이밍. Exp 3 (textured/blank/none moderate, 2026-04-25): −α=40 이 (line, textured) × (ball, circle) 모두에서 D → B ("stays still") 를 균일하게 유도. α 의 sign 이 regime 을 선택 (+kinetic / −static); baseline D 는 \|α\| threshold *아래* 에 위치 (axis endpoint 가 아님). |
 | **H-regime** (M5a-derived) | Steering direction 은 binary "object-ness"이고 physics regime 은 label 이 결정. | **원래 형태로는 반증** | Kinetic vs static 이 이미 sign-selected regime 이어서 H-direction-bidirectional 해석으로 대체. `line/blank/none × +α=40` 의 좁은 label-driven flip (Exp 2) 은 H7 qualifier 로 흡수. |
@@ -72,8 +73,9 @@
 | M4b | **Label-free prompt — H2 null test** | M2 자극에 `open_no_label` variant. **핵심 결과**: `ball` ≈ no-label; `circle` 이 PMR 을 6.5 pp 억제. 원래 H2 재해석: language prior 는 비대칭 — circle override, ball enhancement 아님. M4 visual-token capture 가 prompt-independent (구조적 artefact). | ✅ | 2026-04-25 |
 | M6 r1 | **ST5 round 1 — LLaVA-1.5-7B cross-model** | M2 + M4b 프로토콜을 LLaVA-1.5-7B 에. **핵심 결과**: M4b 의 "circle suppression" 은 **Qwen 특이적** — LLaVA 는 *원래의* H2 (ball +47.5 pp, 모든 label 이 no-label baseline 대비 양수). 새 통합 가설: language prior 가 모든 label 에서 양수; Qwen 의 visual saturation 이 양의 기여를 mask 함. H7 cross-model 재현 (planet GAR << ball GAR 두 모델 모두). LLaVA 가 본 프로젝트 가장 깔끔한 H1 S-curve 제공. FC 제외 (LLaVA 가 모든 cell 에 "A" 반환). | ✅ | 2026-04-25 |
 | M4c | **Forced-choice label-free** | 새 `forced_choice_no_label` variant ("the depicted object" antecedent 사용). Qwen 이 FC 하에서 M4b 의 H2 패턴 재현 + planet 억제 효과 추가 (옵션-셋 편향: orbital regime 이 D 로 collapse). LLaVA 의 "A" 편향이 re-template 에서도 유지 (477/480), 모델 수준 pathology 확인. | ✅ | 2026-04-25 |
+| M6 r2 | **Cross-model round 2 (3-model + LLaVA captures + FC logit ratio)** | r2a: InternVL3-8B-hf cross-model 행동; r2b: LLaVA-1.5 activation captures + cross-model M3/M4 probing; r2c: 모든 FC run 의 first-token logit-ratio 채점. **핵심 결과**: visual-saturation 가설 3-of-3 모델 완전 검증; vision encoder probe AUC 에 뿌리 (Qwen 0.99, LLaVA 0.73). H-boomerang 을 Qwen-scoped 로 revised. 신규 **H-encoder-saturation** 가설. LLaVA "A" 편향이 logit-level (greedy-level 아님). | ✅ | 2026-04-25 |
 | **M5b** | **ST4 Phase 3 — SIP + patching + SAE** | Semantic Image Pairs + activation patching (attention 필요 → re-capture) + SAE feature decomposition. | ▶ **다음 (선택)** | — |
-| M6 r2+ | ST5 round 2+ — 추가 모델 | LLaVA-Next, InternVL2, (optional) Qwen2-VL; FC re-template; LLaVA activation captures (boomerang / steering cross-model). | 대기 | — |
+| M6 r3+ | ST5 round 3+ — encoder counterfactuals + LLaVA-Next | LLaVA-Next, vision-encoder swap (H-encoder-saturation 인과 검증), InternVL3 captures. | 대기 | — |
 | M7 | 인간 baseline + 논문 작성 | Prolific 20명 × 50 stim + EMNLP/NeurIPS 초안 | optional | — |
 
 ---
@@ -365,6 +367,28 @@
 - LLaVA FC pathology: **확정** — round-2 아이디어는 greedy argmax 대신
   first-token logit 비율 사용.
 
+### M6 round 2 — Cross-model 확장 ✅ (2026-04-25)
+
+세 sub-deliverable. Run dirs:
+
+- `outputs/cross_model_internvl3_20260425-051009_fc710e85/` — InternVL3 labeled (1440 rows).
+- `outputs/cross_model_internvl3_label_free_20260425-053116_ea0a07c5/` — InternVL3 label-free (480 rows).
+- `outputs/cross_model_llava_capture_20260425-054821_65214a5d/` — LLaVA captured (1440 rows + 14 GB activations + probing_vision/ + probing_lm/).
+
+심층 인사이트: `docs/insights/m6_r2_cross_model_ko.md`. 원자료: `docs/experiments/m6_r2_cross_model_ko.md`.
+
+**핵심 결과**:
+- **r2a (InternVL3 행동)**: paired delta vs label-free 가 모든 label 에서 +0.010 — InternVL3 의 PMR(_nolabel) = 0.99 이라 headroom 없음. 3-model paired-delta 패턴 (Qwen ≈ 0, LLaVA 강한 양수, InternVL3 ≈ 0) 이 encoder-saturation 예측과 일치.
+- **r2b (LLaVA captures)**: vision encoder AUC ~0.73 (vs Qwen ~0.99); LM AUC ~0.75 (평탄 — boomerang recovery 없음); behavioral PMR ~0.78. 모델 간 saturation 차이가 vision encoder 에 뿌리내림.
+- **r2c (FC logit ratio)**: LLaVA FC 편향이 underlying logit 수준 (90% rows 가 top_p=0.95 에 `A` 만 통과). Greedy → logit-ratio rescue 실패. Qwen 의 경우 logit-argmax 가 text-PMR 보다 깨끗한 FC metric (greedy formatting drift 로 잃은 ~14 pp 신호 회복).
+
+**가설 업데이트**:
+- H-boomerang: **Qwen-scoped** — encoder-knows / decoder-gates gap 이 Qwen 에 존재, LLaVA 에는 없음 (encoder 가 bottleneck, gate 아님).
+- H-encoder-saturation (신규): **3 모델 점에 걸쳐 제안 + 지지** — vision encoder probe AUC 가 `PMR(_nolabel)` 와 per-label paired delta 방향 모두 예측.
+- H2: **세 모델 점에서 visual-saturation 가설 하 완전 검증**; paired-delta 패턴이 encoder-saturation 예측과 일치.
+- H7: **3-of-3 cross-model** — orbital-routing dissociation 이 보편적.
+- H4: **InternVL3 + LLaVA 미검정** — FC 제외 (cost) / 차단 (LLaVA "A" 편향).
+
 ### M5b — ST4 Phase 3 (SIP patching + SAE) — 작업 상세
 
 **작업 분할**:
@@ -513,4 +537,5 @@ M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static 
 | 2026-04-25 | M5a-ext Exp 3 (`textured/blank/none` moderate baseline 에서 양방향성 재검정): −α=40 → (line/textured) × (ball/circle) 모두에서 10 B 를 균일하게 유도. H-direction-bidirectional 을 "physics-mode 내부의 regime axis" 로 개정 (+α kinetic, −α static, baseline D 는 threshold 아래). H-regime 원래 형태 반증 후 H7 qualifier 로 축소. | `f8f0fdd` |
 | 2026-04-25 | M4b 완료: M2 자극에 label-free prompt 를 H2 null test 로 적용. Paired PMR(ball) − PMR(_nolabel) = +0.006 ≈ 0; PMR(circle) − PMR(_nolabel) = −0.065. **H2 revised** — language prior 는 비대칭 (circle override, ball enhancement 아님). M4 visual-token capture 가 prompt-independent (causal-attention artefact); switching-layer 의 붕괴는 구조적 현상. | `e97db16`, `990ddf7` |
 | 2026-04-25 | M6 round 1 완료 (LLaVA-1.5-7B cross-model): paired PMR delta vs label-free → ball +0.475, planet +0.244, circle +0.173 (모두 양수). **H2 재개정 — visual-saturation 가설**: M4b 의 "circle suppression only" 은 Qwen 특이적; LLaVA 는 visual prior 가 unsaturated 라서 원래 H2 보여줌. H1 S-curve 가 LLaVA 에서 가장 깔끔 (0.51 → 0.81). H7 cross-model 재현 (planet GAR << ball GAR 두 모델 모두). FC 제외 — LLaVA 가 모든 cell 에 "A" 반환. | `c1b885f` |
-| 2026-04-25 | M4c 완료 (forced-choice label-free): 새 `forced_choice_no_label` variant. Qwen 이 FC 하에서 M4b 재현 (ball ≈ no-label, circle 이 더 강하게 억제, planet 이 FC gravity-centric 옵션 셋으로 인해 새로 억제). Qwen 의 no-label 에서 open-vs-FC paired delta = −0.131 (label confound 없는 H4 측정 가능). LLaVA "A" 편향이 re-template 에서도 유지 (477/480) — 모델 수준 pathology 확인. | (this commit) |
+| 2026-04-25 | M4c 완료 (forced-choice label-free): 새 `forced_choice_no_label` variant. Qwen 이 FC 하에서 M4b 재현 (ball ≈ no-label, circle 이 더 강하게 억제, planet 이 FC gravity-centric 옵션 셋으로 인해 새로 억제). Qwen 의 no-label 에서 open-vs-FC paired delta = −0.131 (label confound 없는 H4 측정 가능). LLaVA "A" 편향이 re-template 에서도 유지 (477/480) — 모델 수준 pathology 확인. | `70dc39c` |
+| 2026-04-25 | M6 round 2 완료 (3 sub-deliverable): r2a InternVL3 cross-model (모든 label paired delta +0.010, fully saturated), r2b LLaVA-1.5 captures (vision encoder AUC ~0.73, LM AUC ~0.75 — boomerang gap 이 Qwen 특이적, LLaVA encoder 가 bottleneck), r2c FC logit-ratio (LLaVA "A" 편향이 logit 수준 — top_p 에 90% rows 가 A 만 통과, greedy 가 아님). **신규 H-encoder-saturation 가설** 이 3-model H2 패턴을 vision encoder probe AUC 에 anchor. | (this commit) |

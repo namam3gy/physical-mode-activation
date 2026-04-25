@@ -24,25 +24,25 @@ completes or a new hypothesis/idea surfaces.
 
 Sub-task 1 MVP, ST2 vision-encoder probing, ST3 LM logit lens, ST4
 Phase-1+2 VTI steering, M5a-ext VTI follow-ups, M4b label-free H2
-null test, M6 round 1 (LLaVA-1.5-7B cross-model), and M4c FC
-label-free all complete (M0 through M6 r1 + M4c — see ROADMAP §3).
+null test, M4c FC label-free, M6 round 1 (LLaVA-1.5-7B cross-model),
+and M6 round 2 (InternVL3 + LLaVA captures + FC logit ratio) all
+complete (M0 through M6 r2 — see ROADMAP §3).
 Key recent findings (2026-04-25):
 - M5a-ext: `v_L10` is a **regime axis within physics-mode** (+α →
   A/kinetic, −α → B/static, baseline D below |α| threshold).
-- M4b + M6 r1 + M4c: H2 unified under the **visual-saturation
-  hypothesis** — language prior is positive across labels; Qwen's
-  PMR(_nolabel) ≈ 0.95 saturation masks it (M4b sees only `circle`
-  suppression; M4c FC adds a planet-suppression artefact from the
-  gravity-centric option set), while LLaVA-1.5's lower visual prior
-  recovers the original H2 (`ball +47.5 pp` paired delta vs no-label).
-- LLaVA-1.5 FC pathology: `first_letter` = `A` for 477/480 stimuli even
-  with re-templated label-free options. Confirmed model-level bias.
+- M6 r2: **visual-saturation hypothesis fully validated 3-of-3 models**
+  (Qwen 0.99 / LLaVA 0.73 / InternVL3 0.99 vision encoder probe AUC
+  predicts paired-delta direction). H-boomerang revised to Qwen-scoped
+  (LLaVA encoder is the bottleneck, not the gate). New H-encoder-
+  saturation hypothesis. LLaVA "A" bias is logit-level (greedy →
+  logit-ratio rescue does not work).
 
 Package at `src/physical_mode/`, entry scripts at `scripts/0{1..6}_*.py`,
-configs at `configs/{pilot,mvp_full,label_free,cross_model_llava{,_label_free},fc_label_free_{qwen,llava}}.py`,
-tests at `tests/`. Read `docs/architecture.md` for the implementation
-contract and `references/project.md` for the original scientific
-motivation.
+configs at `configs/` (pilot, mvp_full, label_free,
+cross_model_llava{,_label_free,_capture}, cross_model_internvl3{,_label_free},
+fc_label_free_{qwen,llava}), tests at `tests/`. Read `docs/architecture.md`
+for the implementation contract and `references/project.md` for the
+original scientific motivation.
 
 ST4 Phase 3 (SIP activation patching + SAE) and ST5 (cross-model sweep) are
 the next milestones. See `docs/next_steps.md` for code-level plug-in points

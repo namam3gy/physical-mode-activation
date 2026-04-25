@@ -219,6 +219,9 @@ class PhysModeVLM:
                 def _make_hook(layer_idx: int):
                     def hook(_module, _inputs, output):
                         t = output[0] if isinstance(output, tuple) else output
+                        # Strip batch dim for batch=1 (probing expects (n_tokens, dim)).
+                        if t.dim() == 3 and t.shape[0] == 1:
+                            t = t[0]
                         vision_captures[layer_idx] = t.detach().to(
                             "cpu", dtype=torch.bfloat16
                         ).contiguous()
@@ -298,17 +301,23 @@ def _resolve_vision_blocks(model) -> Any:
     """Return the vision-encoder block list for the given model, or None.
 
     Qwen2.5-VL: model.model.visual.blocks (ModuleList of 32 Qwen2_5_VLVisionBlock).
-    LLaVA-family: model.vision_tower.vision_model.encoder.layers.
-    InternVL2: model.vision_model.encoder.layers.
+    LLaVA-1.5 (hf wrapper): model.model.vision_tower.encoder.layers (CLIPVisionModel
+        with `encoder` directly, no extra `vision_model` wrapper).
+    LLaVA-Next / older wrappers: model.{,model.}vision_tower.vision_model.encoder.layers.
+    InternVL: model.{,model.}vision_model.encoder.layers.
     """
     inner = getattr(model, "model", model)
     # Qwen2.5-VL / Qwen2-VL
     visual = getattr(inner, "visual", None)
     if visual is not None and hasattr(visual, "blocks"):
         return visual.blocks
-    # LLaVA
+    # LLaVA-family vision tower
     vt = getattr(model, "vision_tower", None) or getattr(inner, "vision_tower", None)
     if vt is not None:
+        # Newer hf wrapper: encoder is directly on vt (CLIPVisionModel).
+        if hasattr(vt, "encoder") and hasattr(vt.encoder, "layers"):
+            return vt.encoder.layers
+        # Older: extra vision_model wrapper.
         vm = getattr(vt, "vision_model", None)
         if vm is not None and hasattr(vm, "encoder") and hasattr(vm.encoder, "layers"):
             return vm.encoder.layers
