@@ -103,6 +103,16 @@ def draw_object(
         if mode == "textured":
             return _draw_textured_car(img, cx, cy, radius, seed)
 
+    if shape == "person":
+        if mode == "line":
+            return _draw_line_person(img, cx, cy, radius)
+        if mode == "filled":
+            return _draw_filled_person(img, cx, cy, radius)
+        if mode == "shaded":
+            return _draw_shaded_person(img, cx, cy, radius)
+        if mode == "textured":
+            return _draw_textured_person(img, cx, cy, radius, seed)
+
     raise ValueError(f"unknown (shape, mode): ({shape}, {mode})")
 
 
@@ -640,6 +650,107 @@ def _draw_textured_car(img: Image.Image, cx: int, cy: int, r: int, seed: int) ->
     d.rectangle(g["windshield_box"], fill=(150, 190, 220), outline=(40, 40, 40), width=1)
     # Glare line.
     d.line((wx0 + 4, wy0 + 4, wx1 - 4, wy0 + (wy1 - wy0) // 3), fill=(230, 240, 250), width=2)
+    return img
+
+
+# ---------------------------------------------------------------------------
+# M8d person primitives. Stick-figure family: head circle + body line + arms + legs.
+# Recognizable at every abstraction level.
+# ---------------------------------------------------------------------------
+
+
+def _person_geometry(cx: int, cy: int, r: int) -> dict:
+    """Stick-figure geometry — head, torso, arm/leg endpoints."""
+    head_r = int(r * 0.28)
+    head_cy = cy - r + head_r
+    torso_top = head_cy + head_r
+    torso_bottom = cy + r // 2
+    arm_y = torso_top + int(r * 0.28)
+    leg_y = cy + r
+    return dict(
+        head=(cx, head_cy, head_r),
+        torso=((cx, torso_top), (cx, torso_bottom)),
+        left_arm=((cx, arm_y), (cx - int(r * 0.65), arm_y + int(r * 0.4))),
+        right_arm=((cx, arm_y), (cx + int(r * 0.65), arm_y + int(r * 0.4))),
+        left_leg=((cx, torso_bottom), (cx - int(r * 0.45), leg_y)),
+        right_leg=((cx, torso_bottom), (cx + int(r * 0.45), leg_y)),
+    )
+
+
+def _draw_line_person(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    g = _person_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    hx, hy, hr = g["head"]
+    d.ellipse((hx - hr, hy - hr, hx + hr, hy + hr), outline=(0, 0, 0), width=3)
+    for limb in ("torso", "left_arm", "right_arm", "left_leg", "right_leg"):
+        p1, p2 = g[limb]
+        d.line((p1, p2), fill=(0, 0, 0), width=3)
+    return img
+
+
+def _draw_filled_person(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    """Filled silhouette: thick black body + filled head."""
+    g = _person_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    hx, hy, hr = g["head"]
+    d.ellipse((hx - hr, hy - hr, hx + hr, hy + hr), fill=(0, 0, 0))
+    for limb in ("torso", "left_arm", "right_arm", "left_leg", "right_leg"):
+        p1, p2 = g[limb]
+        d.line((p1, p2), fill=(0, 0, 0), width=10)
+    return img
+
+
+def _draw_shaded_person(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    """Person with subtle 3D shading: head with gradient, body as gradient column."""
+    g = _person_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    hx, hy, hr = g["head"]
+    # Head with simple top-light gradient.
+    n_strips = 16
+    for i in range(n_strips):
+        t = i / max(1, n_strips - 1)
+        c = int(230 - 90 * t)
+        y0 = hy - hr + int(2 * hr * (i / n_strips))
+        y1 = hy - hr + int(2 * hr * ((i + 1) / n_strips))
+        d.ellipse((hx - hr, y0, hx + hr, y1), fill=(c, c, c))
+    d.ellipse((hx - hr, hy - hr, hx + hr, hy + hr), outline=(60, 60, 60), width=2)
+    # Body strokes as filled rectangles with mid-grey + outline.
+    body_color = (140, 140, 150)
+    body_outline = (60, 60, 70)
+    for limb in ("torso", "left_arm", "right_arm", "left_leg", "right_leg"):
+        p1, p2 = g[limb]
+        d.line((p1, p2), fill=body_color, width=14)
+        d.line((p1, p2), fill=body_outline, width=2)
+    return img
+
+
+def _draw_textured_person(img: Image.Image, cx: int, cy: int, r: int, seed: int) -> Image.Image:
+    """Person with skin-tone face + clothing color block."""
+    # Per-category RNG offset: decouples palette/jitter draws across
+    # categories for the same input seed (car=11000, person=22000, bird=33000).
+    rng = random.Random(seed + 22000)
+    skin_palette = [(232, 192, 158), (210, 165, 130), (170, 120, 90), (130, 90, 70)]
+    skin = skin_palette[rng.randrange(len(skin_palette))]
+    clothes_palette = [(60, 90, 160), (160, 60, 60), (60, 120, 60), (180, 130, 50)]
+    clothes = clothes_palette[rng.randrange(len(clothes_palette))]
+    g = _person_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    hx, hy, hr = g["head"]
+    # Head: skin color + outline + simple eyes.
+    d.ellipse((hx - hr, hy - hr, hx + hr, hy + hr), fill=skin, outline=(40, 30, 30), width=2)
+    eye_r = max(2, hr // 6)
+    eye_y = hy - hr // 8
+    d.ellipse((hx - hr // 2 - eye_r, eye_y - eye_r, hx - hr // 2 + eye_r, eye_y + eye_r), fill=(20, 20, 20))
+    d.ellipse((hx + hr // 2 - eye_r, eye_y - eye_r, hx + hr // 2 + eye_r, eye_y + eye_r), fill=(20, 20, 20))
+    # Torso (clothing block) and limbs.
+    for limb in ("torso", "left_arm", "right_arm"):
+        p1, p2 = g[limb]
+        d.line((p1, p2), fill=clothes, width=14)
+    # Legs (a different darker tone).
+    legs = (max(0, clothes[0] - 50), max(0, clothes[1] - 50), max(0, clothes[2] - 50))
+    for limb in ("left_leg", "right_leg"):
+        p1, p2 = g[limb]
+        d.line((p1, p2), fill=legs, width=14)
     return img
 
 
