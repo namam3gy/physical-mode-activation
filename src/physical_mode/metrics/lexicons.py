@@ -136,15 +136,19 @@ ABSTRACT_MARKERS: frozenset[str] = frozenset({
 # add them to a phrase-based lexicon instead.
 CATEGORY_REGIME_KEYWORDS: dict[str, dict[str, frozenset[str]]] = {
     "car": {
-        "kinetic": frozenset({"driv", "roll", "spee", "mov", "race", "accel"}),
-        "static":  frozenset({"park", "stop", "stay", "still", "stationary", "display"}),
+        # "drift" intentionally NOT included — drift is racing-kinetic but
+        # also colloquial static ("the car drifts to a stop"); ambiguous.
+        "kinetic": frozenset({"driv", "roll", "spee", "mov", "race", "accel", "trav", "head"}),
+        # "remain" added (smoke showed "remain stationary" + "remains stopped"
+        # are common static phrasings).
+        "static":  frozenset({"park", "stop", "stay", "still", "stationary", "display", "remain"}),
     },
     "person": {
-        "kinetic": frozenset({"walk", "run", "jog", "step", "stride", "mov"}),
-        "static":  frozenset({"stand", "stay", "still", "stationary", "motionless", "frozen", "sit", "rest"}),
+        "kinetic": frozenset({"walk", "run", "jog", "step", "stride", "mov", "march", "pace"}),
+        "static":  frozenset({"stand", "stay", "still", "stationary", "motionless", "frozen", "sit", "rest", "remain"}),
     },
     "bird": {
-        "kinetic": frozenset({"fly", "fli", "flew", "flown", "swim", "swam", "soar", "waddl", "mov", "glid"}),
-        "static":  frozenset({"perch", "sit", "stay", "still", "stationary", "rest"}),
+        "kinetic": frozenset({"fly", "fli", "flew", "flown", "swim", "swam", "soar", "waddl", "mov", "glid", "flap", "hop"}),
+        "static":  frozenset({"perch", "sit", "stay", "still", "stationary", "rest", "remain"}),
     },
 }

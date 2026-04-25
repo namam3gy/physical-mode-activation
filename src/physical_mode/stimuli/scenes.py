@@ -14,15 +14,34 @@ OBJ_RADIUS = 64  # 128px diameter
 GROUND_FRACTION = 0.78  # ground y = 0.78 * canvas = 399
 
 
-def _object_center_for_event(event: str, canvas: int, ground_y: int) -> tuple[int, int]:
-    """Return where the object should sit for each event template."""
+_GROUND_BOUND_SHAPES: frozenset[str] = frozenset({"car", "person"})
+
+
+def _object_center_for_event(
+    event: str,
+    canvas: int,
+    ground_y: int,
+    shape: str = "circle",
+    radius: int = 64,
+) -> tuple[int, int]:
+    """Return where the object should sit for each event template.
+
+    For `horizontal` events, ground-bound categories (`car`, `person`) sit
+    *on* the ground line so that the natural-motion reading (drives /
+    walks) is geometrically consistent with the cast shadow. Birds and
+    abstract shapes keep the legacy mid-height placement (a bird flying
+    horizontally is naturally airborne).
+    """
     mid_x = canvas // 2
     if event == "fall":
         # Object high above ground, centered horizontally.
         return (mid_x, int(canvas * 0.25))
     if event == "horizontal":
-        # Mid-height, slightly left of center so wind/arrow has room.
-        return (int(canvas * 0.35), int(canvas * 0.45))
+        x = int(canvas * 0.35)
+        if shape in _GROUND_BOUND_SHAPES:
+            # Place the object so its base touches the ground line.
+            return (x, ground_y - radius)
+        return (x, int(canvas * 0.45))
     if event == "hover":
         return (mid_x, int(canvas * 0.4))
     if event == "wall_bounce":
@@ -47,8 +66,15 @@ def render_scene(row: StimulusRow, size: int = CANVAS) -> Image.Image:
     elif row.bg_level == "scene":
         img = P.draw_scene(img, ground_y, seed=row.seed)
 
-    # 2. Object position based on event template.
-    cx, cy = _object_center_for_event(row.event_template, size, ground_y)
+    # 2. Object position based on event template (and shape for ground-bound
+    #    categories whose horizontal-motion natural event is ground-level).
+    cx, cy = _object_center_for_event(
+        row.event_template,
+        size,
+        ground_y,
+        shape=getattr(row, "shape", "circle"),
+        radius=OBJ_RADIUS,
+    )
 
     # 3. Context cue rendered *behind* the object where appropriate, *in front* otherwise.
     shadow_cues = {"cast_shadow", "both", "arrow_shadow"}
