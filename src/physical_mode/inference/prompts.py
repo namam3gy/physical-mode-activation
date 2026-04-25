@@ -1,11 +1,13 @@
 """Prompt templates for PhysCue evaluation.
 
-Two families:
-  - `open`: free-form next-state prediction. PMR is scored from the response text.
-  - `forced_choice`: 4-way MCQ over {falls, stays, moves sideways, abstract shape}.
+Variants:
+  - `open`: free-form next-state prediction with a `{label}` referent.
+  - `forced_choice`: 4-way MCQ over {falls, stays, moves sideways, abstract shape} with a `{label}` referent.
+  - `open_no_label`: free-form, no label referent — H2 null-hypothesis probe (§4.9).
 
-The {label} slot carries axis D of the factorial (circle / ball / planet / shape).
-The same stimulus image is rendered once; only the prompt changes between variants.
+The `{label}` slot carries axis D of the factorial (circle / ball / planet /
+shape). `open_no_label` is label-free by design; its `label` field should be the
+`_nolabel` sentinel so output provenance stays unambiguous.
 """
 
 from __future__ import annotations
@@ -27,6 +29,11 @@ SYSTEM_PROMPT_FC = (
 OPEN_TEMPLATE = (
     "The image shows a {label}. Describe what will happen to the {label} in the next moment, "
     "in one short sentence."
+)
+
+OPEN_TEMPLATE_NO_LABEL = (
+    "What do you see in the image? What might happen next? "
+    "Answer in one short sentence."
 )
 
 FORCED_CHOICE_TEMPLATE = (
@@ -57,6 +64,14 @@ def render(variant: str, label: str) -> RenderedPrompt:
             label=label,
             system=SYSTEM_PROMPT_OPEN,
             user=OPEN_TEMPLATE.format(label=label),
+            choice_letters=None,
+        )
+    if variant == "open_no_label":
+        return RenderedPrompt(
+            variant="open_no_label",
+            label=label,
+            system=SYSTEM_PROMPT_OPEN,
+            user=OPEN_TEMPLATE_NO_LABEL,
             choice_letters=None,
         )
     if variant == "forced_choice":

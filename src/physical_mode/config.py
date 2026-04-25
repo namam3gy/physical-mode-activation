@@ -17,8 +17,8 @@ CueLevel = Literal[
     "both",          # shadow + arrow (equivalent to legacy arrow_shadow)
 ]
 EventTemplate = Literal["fall", "roll_slope", "wall_bounce", "hover", "horizontal"]
-Label = Literal["circle", "ball", "planet", "shape", "object"]
-PromptVariant = Literal["open", "forced_choice"]
+Label = Literal["circle", "ball", "planet", "shape", "object", "_nolabel"]
+PromptVariant = Literal["open", "open_no_label", "forced_choice"]
 
 
 @dataclass(frozen=True)

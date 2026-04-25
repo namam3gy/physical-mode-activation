@@ -211,12 +211,23 @@ def load_lm_probing_dataset(
     activations_dir: Path | str,
     predictions_path: Path | str,
     layers: Iterable[int],
-    pmr_source: Literal["open", "forced_choice"] = "forced_choice",
+    pmr_source: str = "forced_choice",
 ):
+    """Load per-layer LM hidden states and per-sample PMR binary label.
+
+    ``pmr_source`` is matched against the ``prompt_variant`` column — any
+    string the config uses works (``"open"``, ``"forced_choice"``,
+    ``"open_no_label"``, ...). Pass an empty string to use all rows.
+    """
     activations_dir = Path(activations_dir)
     preds = pd.read_parquet(predictions_path)
-    if pmr_source in ("open", "forced_choice"):
+    if pmr_source:
         sub = preds[preds["prompt_variant"] == pmr_source]
+        if sub.empty:
+            raise ValueError(
+                f"No predictions rows with prompt_variant={pmr_source!r}. "
+                f"Available variants: {sorted(preds['prompt_variant'].unique())}"
+            )
     else:
         sub = preds
     per_sample = sub.groupby("sample_id")["pmr"].mean()

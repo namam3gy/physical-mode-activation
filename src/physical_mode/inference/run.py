@@ -90,11 +90,12 @@ def run_inference(cfg: EvalConfig, manifest_dir: Path) -> Path:
                     jf.flush()
                     pbar.update(1)
 
-            # Activation capture is once per stimulus (prompt-independent for now —
-            # we use the open-ended prompt so the captured hidden states are
-            # the closest analog to "reading the image"). Configurable later.
+            # Activation capture is once per stimulus, using the first configured
+            # prompt variant. For M2 (`open` first) this matches the prior hardcoded
+            # behavior; for label-free configs (`open_no_label` first) this captures
+            # under the label-free prompt, which is the correct M4-probe input.
             if act_dir is not None:
-                rp = render("open", cfg.labels[0])
+                rp = render(cfg.prompt_variants[0], cfg.labels[0])
                 cap = vlm.capture(image=img_path, prompt=rp.user, system_prompt=rp.system)
                 if cap:
                     vlm.save_capture(cap, act_dir / f"{row['sample_id']}.safetensors")

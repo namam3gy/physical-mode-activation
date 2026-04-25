@@ -39,7 +39,7 @@ Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the 
 | ID | Hypothesis | Status (post-M5a-ext recheck) | Evidence / next test |
 |---|---|---|---|
 | **H1** | PMR rises S-shaped along the abstraction axis (line → textured); 3D shading and ground introduction produce the largest step-changes. | **supported** | M2: monotone across all 4 object_levels (0.744 → 0.790 → 0.822 → 0.832). T=0.7 + 10 seeds resolved the pilot's mid-tie. |
-| **H2** | The "ball" label substantially raises PMR even on line drawings → independent contribution of the language prior. | **quantified** | M2: ball vs circle = +15 pp (line 0.85 vs 0.69; textured 0.93 vs 0.78). `ball+line` > `circle+textured` — language outweighs vision. |
+| **H2** | The "ball" label substantially raises PMR even on line drawings → independent contribution of the language prior. | **revised** | M2 +15 pp "ball vs circle" gap is `circle suppression`, not `ball enhancement`. Paired vs label-free baseline (M4b, 2026-04-25): `PMR(ball) − PMR(_nolabel) = +0.006`, `PMR(planet) − PMR(_nolabel) = +0.006`, `PMR(circle) − PMR(_nolabel) = −0.065`. Language prior is *asymmetric*: ball ≈ no-label (visual default), circle is an abstract override, planet adds orbit prior only on abstract images. |
 | **H3** | Scene inconsistency degrades RC. | **untested** | Axis E was dropped from M2 (complexity); reserved for a focused mini-experiment. RC infrastructure was validated in M2 (103/288 cells with RC<1). |
 | **H4** (pilot-derived) | The open vs forced-choice PMR gap is a stable signature of the **language-prior ↔ visual-evidence** conflict. | **supported — extended** | M2: gap present at every object_level (line 32 pp → textured 22 pp). Higher abstraction ⇒ larger gap — a structural prediction that abstraction weakens visual evidence so the language prior dominates more. Next test: ST5 cross-model. |
 | **H5** (pilot-derived) | The single ground line causes a **larger** PMR shift than going from no-ground textured ball to with-ground textured ball. | **mixed** | M2: bg delta (blank 0.67 → scene 0.88 = +21 pp) > object delta (line 0.74 → textured 0.83 = +9 pp). Direction matches; however, scene also surpasses ground. |
@@ -69,6 +69,7 @@ Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the 
 | M4 | **ST3 — LM logit lens / layer-wise probe** | LM hidden @ visual tokens AUC 0.94-0.95 across all probed layers; L20 peak. Label prior drives physics margin from L5; object_level effect is 7× smaller. | ✅ | 2026-04-24 |
 | M5a | **ST4 Phase 1+2 — VTI steering** | Direction extraction + residual-stream injection. **L10 α=40 flips 10/10 D → B** — "physical object-ness" direction causally confirmed. | ✅ | 2026-04-24 |
 | M5a-ext | **VTI follow-ups (neg α, label swap, bidirectionality recheck)** | Exp 1-2 (2026-04-24): neg α at ceiling + label=ball side-by-side. Exp 3 (2026-04-25): (α × label × obj) grid on moderate baseline. **Key result**: `v_L10` is a regime axis within physics-mode — +α → A (falls), −α → B (stays still), baseline D below threshold. | ✅ | 2026-04-25 |
+| M4b | **Label-free prompt — H2 null test** | `open_no_label` variant on M2 stimuli. **Key result**: `ball` ≈ no-label; `circle` suppresses PMR by 6.5 pp. Original H2 reframed: language prior is asymmetric — circle override, not ball enhancement. M4 visual-token capture is prompt-independent (structural artefact). | ✅ | 2026-04-25 |
 | **M5b** | **ST4 Phase 3 — SIP + patching + SAE** | Semantic Image Pairs + activation patching (needs attention re-capture) + SAE feature decomposition. | ▶ **next (optional)** | — |
 | M6 | ST5 — Cross-model sweep | LLaVA-1.5/Next, InternVL2, (optional) Qwen2-VL | pending | — |
 | M7 | Human baseline + paper writing | Prolific 20 raters × 50 stimuli + EMNLP/NeurIPS draft | optional | — |
@@ -231,6 +232,42 @@ Deep dive: `docs/insights/m5a_ext_bidirection_and_label.md`. Numbers: `docs/expe
 - H-locus: **unchanged (reinforced)** — L10 regime-flip holds across all
   four Exp 3 cells.
 
+### M4b — Label-free prompt H2 null test ✅ (2026-04-25)
+
+Run: `uv run python scripts/02_run_inference.py --config configs/label_free.py --stimulus-dir inputs/mvp_full_20260424-093926_e9d79da3` followed by `scripts/03_score_and_summarize.py` and `scripts/05_lm_probing.py --sources open_no_label`.
+
+Output: `outputs/label_free_20260425-031430_315c5318/` — 480 predictions + 480 activation safetensors. Deep dive: `docs/insights/m4b_label_free.md`. Numbers: `docs/experiments/m4b_label_free.md`.
+
+**Key results**:
+- Paired PMR delta vs label-free baseline (480 matched seeds): ball +0.006,
+  planet +0.006, **circle −0.065**. The "ball vs circle" gap reported in M2
+  is actually circle suppression, not ball enhancement.
+- Per-cell structure: circle suppresses more on abstract images
+  (line: −9.2 pp; filled: −4.2 pp); `motion_arrow` cue overrides circle
+  suppression entirely (+0.000); `none` cue gives the largest suppression
+  (−15.0 pp).
+- `line/blank/none` 4-label table cleanly separates label contributions:
+  ball (regime shift, kinetic→static), circle (full suppression, PMR 0.40
+  → 0.10), planet (+30 pp PMR — only label that genuinely *adds* physics
+  over the visual default, due to orbital prior).
+- M4 re-run on label-free activations reproduces M2's physics-margin table
+  bit-for-bit, confirming visual-token captures are prompt-independent
+  (image tokens precede question text under causal attention). The
+  collapsed switching-layer at L5 is a structural artefact of the capture
+  point, not evidence of label-independent LM commitment.
+
+**Hypothesis updates**:
+- H2: **revised** — ball ≈ no-label; circle is a suppressive override.
+  Per-label contributions are asymmetric.
+- H-boomerang: **reinforced** — visual-token hidden states are
+  prompt-independent, so the L5 physics bias is image-only.
+- H-locus: **unchanged** — label's behavioral effect localizes downstream
+  of visual-token positions, consistent with M5a's L10 efficacy on the
+  image-preceding trajectory.
+- H4: **refined** — circle suppression strength scales with image
+  abstraction, the image-side dual of the abstraction → language-prior-gap
+  scaling.
+
 ### M5b — ST4 Phase 3 (SIP patching + SAE) — work plan
 
 **Sub-tasks**:
@@ -327,6 +364,7 @@ Systematically validate the M2 finding that "label selects the physics regime" (
 - `docs/insights/m1_pilot.md` — M1 pilot (originally `docs/05_insights.md`)
 - `docs/insights/m3_encoder_boomerang.md` — M3 encoder boomerang
 - `docs/insights/m4_logit_lens.md` — M4 LM logit lens
+- `docs/insights/m4b_label_free.md` — M4b label-free prompt H2 null test
 - `docs/insights/m5_vti_steering.md` — M5a VTI steering causal intervention
 - `docs/insights/m5a_ext_bidirection_and_label.md` — M5a extensions (negative α, label × steering, bidirectionality recheck)
 - (M5b, M6 ... to be added)
@@ -362,4 +400,5 @@ Systematically validate the M2 finding that "label selects the physics regime" (
 | 2026-04-24 | M5a complete (VTI steering): L10 α=40 flips 10/10 of `line/blank/none` from D (abstract) to B (physical-static). "Object-ness" direction causally confirmed. M5b (SIP+SAE) and M6 still to do. | `61ffd29` |
 | 2026-04-24 | Repository restructure: `references/`, `docs/{insights,experiments,figures}/` scheme; everything bilingual (English canonical + `_ko.md` translation). | `963e219` |
 | 2026-04-24 | M5a-ext Exp 1+2 complete: negative α at ceiling (null result — later found to be a ceiling artifact) + label=ball swap on line/blank/none (clean B→A flip). H-direction-bidirectional added (initially as "one-way activator"), H-regime upgraded to supported. | `9a0ed86` (merge) |
-| 2026-04-25 | M5a-ext Exp 3 (bidirectionality recheck on `textured/blank/none` moderate baseline): −α=40 → 10 B uniformly across (line/textured) × (ball/circle). H-direction-bidirectional revised to "regime axis within physics-mode" (+α kinetic, −α static, baseline D below threshold). H-regime refuted in original form and narrowed to an H7 qualifier. | (this commit) |
+| 2026-04-25 | M5a-ext Exp 3 (bidirectionality recheck on `textured/blank/none` moderate baseline): −α=40 → 10 B uniformly across (line/textured) × (ball/circle). H-direction-bidirectional revised to "regime axis within physics-mode" (+α kinetic, −α static, baseline D below threshold). H-regime refuted in original form and narrowed to an H7 qualifier. | `f8f0fdd` |
+| 2026-04-25 | M4b complete: label-free prompt as H2 null test on M2 stimuli. Paired PMR(ball) − PMR(_nolabel) = +0.006 ≈ 0; PMR(circle) − PMR(_nolabel) = −0.065. **H2 revised** — language prior is asymmetric (circle override, not ball enhancement). M4 visual-token capture is prompt-independent (causal-attention artefact); switching-layer collapse is structural. | (this commit) |

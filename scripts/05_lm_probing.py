@@ -35,9 +35,13 @@ def main() -> None:
     p.add_argument("--model-id", default="Qwen/Qwen2.5-VL-7B-Instruct")
     p.add_argument("--limit", type=int, default=None,
                    help="limit stimuli for a smoke run")
+    p.add_argument("--sources", default="forced_choice,open",
+                   help="Comma-separated prompt_variant values to probe. "
+                        "For label-free runs pass e.g. 'open_no_label'.")
     args = p.parse_args()
 
     layers = tuple(int(x) for x in args.layers.split(","))
+    sources = [s.strip() for s in args.sources.split(",") if s.strip()]
     activations = args.run_dir / "activations"
     preds_path = args.run_dir / "predictions_scored.parquet"
     out = args.run_dir / "probing_lm"
@@ -47,21 +51,19 @@ def main() -> None:
     print("=" * 72)
     print("(1) Per-layer PMR probe on LM hidden states")
     print("=" * 72)
-    X_per_layer, y_fc, meta = load_lm_probing_dataset(
-        activations, preds_path, layers=layers, pmr_source="forced_choice"
-    )
-    sweep_fc = run_lm_layer_sweep(X_per_layer, y_fc)
-    print("Forced-choice PMR probe:")
-    print(sweep_fc.to_string(index=False))
-    sweep_fc.to_csv(out / "layer_sweep_forced_choice.csv", index=False)
-
-    _, y_open, _ = load_lm_probing_dataset(
-        activations, preds_path, layers=layers, pmr_source="open"
-    )
-    sweep_open = run_lm_layer_sweep(X_per_layer, y_open)
-    print("\nOpen-ended PMR probe (contaminated by label prior):")
-    print(sweep_open.to_string(index=False))
-    sweep_open.to_csv(out / "layer_sweep_open.csv", index=False)
+    X_per_layer = None
+    meta = None
+    for src in sources:
+        X_layer, y, meta_src = load_lm_probing_dataset(
+            activations, preds_path, layers=layers, pmr_source=src
+        )
+        if X_per_layer is None:
+            X_per_layer = X_layer
+            meta = meta_src
+        sweep = run_lm_layer_sweep(X_layer, y)
+        print(f"\n{src} PMR probe:")
+        print(sweep.to_string(index=False))
+        sweep.to_csv(out / f"layer_sweep_{src}.csv", index=False)
 
     # ---------- 2. Logit lens — needs lm_head + tokenizer ----------
     print()

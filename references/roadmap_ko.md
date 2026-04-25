@@ -39,7 +39,7 @@
 | ID | 가설 | 상태 (post-M5a-ext recheck) | 근거 / 다음 검증 |
 |---|---|---|---|
 | **H1** | PMR이 추상화 축(line → textured)에 따라 S자형 증가; 3D 음영·지면 도입이 가장 큰 단계 증가. | **지지** | M2: 4개 object_level 모두 monotone (0.744 → 0.790 → 0.822 → 0.832). T=0.7 + 10 seeds가 pilot의 중간 tie를 해소. |
-| **H2** | "ball" 라벨은 선화에서도 PMR을 크게 증가시킨다 → 언어 prior 독립 기여. | **정량화** | M2: `ball` vs `circle` = +15 pp (line 0.85 vs 0.69; textured 0.93 vs 0.78). `ball+line` > `circle+textured` — 언어가 시각보다 강함. |
+| **H2** | "ball" 라벨은 선화에서도 PMR을 크게 증가시킨다 → 언어 prior 독립 기여. | **revised** | M2 의 +15 pp "ball vs circle" gap 은 `ball enhancement` 가 아니라 `circle suppression`. Label-free baseline 과 paired comparison (M4b, 2026-04-25): `PMR(ball) − PMR(_nolabel) = +0.006`, `PMR(planet) − PMR(_nolabel) = +0.006`, `PMR(circle) − PMR(_nolabel) = −0.065`. Language prior 는 비대칭이다: ball ≈ no-label (시각 default), circle 은 abstract override, planet 은 추상 이미지에서만 orbit prior 추가. |
 | **H3** | 장면 불일치는 RC를 저하시킨다. | **미검증** | axis E 는 M2에서 빠짐 (complexity); 별도 mini-실험으로 처리. RC 인프라는 M2에서 검증됨 (103/288 cells RC<1). |
 | **H4** (pilot-derived) | Open vs forced-choice PMR gap 은 **언어 prior ↔ 시각 증거** 충돌의 안정적 signature다. | **지지 — 확장** | M2: gap이 모든 object_level에 존재 (line 32pp → textured 22pp). 추상도 ↑ 일수록 gap ↑ — abstraction 이 vision 증거를 약화시켜 언어가 더 지배한다는 structural prediction. 다음 검증: ST5 cross-model. |
 | **H5** (pilot-derived) | 지면 한 줄(ground line) 단독이 텍스처 공 + no ground 보다 **더 큰** PMR 증가를 만든다. | **혼재** | M2: bg delta (blank 0.67 → scene 0.88 = +21pp) > object delta (line 0.74 → textured 0.83 = +9pp). 방향은 맞음; 단 scene 이 ground 를 또 넘음. |
@@ -69,6 +69,7 @@
 | M4 | **ST3 — LM logit lens / layer-wise probe** | LM hidden @ visual tokens AUC 0.94-0.95 전 구간; L20 peak. Label prior 가 L5 부터 physics margin shift; object_level effect 는 7배 더 작음. | ✅ | 2026-04-24 |
 | M5a | **ST4 Phase 1+2 — VTI steering** | 방향 추출 + residual-stream injection. **L10 α=40 이 10/10 D→B flip** — "physical object-ness" direction 인과 확인. | ✅ | 2026-04-24 |
 | M5a-ext | **VTI 후속 (neg α, label swap, 양방향성 재검정)** | Exp 1-2 (2026-04-24): ceiling 에서 neg α + label=ball side-by-side. Exp 3 (2026-04-25): moderate baseline 에서 (α × label × obj) 그리드. **핵심 결과**: `v_L10` 은 physics-mode 내부의 regime axis — +α → A (falls), −α → B (stays still), baseline D 는 threshold 아래. | ✅ | 2026-04-25 |
+| M4b | **Label-free prompt — H2 null test** | M2 자극에 `open_no_label` variant. **핵심 결과**: `ball` ≈ no-label; `circle` 이 PMR 을 6.5 pp 억제. 원래 H2 재해석: language prior 는 비대칭 — circle override, ball enhancement 아님. M4 visual-token capture 가 prompt-independent (구조적 artefact). | ✅ | 2026-04-25 |
 | **M5b** | **ST4 Phase 3 — SIP + patching + SAE** | Semantic Image Pairs + activation patching (attention 필요 → re-capture) + SAE feature decomposition. | ▶ **다음 (선택)** | — |
 | M6 | ST5 — Cross-model sweep | LLaVA-1.5/Next, InternVL2, (optional) Qwen2-VL | 대기 | — |
 | M7 | 인간 baseline + 논문 작성 | Prolific 20명 × 50 stim + EMNLP/NeurIPS 초안 | optional | — |
@@ -255,6 +256,39 @@
 - H-locus: **unchanged (강화)** — L10 regime-flip 이 Exp 3 모든 4 cell 에서
   성립.
 
+### M4b — Label-free prompt H2 null test ✅ (2026-04-25)
+
+실행: `uv run python scripts/02_run_inference.py --config configs/label_free.py --stimulus-dir inputs/mvp_full_20260424-093926_e9d79da3` 후 `scripts/03_score_and_summarize.py` 와 `scripts/05_lm_probing.py --sources open_no_label`.
+
+출력: `outputs/label_free_20260425-031430_315c5318/` — 480 predictions + 480 activation safetensors. 심층 인사이트: `docs/insights/m4b_label_free_ko.md`. 원자료: `docs/experiments/m4b_label_free_ko.md`.
+
+**핵심 결과**:
+- Label-free baseline 과의 paired PMR delta (480 matched seed): ball +0.006,
+  planet +0.006, **circle −0.065**. M2 에서 보고된 "ball vs circle" gap 은
+  실제로는 circle 억제이지 ball 증가가 아니다.
+- Cell 별 구조: circle 이 추상 이미지에서 더 강하게 억제 (line: −9.2 pp;
+  filled: −4.2 pp); `motion_arrow` cue 가 circle 억제를 완전 override
+  (+0.000); `none` cue 가 최대 억제 (−15.0 pp).
+- `line/blank/none` 4-label 표가 label 기여를 깔끔하게 분리: ball (regime
+  shift, kinetic→static), circle (full suppression, PMR 0.40 → 0.10),
+  planet (+30 pp PMR — orbital prior 때문에 시각 default 위에 physics 를
+  *진짜로* 추가하는 유일한 label).
+- Label-free activation 에 M4 재실행 → M2 의 physics-margin 표 bit-for-bit
+  재현. visual-token capture 가 prompt-independent 임을 확인 (image token
+  이 question text 보다 앞에 있고 causal attention). L5 의 collapsed
+  switching-layer 는 capture 지점의 구조적 artefact 이지 label-independent
+  한 LM commitment 의 증거가 아님.
+
+**가설 업데이트**:
+- H2: **revised** — ball ≈ no-label; circle 이 suppressive override.
+  Per-label 기여가 비대칭.
+- H-boomerang: **강화** — visual-token hidden states 가 prompt-independent
+  이므로 L5 의 physics bias 는 image-only 기원.
+- H-locus: **unchanged** — label 의 행동적 효과는 visual-token 위치 하류에
+  localize, M5a 의 image-preceding trajectory 에서의 L10 효과성과 일관.
+- H4: **refined** — circle 억제 강도가 이미지 추상도와 함께 증가 — 추상도 →
+  language-prior-gap scaling 의 image-side dual.
+
 ### M5b — ST4 Phase 3 (SIP patching + SAE) — 작업 상세
 
 **작업 분할**:
@@ -400,4 +434,5 @@ M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static 
 | 2026-04-24 | M4 완료: LM logit lens + per-layer probe. LM AUC 0.94-0.95 전 구간 (peak L20=0.953); label 이 L5 부터 physics margin 주도. M5 를 다음 마일스톤으로. | `2abdc32` |
 | 2026-04-24 | M5a 완료 (VTI steering): L10 α=40 이 "line/blank/none" 10/10 을 D(abstract) → B(physical-static) flip. "object-ness" direction 인과 확인. M5b (SIP+SAE), M6 이 남음. | `61ffd29` |
 | 2026-04-24 | M5a-ext Exp 1+2 완료: ceiling 에서 negative α (null — 이후 ceiling artifact 로 판명) + label=ball swap on line/blank/none (clean B→A flip). H-direction-bidirectional 신규 (초기엔 "one-way activator"), H-regime 을 "지지" 로 격상. | `9a0ed86` (merge) |
-| 2026-04-25 | M5a-ext Exp 3 (`textured/blank/none` moderate baseline 에서 양방향성 재검정): −α=40 → (line/textured) × (ball/circle) 모두에서 10 B 를 균일하게 유도. H-direction-bidirectional 을 "physics-mode 내부의 regime axis" 로 개정 (+α kinetic, −α static, baseline D 는 threshold 아래). H-regime 원래 형태 반증 후 H7 qualifier 로 축소. | (this commit) |
+| 2026-04-25 | M5a-ext Exp 3 (`textured/blank/none` moderate baseline 에서 양방향성 재검정): −α=40 → (line/textured) × (ball/circle) 모두에서 10 B 를 균일하게 유도. H-direction-bidirectional 을 "physics-mode 내부의 regime axis" 로 개정 (+α kinetic, −α static, baseline D 는 threshold 아래). H-regime 원래 형태 반증 후 H7 qualifier 로 축소. | `f8f0fdd` |
+| 2026-04-25 | M4b 완료: M2 자극에 label-free prompt 를 H2 null test 로 적용. Paired PMR(ball) − PMR(_nolabel) = +0.006 ≈ 0; PMR(circle) − PMR(_nolabel) = −0.065. **H2 revised** — language prior 는 비대칭 (circle override, ball enhancement 아님). M4 visual-token capture 가 prompt-independent (causal-attention artefact); switching-layer 의 붕괴는 구조적 현상. | (this commit) |

@@ -23,14 +23,19 @@ have been tested, what ideas are still open." Update it when a milestone
 completes or a new hypothesis/idea surfaces.
 
 Sub-task 1 MVP, ST2 vision-encoder probing, ST3 LM logit lens, ST4
-Phase-1+2 VTI steering, and M5a-ext VTI follow-ups (bidirectionality +
-label × steering) all complete (M0 through M5a-ext — see ROADMAP §3).
-Key M5a-ext finding (2026-04-25): `v_L10` is a **regime axis within
-physics-mode** (+α → A/kinetic, −α → B/static, baseline D below |α|
-threshold), not a simple physics-vs-abstract activator.
+Phase-1+2 VTI steering, M5a-ext VTI follow-ups (bidirectionality +
+label × steering), and M4b label-free H2 null test all complete (M0
+through M5a-ext + M4b — see ROADMAP §3).
+Key recent findings (2026-04-25):
+- M5a-ext: `v_L10` is a **regime axis within physics-mode** (+α →
+  A/kinetic, −α → B/static, baseline D below |α| threshold), not a
+  simple physics-vs-abstract activator.
+- M4b: H2 revised — `ball` ≈ no-label baseline; `circle` is the
+  suppressive override (−6.5 pp). The "language prior" is asymmetric.
+
 Package at `src/physical_mode/`, entry scripts at `scripts/0{1..6}_*.py`,
-configs at `configs/{pilot,mvp_full}.py`, tests at `tests/`. Read
-`docs/architecture.md` for the implementation contract and
+configs at `configs/{pilot,mvp_full,label_free}.py`, tests at `tests/`.
+Read `docs/architecture.md` for the implementation contract and
 `references/project.md` for the original scientific motivation.
 
 ST4 Phase 3 (SIP activation patching + SAE) and ST5 (cross-model sweep) are
