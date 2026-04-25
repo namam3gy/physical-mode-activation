@@ -113,6 +113,16 @@ def draw_object(
         if mode == "textured":
             return _draw_textured_person(img, cx, cy, radius, seed)
 
+    if shape == "bird":
+        if mode == "line":
+            return _draw_line_bird(img, cx, cy, radius)
+        if mode == "filled":
+            return _draw_filled_bird(img, cx, cy, radius)
+        if mode == "shaded":
+            return _draw_shaded_bird(img, cx, cy, radius)
+        if mode == "textured":
+            return _draw_textured_bird(img, cx, cy, radius, seed)
+
     raise ValueError(f"unknown (shape, mode): ({shape}, {mode})")
 
 
@@ -751,6 +761,129 @@ def _draw_textured_person(img: Image.Image, cx: int, cy: int, r: int, seed: int)
     for limb in ("left_leg", "right_leg"):
         p1, p2 = g[limb]
         d.line((p1, p2), fill=legs, width=14)
+    return img
+
+
+# ---------------------------------------------------------------------------
+# M8d bird primitives. Oval body + small head + beak + wing curve.
+# Recognizable at every abstraction level.
+# ---------------------------------------------------------------------------
+
+
+def _bird_geometry(cx: int, cy: int, r: int) -> dict:
+    """Bird geometry — oval body, head circle to upper-right, beak triangle, wing arc."""
+    body_w = int(r * 1.6)
+    body_h = int(r * 0.95)
+    body_box = (cx - body_w // 2, cy - body_h // 2, cx + body_w // 2, cy + body_h // 2)
+    head_r = int(r * 0.32)
+    head_cx = cx + int(body_w * 0.35)
+    head_cy = cy - int(body_h * 0.35)
+    head_box = (head_cx - head_r, head_cy - head_r, head_cx + head_r, head_cy + head_r)
+    # Beak triangle pointing right.
+    beak = [
+        (head_cx + head_r, head_cy),
+        (head_cx + head_r + int(r * 0.35), head_cy - int(r * 0.04)),
+        (head_cx + head_r + int(r * 0.04), head_cy + int(r * 0.10)),
+    ]
+    # Wing arc (a chord) — three points across upper body.
+    wing = [
+        (cx - int(body_w * 0.30), cy - int(body_h * 0.05)),
+        (cx, cy - int(body_h * 0.45)),
+        (cx + int(body_w * 0.20), cy - int(body_h * 0.05)),
+    ]
+    eye_cx = head_cx + int(head_r * 0.25)
+    eye_cy = head_cy - int(head_r * 0.10)
+    return dict(
+        body_box=body_box,
+        head_box=head_box,
+        head_center=(head_cx, head_cy, head_r),
+        beak=beak,
+        wing=wing,
+        eye=(eye_cx, eye_cy),
+    )
+
+
+def _draw_line_bird(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    g = _bird_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.ellipse(g["body_box"], outline=(0, 0, 0), width=3)
+    d.ellipse(g["head_box"], outline=(0, 0, 0), width=3)
+    d.polygon(g["beak"], outline=(0, 0, 0))
+    d.line(g["wing"], fill=(0, 0, 0), width=3)
+    return img
+
+
+def _draw_filled_bird(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    g = _bird_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.ellipse(g["body_box"], fill=(0, 0, 0))
+    d.ellipse(g["head_box"], fill=(0, 0, 0))
+    d.polygon(g["beak"], fill=(0, 0, 0))
+    return img
+
+
+def _draw_shaded_bird(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    """Bird with greyscale gradient body."""
+    g = _bird_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    bx0, by0, bx1, by1 = g["body_box"]
+    body_h = by1 - by0
+    n_strips = 24
+    for i in range(n_strips):
+        t = i / max(1, n_strips - 1)
+        c = int(220 - 110 * t)
+        y0 = by0 + int(body_h * (i / n_strips))
+        y1 = by0 + int(body_h * ((i + 1) / n_strips))
+        d.ellipse((bx0, y0, bx1, y1), fill=(c, c, c))
+    d.ellipse(g["body_box"], outline=(60, 60, 60), width=2)
+    # Head: filled grey + outline.
+    d.ellipse(g["head_box"], fill=(160, 160, 160), outline=(40, 40, 40), width=2)
+    # Beak.
+    d.polygon(g["beak"], fill=(120, 100, 60), outline=(60, 50, 30))
+    # Wing line.
+    d.line(g["wing"], fill=(40, 40, 40), width=3)
+    # Eye dot.
+    ex, ey = g["eye"]
+    d.ellipse((ex - 3, ey - 3, ex + 3, ey + 3), fill=(0, 0, 0))
+    return img
+
+
+def _draw_textured_bird(img: Image.Image, cx: int, cy: int, r: int, seed: int) -> Image.Image:
+    """Photorealistic-ish bird: body color + feather hatching + colored beak + eye."""
+    # Per-category RNG offset: decouples palette/jitter draws across
+    # categories for the same input seed (car=11000, person=22000, bird=33000).
+    rng = random.Random(seed + 33000)
+    body_palette = [(120, 90, 60), (60, 80, 130), (180, 130, 60), (90, 120, 70)]
+    body_color = body_palette[rng.randrange(len(body_palette))]
+    g = _bird_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.ellipse(g["body_box"], fill=body_color, outline=(30, 30, 30), width=2)
+    # Feather hatching: short curved strokes inside the body.
+    bx0, by0, bx1, by1 = g["body_box"]
+    body_w = bx1 - bx0
+    body_h = by1 - by0
+    for _ in range(28):
+        sx = bx0 + rng.randint(8, body_w - 8)
+        sy = by0 + rng.randint(8, body_h - 8)
+        # Inside-ellipse check.
+        if ((sx - cx) / (body_w / 2)) ** 2 + ((sy - cy) / (body_h / 2)) ** 2 > 0.85:
+            continue
+        ex = sx + rng.randint(-8, 8)
+        ey = sy + rng.randint(2, 8)
+        feather_color = (
+            max(0, body_color[0] - 30),
+            max(0, body_color[1] - 30),
+            max(0, body_color[2] - 30),
+        )
+        d.line(((sx, sy), (ex, ey)), fill=feather_color, width=1)
+    # Head with same base color but slightly lighter.
+    head_color = (min(255, body_color[0] + 20), min(255, body_color[1] + 20), min(255, body_color[2] + 20))
+    d.ellipse(g["head_box"], fill=head_color, outline=(30, 30, 30), width=2)
+    # Beak (warm orange).
+    d.polygon(g["beak"], fill=(220, 140, 40), outline=(140, 80, 20))
+    # Eye.
+    ex, ey = g["eye"]
+    d.ellipse((ex - 3, ey - 3, ex + 3, ey + 3), fill=(0, 0, 0))
     return img
 
 
