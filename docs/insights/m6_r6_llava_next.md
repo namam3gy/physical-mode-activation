@@ -147,10 +147,100 @@ uv run python scripts/encoder_swap_probe_summary.py \
 Outputs `docs/figures/encoder_chain_5model.png` (supersedes the 4-model
 figure used in r3/r4/r5 insight docs).
 
+## Cross-stim addendum (M8d + M8c, added same day)
+
+LLaVA-Next was also run on M8d (3 categories × 4 abstraction × 2 bg × 2 cue ×
+2 events × 5 seeds = 480) and M8c (60 photos), labeled + label-free, ~16 min
+total inference on GPU 0. Three findings:
+
+### 1. PMR mid-band holds across all 3 stim sources
+
+| stim | model      | mean PMR(_nolabel) | 95% CI         |
+|------|------------|-------------------:|----------------|
+| M8a  | LLaVA-1.5  | 0.175              | [0.140, 0.212] |
+| M8a  | LLaVA-Next | **0.700**          | [0.653, 0.743] |
+| M8a  | Idefics2   | 0.882              | [0.850, 0.912] |
+| M8d  | LLaVA-1.5  | 0.331              | [0.294, 0.371] |
+| M8d  | LLaVA-Next | **0.625**          | [0.583, 0.667] |
+| M8d  | Idefics2   | 0.890              | [0.862, 0.917] |
+| M8c  | LLaVA-1.5  | 0.283              | [0.183, 0.383] |
+| M8c  | LLaVA-Next | **0.417**          | [0.300, 0.533] |
+| M8c  | Idefics2   | 0.417              | [0.317, 0.517] |
+
+LLaVA-Next sits **between LLaVA-1.5 floor and saturated cluster** on both
+synthetic stim sources (M8a CI separated above LLaVA-1.5 + below Idefics2;
+M8d CI similar). The 0.30–0.52 PMR jump from LLaVA-1.5 → LLaVA-Next is
+consistent across synthetic stim — the architectural difference moves PMR
+in the same direction regardless of stim shape.
+
+### 2. Photo collapse (M8c) hits LLaVA-Next too
+
+LLaVA-Next M8c PMR(_nolabel) = **0.417**, statistically indistinguishable
+from Idefics2 M8c (0.417). The encoder gap that separates the synthetic
+clusters into 3 PMR bands (0.18 / 0.70 / 0.88) compresses to a single
+[0.18, 0.67] band on photos, **as predicted by the M8c finding** (M6 r5).
+The 5th model point fits the same M8c-collapse pattern.
+
+### 3. H7 collapses across architecture for the LLaVA family
+
+| stim | model      | mean H7 (phys − abs) | 95% CI            |
+|------|------------|---------------------:|-------------------|
+| M8a  | LLaVA-1.5  | +0.360               | [+0.300, +0.418]  |
+| M8a  | LLaVA-Next | +0.260               | [+0.205, +0.317]  |
+| M8d  | LLaVA-1.5  | +0.306               | [+0.250, +0.360]  |
+| M8d  | LLaVA-Next | **−0.054**           | [−0.102, −0.006]  |
+| M8c  | LLaVA-1.5  | +0.100               | [−0.033, +0.233]  |
+| M8c  | LLaVA-Next | +0.017               | [−0.133, +0.167]  |
+
+LLaVA-1.5 has the project's strongest H7 on M8d (+0.31). The LLaVA-Next
+architecture switch attenuates H7 strongly: M8a +0.26 (still 5/5 PASS,
+mid-strong), M8d −0.05 (CI just below 0), M8c +0.02. **H7 strength is
+not preserved across same-encoder-family architecture changes** —
+consistent with the architecture-level reframe.
+
+**Caveat per advisor**: the M8d −0.054 effect size is in the project's
+noise floor (CI excludes 0 by ~0.005). It is **symmetric to Idefics2 M8d
++0.048** — both are "barely-above/below 0" and demoted to "suggested only
+not paper-defensible" under the M9 bootstrap framework. Do **not**
+interpret as "Mistral-7B suppresses H7" — Idefics2 vs LLaVA-Next still
+differs along encoder family, image pipeline (no AnyRes vs AnyRes),
+fusion projector, and training, in addition to LM. The two-Mistral
+clustering is suggestive but multi-axis-confounded, same caveat as the
+M6 r6 main result.
+
+### Implication for hypotheses
+
+- **H-encoder-saturation** (architecture-level): cross-stim confirmed at
+  the 5th model point. PMR mid-band of LLaVA-Next holds on M8a + M8d;
+  photo collapse hits all 5 models.
+- **H7** (label-selects-regime): unsaturated-only on LLaVA-1.5 was the
+  cleanest signal in the project. LLaVA-Next removes that cleanness —
+  the architectural switch breaks H7 even when PMR has measurement
+  headroom (M8d PMR 0.625 is well below ceiling, yet H7 ≈ 0).
+- **H-LM-modulation**: still suggested only. Not promoted.
+
+### Cross-stim reproducer
+
+```bash
+# M8d
+uv run python scripts/02_run_inference.py --config configs/encoder_swap_llava_next_m8d.py --stimulus-dir inputs/m8d_qwen_<ts>
+uv run python scripts/02_run_inference.py --config configs/encoder_swap_llava_next_m8d_label_free.py --stimulus-dir inputs/m8d_qwen_<ts>
+# M8c
+uv run python scripts/02_run_inference.py --config configs/encoder_swap_llava_next_m8c.py --stimulus-dir inputs/m8c_photos_<ts>
+uv run python scripts/02_run_inference.py --config configs/encoder_swap_llava_next_m8c_label_free.py --stimulus-dir inputs/m8c_photos_<ts>
+
+# M9 audit re-runs the 4-model × 3-stim table with LLaVA-Next added
+uv run python scripts/m9_generalization_audit.py --out-dir outputs/m9_audit
+```
+
 ## Artifacts
 
 - `outputs/encoder_swap_llava_next_m8a_<ts>/predictions.{jsonl,parquet,csv}`
 - `outputs/encoder_swap_llava_next_m8a_label_free_<ts>/predictions.{jsonl,parquet,csv}`
+- `outputs/encoder_swap_llava_next_m8d_<ts>/predictions.{jsonl,parquet,csv}` (cross-stim addendum)
+- `outputs/encoder_swap_llava_next_m8d_label_free_<ts>/predictions.{jsonl,parquet,csv}`
+- `outputs/encoder_swap_llava_next_m8c_<ts>/predictions.{jsonl,parquet,csv}`
+- `outputs/encoder_swap_llava_next_m8c_label_free_<ts>/predictions.{jsonl,parquet,csv}`
 - `outputs/encoder_swap_llava_next_m8a_vision_activations/*.safetensors` (400 stim × 4 layers)
 - `outputs/encoder_swap_llava_next_m8a_probe/{layer_sweep,by_object_level}.csv`
 - `outputs/encoder_swap_llava_next_m8a_probe_stim_y/layer_sweep_stim_y_*.csv`

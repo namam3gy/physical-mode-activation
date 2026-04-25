@@ -49,19 +49,24 @@ data + recipe, LM family).
 | M8a  | InternVL3   | 0.917              | [0.890, 0.943]   |
 | M8d  | Qwen        | 0.869              | [0.840, 0.898]   |
 | M8d  | LLaVA-1.5   | 0.331              | [0.294, 0.371]   |
+| M8d  | LLaVA-Next  | 0.625              | [0.583, 0.667]   |
 | M8d  | Idefics2    | 0.890              | [0.862, 0.917]   |
 | M8c  | Qwen        | 0.550              | [0.433, 0.667]   |
 | M8c  | LLaVA-1.5   | 0.283              | [0.183, 0.383]   |
+| M8c  | LLaVA-Next  | 0.417              | [0.300, 0.533]   |
 | M8c  | Idefics2    | 0.417              | [0.317, 0.517]   |
 
 On synthetic M8a, the 4 PMR clusters separate cleanly: LLaVA-1.5 floor
 [0.14, 0.21] → LLaVA-Next mid-band [0.65, 0.74] → saturated non-CLIP cluster
 [0.80, 0.92]. The same-encoder-family (CLIP-ViT-L) jump from LLaVA-1.5 to
 LLaVA-Next is **0.52 PMR units across 4 simultaneously-confounded axes**;
-this is *consistent with* but *not isolated to* LM modulation. On photos
-(M8c, 3 models), all collapse into [0.18, 0.67] — **photos compress the
-encoder gap** (M8c finding). LLaVA-Next was not run on M8d/M8c — out of
-scope for this addition (synthetic-only, paper Section 4 single-stim row).
+this is *consistent with* but *not isolated to* LM modulation. On M8d the
+same architecture-stratified ordering holds: LLaVA-Next 0.625 [0.58, 0.67]
+sits between LLaVA-1.5 0.331 [0.29, 0.37] and the saturated cluster
+[0.84, 0.92]. On photos (M8c, all 4 models), the encoder gap collapses
+into [0.18, 0.67] — LLaVA-Next M8c PMR 0.417 is *statistically
+indistinguishable* from Idefics2 M8c 0.417, **photos compress the
+encoder gap for the 5th model too**. M8c finding generalizes.
 
 ### 3. Vision-encoder probe AUC — apples-to-apples M8a (5 models, M8a stim)
 
@@ -127,12 +132,21 @@ discriminability per se.
   reframed from "encoder family" to "joint encoder+LM architecture."
   LLaVA-Next adds a 2nd CLIP point with multi-axis architectural
   difference from LLaVA-1.5 (not a clean LM swap).
-- **H-LM-modulation** (M9-derived) — *suggested only*. Idefics2 vs Qwen
-  M8d H7 CI just touches 0; not paper-defensible from current data.
-  LLaVA-Next M8a (CLIP+Mistral, PMR 0.70) lands between LLaVA-1.5
-  (CLIP+Vicuna, PMR 0.18) and Idefics2 (SigLIP-SO400M+Mistral, PMR 0.88) —
-  this **direction** is consistent with LM modulation but cannot isolate
-  it from AnyRes / projector / training confounds.
+- **H-LM-modulation** (M9-derived) — *suggested only, still*. Idefics2
+  M8d H7 CI [+0.000, +0.094] just touches 0; LLaVA-Next M8d H7 CI
+  [−0.102, −0.006] symmetrically excludes 0 by ~0.005. **Both are in the
+  noise floor** under the M9 bootstrap framework. Two-Mistral clustering
+  at H7 ≈ 0 on M8d is suggestive but multi-axis-confounded (encoder
+  family, image pipeline, projector, training all differ between the
+  two). Not paper-defensible.
+- **H7** (label-selects-regime): unsaturated-only on LLaVA-1.5 was the
+  cleanest signal in the project (M8d +0.31). LLaVA-Next preserves H7 on
+  M8a (+0.26, 5/5 PASS) but **removes the M8d H7 signal entirely**
+  (-0.05, CI just below 0). PMR is well below ceiling on M8d for
+  LLaVA-Next (0.625), so this is not a saturation effect — the
+  architectural change broke H7 even with measurement headroom. H7
+  strength is not preserved across same-encoder-family architecture
+  changes.
 
 ## Limitations
 

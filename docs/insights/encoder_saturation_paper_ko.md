@@ -48,19 +48,23 @@ Idefics2 [0.85,0.91] / InternVL3 ≈0.92)보다 전부 아래에 있고, LLaVA-1
 | M8a  | InternVL3   | 0.917              | [0.890, 0.943]   |
 | M8d  | Qwen        | 0.869              | [0.840, 0.898]   |
 | M8d  | LLaVA-1.5   | 0.331              | [0.294, 0.371]   |
+| M8d  | LLaVA-Next  | 0.625              | [0.583, 0.667]   |
 | M8d  | Idefics2    | 0.890              | [0.862, 0.917]   |
 | M8c  | Qwen        | 0.550              | [0.433, 0.667]   |
 | M8c  | LLaVA-1.5   | 0.283              | [0.183, 0.383]   |
+| M8c  | LLaVA-Next  | 0.417              | [0.300, 0.533]   |
 | M8c  | Idefics2    | 0.417              | [0.317, 0.517]   |
 
 합성 M8a에서 4개 PMR cluster가 깔끔하게 분리: LLaVA-1.5 floor [0.14, 0.21]
 → LLaVA-Next mid-band [0.65, 0.74] → saturated non-CLIP cluster [0.80,
 0.92]. 동일 encoder 계열 (CLIP-ViT-L)에서 LLaVA-1.5 → LLaVA-Next 점프는
 **4개 동시 confound 축에 걸친 0.52 PMR 단위** — LM modulation과 *부합*
-하지만 *분리되지 않음*. 사진 (M8c, 3개 모델)에서는 모두 [0.18, 0.67]로
-collapse — **사진은 encoder gap을 압축**한다 (M8c finding). LLaVA-Next는
-M8d/M8c에 미실행 — 이번 추가의 범위 외 (합성-only, 논문 Section 4 단일
-stim row).
+하지만 *분리되지 않음*. M8d 에서도 같은 architecture-stratified 순서
+유지: LLaVA-Next 0.625 [0.58, 0.67] 이 LLaVA-1.5 0.331 [0.29, 0.37] 과
+saturated cluster [0.84, 0.92] 사이에 위치. 사진 (M8c, 4 모델 모두)
+에서는 encoder gap 이 [0.18, 0.67] 로 collapse — LLaVA-Next M8c PMR
+0.417 이 Idefics2 M8c 0.417 과 *통계적 구분 불가*, **사진이 5번째 모델
+에서도 encoder gap 압축**. M8c finding 일반화.
 
 ### 3. Vision-encoder probe AUC — apples-to-apples M8a (5개 모델, M8a stim)
 
@@ -125,11 +129,18 @@ Encoder representational capacity는 균일; behavioral PMR은 joint encoder+LM
   "encoder 계열"에서 "joint encoder+LM architecture"로 reframe.
   LLaVA-Next는 LLaVA-1.5와 multi-axis architectural difference를 갖는
   2번째 CLIP 점 추가 (clean LM swap 아님).
-- **H-LM-modulation** (M9 유래) — *시사만*. Idefics2 vs Qwen M8d H7 CI가
-  0에 거의 닿음; 현 데이터로 논문 방어 불가. LLaVA-Next M8a (CLIP+Mistral,
-  PMR 0.70)는 LLaVA-1.5 (CLIP+Vicuna, PMR 0.18)와 Idefics2
-  (SigLIP-SO400M+Mistral, PMR 0.88) 사이에 위치 — 이 **방향성**은 LM
-  modulation과 부합하나, AnyRes / projector / 학습 confound와 분리 불가.
+- **H-LM-modulation** (M9 유래) — *여전히 시사만*. Idefics2 M8d H7 CI
+  [+0.000, +0.094]가 0에 닿음; LLaVA-Next M8d H7 CI [−0.102, −0.006] 은
+  0을 ~0.005 만큼만 대칭적으로 배제. **양쪽 모두 noise floor 안** (M9
+  부트스트랩 프레임워크 기준). M8d 에서 두-Mistral 의 H7 ≈ 0 클러스터링
+  은 시사적이나 multi-axis-confounded (인코더 family, image pipeline,
+  projector, 학습 모두 다름). 논문 옹호 불가.
+- **H7** (label-selects-regime): LLaVA-1.5 의 unsaturated-only 가 프로젝트
+  최강 신호 (M8d +0.31). LLaVA-Next 가 M8a 에서는 H7 보존 (+0.26, 5/5
+  PASS) 하지만 **M8d 에서 H7 신호 완전 제거** (-0.05, CI 가 0 바로
+  아래). LLaVA-Next 의 M8d PMR 은 천장 한참 아래 (0.625) — 이는 saturation
+  효과 아님; 측정 헤드룸이 있어도 아키텍처 변경이 H7 깸. H7 강도는 동일
+  encoder family architecture 변경에서 보존되지 않음.
 
 ## 한계
 

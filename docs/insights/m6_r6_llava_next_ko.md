@@ -146,12 +146,99 @@ uv run python scripts/encoder_swap_probe_summary.py \
 `docs/figures/encoder_chain_5model.png` 출력 (r3/r4/r5 insight doc에서
 사용된 4-model figure를 대체).
 
+## Cross-stim 부록 (M8d + M8c, 같은 날 추가)
+
+LLaVA-Next 를 M8d (3 카테고리 × 4 추상화 × 2 bg × 2 cue × 2 events × 5
+seeds = 480) 와 M8c (60 사진) 에서도 실행, labeled + label-free, GPU 0
+에서 총 ~16분 추론. 3가지 발견:
+
+### 1. PMR mid-band 이 3 stim source 모두에서 유지
+
+| stim | model      | mean PMR(_nolabel) | 95% CI         |
+|------|------------|-------------------:|----------------|
+| M8a  | LLaVA-1.5  | 0.175              | [0.140, 0.212] |
+| M8a  | LLaVA-Next | **0.700**          | [0.653, 0.743] |
+| M8a  | Idefics2   | 0.882              | [0.850, 0.912] |
+| M8d  | LLaVA-1.5  | 0.331              | [0.294, 0.371] |
+| M8d  | LLaVA-Next | **0.625**          | [0.583, 0.667] |
+| M8d  | Idefics2   | 0.890              | [0.862, 0.917] |
+| M8c  | LLaVA-1.5  | 0.283              | [0.183, 0.383] |
+| M8c  | LLaVA-Next | **0.417**          | [0.300, 0.533] |
+| M8c  | Idefics2   | 0.417              | [0.317, 0.517] |
+
+LLaVA-Next 가 두 합성 stim source 모두에서 **LLaVA-1.5 바닥과 saturated
+cluster 사이에 위치** (M8a CI 가 LLaVA-1.5 위 + Idefics2 아래로 분리;
+M8d 도 비슷). LLaVA-1.5 → LLaVA-Next 의 0.30–0.52 PMR 점프는 합성 stim
+간 일관 — 아키텍처 차이가 stim 모양과 무관하게 같은 방향으로 PMR 이동.
+
+### 2. 사진 collapse (M8c) 가 LLaVA-Next 에도 적중
+
+LLaVA-Next M8c PMR(_nolabel) = **0.417**, Idefics2 M8c (0.417) 와 통계적
+구분 불가. 합성 cluster 를 3 PMR 밴드 (0.18 / 0.70 / 0.88) 로 분리하던
+인코더 갭이 사진에서 [0.18, 0.67] 단일 밴드로 압축, **M8c finding (M6 r5)
+의 예측대로**. 5번째 모델 점이 같은 M8c-collapse 패턴에 부합.
+
+### 3. LLaVA family 에서 H7 가 아키텍처 횡단 collapse
+
+| stim | model      | mean H7 (phys − abs) | 95% CI            |
+|------|------------|---------------------:|-------------------|
+| M8a  | LLaVA-1.5  | +0.360               | [+0.300, +0.418]  |
+| M8a  | LLaVA-Next | +0.260               | [+0.205, +0.317]  |
+| M8d  | LLaVA-1.5  | +0.306               | [+0.250, +0.360]  |
+| M8d  | LLaVA-Next | **−0.054**           | [−0.102, −0.006]  |
+| M8c  | LLaVA-1.5  | +0.100               | [−0.033, +0.233]  |
+| M8c  | LLaVA-Next | +0.017               | [−0.133, +0.167]  |
+
+LLaVA-1.5 가 M8d 에서 프로젝트 최강 H7 (+0.31). LLaVA-Next 아키텍처
+스위치가 H7 강하게 약화: M8a +0.26 (여전히 5/5 PASS, mid-strong), M8d
+−0.05 (CI 가 0 바로 아래), M8c +0.02. **H7 강도가 동일 encoder family
+의 architecture 변경에서 보존되지 않음** — architecture-level reframe 과
+부합.
+
+**Advisor 경고**: M8d −0.054 효과 크기가 프로젝트 noise floor 안 (CI 가
+0 을 ~0.005 만큼만 배제). **Idefics2 M8d +0.048 과 대칭** — 양쪽 모두
+"0 바로 위/아래"이며 M9 부트스트랩 프레임워크에서 "시사만 / 논문 옹호
+불가"로 강등. **"Mistral-7B 가 H7 을 억제"로 해석하지 말 것** — Idefics2
+vs LLaVA-Next 는 LM 외에도 인코더 family, image pipeline (no AnyRes vs
+AnyRes), fusion projector, 학습이 모두 다름. 두-Mistral 클러스터링은
+시사적이나 multi-axis-confounded, M6 r6 main result 와 같은 caveat.
+
+### 가설 함의
+
+- **H-encoder-saturation** (architecture-level): 5번째 모델 점에서
+  cross-stim 확인. LLaVA-Next 의 PMR mid-band 가 M8a + M8d 에서 유지;
+  사진 collapse 가 5 모델 모두 적중.
+- **H7** (label-selects-regime): LLaVA-1.5 의 unsaturated-only 가 프로젝트
+  최강 신호였음. LLaVA-Next 가 그 깔끔함을 제거 — PMR 측정 헤드룸이
+  있어도 (M8d PMR 0.625 는 천장 한참 아래) 아키텍처 스위치가 H7 깸.
+- **H-LM-modulation**: 여전히 시사만. 승급 안 함.
+
+### Cross-stim reproducer
+
+```bash
+# M8d
+uv run python scripts/02_run_inference.py --config configs/encoder_swap_llava_next_m8d.py --stimulus-dir inputs/m8d_qwen_<ts>
+uv run python scripts/02_run_inference.py --config configs/encoder_swap_llava_next_m8d_label_free.py --stimulus-dir inputs/m8d_qwen_<ts>
+# M8c
+uv run python scripts/02_run_inference.py --config configs/encoder_swap_llava_next_m8c.py --stimulus-dir inputs/m8c_photos_<ts>
+uv run python scripts/02_run_inference.py --config configs/encoder_swap_llava_next_m8c_label_free.py --stimulus-dir inputs/m8c_photos_<ts>
+
+# M9 audit 가 4-모델 × 3-stim 테이블에 LLaVA-Next 추가 재실행
+uv run python scripts/m9_generalization_audit.py --out-dir outputs/m9_audit
+```
+
 ## 산출물
 
 - `outputs/encoder_swap_llava_next_m8a_<ts>/predictions.{jsonl,parquet,csv}`
 - `outputs/encoder_swap_llava_next_m8a_label_free_<ts>/predictions.{jsonl,parquet,csv}`
+- `outputs/encoder_swap_llava_next_m8d_<ts>/predictions.{jsonl,parquet,csv}` (cross-stim 부록)
+- `outputs/encoder_swap_llava_next_m8d_label_free_<ts>/predictions.{jsonl,parquet,csv}`
+- `outputs/encoder_swap_llava_next_m8c_<ts>/predictions.{jsonl,parquet,csv}`
+- `outputs/encoder_swap_llava_next_m8c_label_free_<ts>/predictions.{jsonl,parquet,csv}`
 - `outputs/encoder_swap_llava_next_m8a_vision_activations/*.safetensors` (400 stim × 4 layer)
 - `outputs/encoder_swap_llava_next_m8a_probe/{layer_sweep,by_object_level}.csv`
 - `outputs/encoder_swap_llava_next_m8a_probe_stim_y/layer_sweep_stim_y_*.csv`
 - `outputs/encoder_swap_probe_summary/encoder_chain_table.csv`
+- `outputs/m9_audit/m9_table1.csv`, `m9_summary.csv` (5-모델 × 3-stim, 부트스트랩 CI)
 - `docs/figures/encoder_chain_5model.png`
+- `docs/figures/m9_summary.png`, `m9_table1_heatmap.png` (5-모델 부트스트랩 막대 + 히트맵)
