@@ -1,6 +1,9 @@
 # M9 — 일반화 감사 (논문 Table 1)
 
-**상태**: 2026-04-25 완료.
+**상태**: 2026-04-25 완료. **같은 날 확장**: M6 r6 LLaVA-Next 가
+M8a/M8d/M8c 에서 4번째 모델로 추가 — 하단 부록 또는 `docs/insights/
+m6_r6_llava_next_ko.md` 참조. 원래 3-모델 감사는 아래에 보존; 5-모델
+synthesis 는 `docs/insights/encoder_saturation_paper_ko.md` 에 위치.
 
 ## 동기
 
@@ -193,3 +196,35 @@ Idefics2 +0.094 PASS) 가 strict +0.05 임계 가로지른 결과. 평균 H7 차
 - `outputs/m9_audit/m9_{table1,summary}.csv`.
 - `docs/figures/m9_{summary,table1_heatmap}.png`.
 - `docs/insights/m9_generalization_audit.md` (+ `_ko.md`).
+
+## 부록 — M6 r6 LLaVA-Next (4번째 모델, 2026-04-25 추가)
+
+원래 3-모델 감사 완료 후, LLaVA-v1.6-Mistral-7b 가 4번째 모델 행으로
+M8a (1 stim) + M8d + M8c (cross-stim) 에 추가됨. 현재 `outputs/m9_audit/
+m9_summary.csv` 와 재생성 figure 는 M8d/M8c 에서 4-모델 (M8a 는 InternVL3
+포함 5-모델).
+
+**LLaVA-Next M9 행** (95% 부트스트랩 CI, 동일 프로토콜):
+
+| stim | mean PMR(_nolabel) | PMR 95% CI       | mean H7  | H7 95% CI         |
+|------|-------------------:|-------------------|---------:|--------------------|
+| M8a  | **0.700**          | [0.653, 0.743]   | +0.260   | [+0.205, +0.317]  |
+| M8d  | **0.625**          | [0.583, 0.667]   | **−0.054** | [−0.102, −0.006]  |
+| M8c  | **0.417**          | [0.300, 0.533]   | +0.017   | [−0.133, +0.167]  |
+
+3-모델 헤드라인에 3가지 추가:
+
+- **PMR mid-band (M8a + M8d)**: LLaVA-Next 가 합성 stim 에서 LLaVA-1.5 와
+  saturated cluster 사이에 위치 — 동일 encoder family (CLIP-ViT-L) 에서
+  4-축 confound 점프. 인코더 family 변경 없이 PMR 이 0.18 → 0.70 (M8a)
+  와 0.33 → 0.625 (M8d) 이동, vision-encoder-family 단독 결정자 가설 배제.
+- **사진 collapse 일반화**: M8c PMR 0.417 이 Idefics2 0.417 과 통계적
+  구분 불가 — 5번째 모델이 동일 M8c-collapse 패턴에 부합 (Headline 2).
+- **H7 가 architecture 횡단 collapse**: M8d −0.054 [−0.102, −0.006]
+  이 0 을 ~0.005 만큼만 대칭적으로 배제, Idefics2 M8d +0.048 [+0.000,
+  +0.094] 와 미러. 양쪽 모두 noise-floor 효과; Headline 4 (LM
+  modulation) 는 *suggested only* 로 유지 — 두-Mistral M8d 클러스터링
+  은 multi-axis-confounded.
+
+LLaVA-Next 전체 분석: `docs/insights/m6_r6_llava_next_ko.md`.
+5-모델 synthesis: `docs/insights/encoder_saturation_paper_ko.md`.

@@ -1,6 +1,10 @@
 # M9 — Generalization audit (paper Table 1)
 
-**Status**: Complete 2026-04-25.
+**Status**: Complete 2026-04-25. **Extended same day** with M6 r6
+LLaVA-Next as a 4th model on M8a/M8d/M8c — see addendum at the bottom
+or `docs/insights/m6_r6_llava_next.md` for full details. The original
+3-model audit below is preserved; the 5-model synthesis lives in
+`docs/insights/encoder_saturation_paper.md`.
 
 ## Motivation
 
@@ -213,3 +217,37 @@ more shapes or a same-encoder LM swap.
 - `outputs/m9_audit/m9_{table1,summary}.csv`.
 - `docs/figures/m9_{summary,table1_heatmap}.png`.
 - `docs/insights/m9_generalization_audit.md` (+ `_ko.md`).
+
+## Addendum — M6 r6 LLaVA-Next (4th model, added 2026-04-25)
+
+After the original 3-model audit completed, LLaVA-v1.6-Mistral-7b
+was added as a 4th model row on M8a (1 stim) + M8d + M8c (cross-stim).
+The current `outputs/m9_audit/m9_summary.csv` and the regenerated
+figures are 4-model on M8d/M8c (5-model on M8a, with InternVL3).
+
+**LLaVA-Next M9 rows** (95% bootstrap CIs, same protocol):
+
+| stim | mean PMR(_nolabel) | PMR 95% CI       | mean H7  | H7 95% CI         |
+|------|-------------------:|-------------------|---------:|--------------------|
+| M8a  | **0.700**          | [0.653, 0.743]   | +0.260   | [+0.205, +0.317]  |
+| M8d  | **0.625**          | [0.583, 0.667]   | **−0.054** | [−0.102, −0.006]  |
+| M8c  | **0.417**          | [0.300, 0.533]   | +0.017   | [−0.133, +0.167]  |
+
+Three additions to the 3-model headlines:
+
+- **PMR mid-band (M8a + M8d)**: LLaVA-Next sits between LLaVA-1.5 and
+  the saturated cluster on synthetic stim — a 4-axis-confounded jump
+  from same-encoder-family LLaVA-1.5 (CLIP-ViT-L). PMR moves
+  0.18 → 0.70 (M8a) and 0.33 → 0.625 (M8d) without changing the
+  encoder family, ruling out vision-encoder-family as the sole driver.
+- **Photo collapse generalizes**: M8c PMR 0.417 is statistically
+  indistinguishable from Idefics2 0.417 — the 5th model fits the same
+  M8c-collapse pattern (Headline 2).
+- **H7 collapses across architecture**: M8d −0.054 [−0.102, −0.006]
+  symmetrically excludes 0 by ~0.005, mirroring Idefics2 M8d
+  +0.048 [+0.000, +0.094]. Both are noise-floor effects;
+  Headline 4 (LM modulation) remains *suggested only* — the
+  two-Mistral M8d clustering is multi-axis-confounded.
+
+Full LLaVA-Next analysis: `docs/insights/m6_r6_llava_next.md` (+ ko).
+Full 5-model synthesis: `docs/insights/encoder_saturation_paper.md` (+ ko).
