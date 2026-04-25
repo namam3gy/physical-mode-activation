@@ -210,20 +210,30 @@ all 5 models on M8c, vs LLaVA-1.5 M8d synthetic phys_minus_abs +0.306
 (label effect halved on photos). LLaVA-Next phys − abs = 0.000 on
 physical photos. Doc: `docs/insights/sec4_2_reverse_prompting.md` (+ ko).
 
-### §4.10 Attention visualization UI (commit `178f870`)
+### §4.10 Attention visualization UI (commits `178f870` + `507ee02`)
 
-Initial release for Qwen2.5-VL on a 20-stim M8a subset. Required infra
-fix: `vlm_runner.py` now switches `attn_implementation` to `"eager"` when
-`capture_lm_attentions=True` (SDPA does not return attention weights).
-Notebook `notebooks/attention_viz.ipynb` provides 6 sections: load,
-per-layer heatmap, image overlay, physics-vs-abstract comparison,
-per-head structure, attention-entropy aggregate. Doc:
-`docs/insights/sec4_10_attention_viz.md` (+ ko).
+Initial release for Qwen2.5-VL on a 20-stim M8a subset, then **extended
+to all 5 VLMs** (LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3). Required
+infra fix: `vlm_runner.py` now switches `attn_implementation` to
+`"eager"` when `capture_lm_attentions=True` (SDPA does not return
+attention weights). Notebook `notebooks/attention_viz.ipynb` has 8
+sections: §1-6 Qwen-only single-model dive, §7-8 5-model cross-model
+comparison.
+
+**Cross-model finding (§7)**: all 5 VLMs allocate only **3–26%** of
+last-token attention to visual tokens despite visual tokens being
+79–98% of the input sequence. Visual attention peaks at mid-layers
+(15 or 20) for every model — same layer band where M4 saw label-physics
+margin development. Consistent with the architecture-level reframe:
+encoder output is uniform (stim-y AUC = 1.0), but the LM only "looks"
+at it briefly at mid-layers, allocating most attention to the
+linguistic context. Architecture differences shape how strongly the
+brief visual peek translates into PMR commitment.
+
+Doc: `docs/insights/sec4_10_attention_viz.md` (+ ko).
 
 ## Next priorities (per roadmap §4)
 
-- **§4.10 cross-model extension** — extend attention viz to LLaVA-1.5 /
-  LLaVA-Next / Idefics2 / InternVL3 (~2 GB total disk cost).
 - **§4.6** Counterfactual stimulus generation via SAE/VTI reverse —
   adversarial physics-mode prompt synthesis.
 - **M5b** SIP + activation patching + SAE — mechanism-level evidence.

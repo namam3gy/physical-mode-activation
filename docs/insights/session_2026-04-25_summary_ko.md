@@ -206,19 +206,28 @@ M8d 합성 phys_minus_abs +0.306 (사진에서 라벨 효과 절반). LLaVA-Next
 phys − abs = 0.000 on 물리 사진. 문서: `docs/insights/sec4_2_reverse_
 prompting_ko.md`.
 
-### §4.10 Attention 시각화 UI (commit `178f870`)
+### §4.10 Attention 시각화 UI (commit `178f870` + `507ee02`)
 
-Qwen2.5-VL 의 20-stim M8a subset 에 대한 초기 release. 인프라 수정 필요:
-`vlm_runner.py` 가 `capture_lm_attentions=True` 일 때 `attn_implementation`
-을 `"eager"` 로 전환 (SDPA 는 attention weight 반환 안함). 노트북
-`notebooks/attention_viz.ipynb` 가 6 섹션 제공: 로드, per-layer heatmap,
-이미지 overlay, physics-vs-abstract 비교, per-head 구조, attention-entropy
-집계. 문서: `docs/insights/sec4_10_attention_viz_ko.md`.
+Qwen2.5-VL 의 20-stim M8a subset 에 대한 초기 release, 그 다음 **5 VLM
+모두로 확장** (LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3). 인프라 수정
+필요: `vlm_runner.py` 가 `capture_lm_attentions=True` 일 때
+`attn_implementation` 을 `"eager"` 로 전환 (SDPA 는 attention weight 반환
+안함). 노트북 `notebooks/attention_viz.ipynb` 가 8 섹션 보유: §1-6 Qwen
+단일 모델, §7-8 5-모델 cross-model 비교.
+
+**Cross-model 발견 (§7)**: 시각 token 이 입력 시퀀스의 79–98% 를 차지
+함에도 5 VLM 모두 마지막 token attention 의 **3–26%** 만 시각 token 에
+할당. 시각 attention 이 모든 모델에서 mid-layer (15 or 20) 에 정점 — M4
+가 label-physics margin 발달 관찰한 layer band 와 동일. Architecture-
+level reframe 과 일치: encoder 출력은 균일 (stim-y AUC = 1.0) 이지만 LM
+은 mid-layer 에서 짧게 "보고", attention 의 대부분을 언어적 맥락에 할당.
+Architecture 차이가 짧은 시각 peek 가 PMR commit 으로 번역되는 강도를
+형성.
+
+문서: `docs/insights/sec4_10_attention_viz_ko.md`.
 
 ## 다음 우선순위 (roadmap §4 기준)
 
-- **§4.10 cross-model 확장** — LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3
-  으로 attention viz 확장 (총 ~2 GB 디스크).
 - **§4.6** SAE/VTI 역방향 counterfactual stimulus 생성 — adversarial
   physics-mode prompt 합성.
 - **M5b** SIP + activation patching + SAE — mechanism-level 증거.
