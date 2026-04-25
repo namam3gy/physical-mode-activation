@@ -14,7 +14,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 ObjectMode = Literal["line", "filled", "shaded", "textured", "block_stack"]
-Shape = Literal["circle", "square", "triangle", "hexagon", "polygon"]
+Shape = Literal["circle", "square", "triangle", "hexagon", "polygon", "car", "person", "bird"]
 
 
 def blank_canvas(size: int) -> Image.Image:

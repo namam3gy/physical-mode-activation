@@ -78,6 +78,12 @@ LABELS_BY_SHAPE: dict[str, tuple[str, str, str]] = {
     # commits to mass/gravity. (Avoid using "shape" here — "shape" is more
     # abstract than "polygon" and would invert the role ordering.)
     "polygon":  ("rock",   "polygon",  "boulder"),
+    # M8d non-ball categories. abstract role is depiction-style ("silhouette",
+    # "stick figure") rather than a forced geometric class because non-ball
+    # categories don't have natural geometric-class names.
+    "car":      ("car",    "silhouette",  "figurine"),
+    "person":   ("person", "stick figure", "statue"),
+    "bird":     ("bird",   "silhouette",  "duck"),
 }
 
 

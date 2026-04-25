@@ -20,7 +20,7 @@ EventTemplate = Literal["fall", "roll_slope", "wall_bounce", "hover", "horizonta
 # axis A1 (M8a): the underlying geometric class. `circle` is the canonical
 # pilot shape; the four non-circle classes were added for the M8a
 # external-validity round.
-Shape = Literal["circle", "square", "triangle", "hexagon", "polygon"]
+Shape = Literal["circle", "square", "triangle", "hexagon", "polygon", "car", "person", "bird"]
 Label = Literal[
     # circle labels (pilot)
     "circle", "ball", "planet",
@@ -34,6 +34,12 @@ Label = Literal[
     "nut", "hexagon", "coin",
     # polygon labels (M8a)
     "rock", "polygon", "boulder",
+    # car labels (M8d)
+    "car", "silhouette", "figurine",
+    # person labels (M8d)
+    "person", "stick figure", "statue",
+    # bird labels (M8d)
+    "bird", "duck",
     # M8a label-role aliases (resolved at run.py to literal labels)
     "physical", "abstract", "exotic",
 ]
