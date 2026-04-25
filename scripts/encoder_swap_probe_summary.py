@@ -29,6 +29,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODEL_TABLE = [
     ("Qwen2.5-VL",   "SigLIP",        "Qwen2-7B",      "#1f77b4"),
     ("LLaVA-1.5",    "CLIP-ViT-L",    "Vicuna-7B",     "#d62728"),
+    ("LLaVA-Next",   "CLIP-ViT-L",    "Mistral-7B",    "#ff7f0e"),
     ("Idefics2",     "SigLIP-SO400M", "Mistral-7B",    "#5fa8d3"),
     ("InternVL3",    "InternViT",     "InternLM2-7B",  "#2ca02c"),
 ]
@@ -56,12 +57,15 @@ def main() -> None:
                    help="outputs/encoder_swap_qwen_m8a_probe (optional — falls back to M6 r2 baseline)")
     p.add_argument("--llava", type=Path, required=False,
                    help="outputs/encoder_swap_llava_m8a_probe (optional — falls back to M6 r2 baseline)")
+    p.add_argument("--llava-next", type=Path, required=False,
+                   help="outputs/encoder_swap_llava_next_m8a_probe (optional)")
     p.add_argument("--idefics2", type=Path, required=True,
                    help="outputs/encoder_swap_idefics2_probe — must contain layer_sweep.csv")
     p.add_argument("--internvl3", type=Path, required=True,
                    help="outputs/encoder_swap_internvl3_probe — must contain layer_sweep.csv")
     p.add_argument("--internvl3-pmr", type=float, required=False, default=None,
                    help="Override behavioral PMR(_nolabel) for InternVL3 if not auto-inferred.")
+    p.add_argument("--llava-next-pmr", type=float, required=False, default=None)
     p.add_argument("--out-dir", type=Path, required=True)
     args = p.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
@@ -70,19 +74,20 @@ def main() -> None:
     internvl3_sweep = pd.read_csv(args.internvl3 / "layer_sweep.csv")
     qwen_sweep = pd.read_csv(args.qwen / "layer_sweep.csv") if args.qwen else None
     llava_sweep = pd.read_csv(args.llava / "layer_sweep.csv") if args.llava else None
+    llava_next_sweep = pd.read_csv(args.llava_next / "layer_sweep.csv") if args.llava_next else None
 
     # Take the deepest-layer AUC for each model (paper convention).
     idefics2_auc = float(idefics2_sweep["auc_mean"].iloc[-1])
     internvl3_auc = float(internvl3_sweep["auc_mean"].iloc[-1])
     qwen_auc = float(qwen_sweep["auc_mean"].iloc[-1]) if qwen_sweep is not None else None
     llava_auc = float(llava_sweep["auc_mean"].iloc[-1]) if llava_sweep is not None else None
+    llava_next_auc = float(llava_next_sweep["auc_mean"].iloc[-1]) if llava_next_sweep is not None else None
 
     pmr = dict(M8A_PMR)
     if "InternVL3" not in pmr:
         if args.internvl3_pmr is not None:
             pmr["InternVL3"] = args.internvl3_pmr
         else:
-            # Derive from the label-free run dir alongside the probe dir.
             cand = sorted(PROJECT_ROOT.glob("outputs/encoder_swap_internvl3_m8a_label_free_*/predictions.jsonl"))
             if cand:
                 from physical_mode.metrics.pmr import score_rows
@@ -90,12 +95,25 @@ def main() -> None:
                 pmr["InternVL3"] = float(df["pmr"].mean())
             else:
                 pmr["InternVL3"] = float("nan")
+    if args.llava_next:
+        if args.llava_next_pmr is not None:
+            pmr["LLaVA-Next"] = args.llava_next_pmr
+        else:
+            cand = sorted(PROJECT_ROOT.glob("outputs/encoder_swap_llava_next_m8a_label_free_*/predictions.jsonl"))
+            if cand:
+                from physical_mode.metrics.pmr import score_rows
+                df = score_rows(pd.read_json(cand[-1], lines=True))
+                pmr["LLaVA-Next"] = float(df["pmr"].mean())
+            else:
+                pmr["LLaVA-Next"] = float("nan")
 
     auc = dict(M6_R2_AUC)
     if qwen_auc is not None:
         auc["Qwen2.5-VL"] = qwen_auc
     if llava_auc is not None:
         auc["LLaVA-1.5"] = llava_auc
+    if llava_next_auc is not None:
+        auc["LLaVA-Next"] = llava_next_auc
     auc["Idefics2"] = idefics2_auc
     auc["InternVL3"] = internvl3_auc
 
@@ -131,10 +149,13 @@ def main() -> None:
                    alpha=0.7, label="Qwen2.5-VL (SigLIP, M6 r2 baseline)")
     if llava_sweep is not None:
         ax.plot(llava_sweep["layer"], llava_sweep["auc_mean"], "^-",
-                color="#d62728", label="LLaVA-1.5 (CLIP-ViT-L)", linewidth=2)
+                color="#d62728", label="LLaVA-1.5 (CLIP-ViT-L+Vicuna)", linewidth=2)
     else:
         ax.axhline(M6_R2_AUC["LLaVA-1.5"], linestyle="--", color="#d62728",
                    alpha=0.7, label="LLaVA-1.5 (CLIP, M6 r2 baseline)")
+    if llava_next_sweep is not None:
+        ax.plot(llava_next_sweep["layer"], llava_next_sweep["auc_mean"], "D-",
+                color="#ff7f0e", label="LLaVA-Next (CLIP-ViT-L+Mistral)", linewidth=2)
     ax.plot(idefics2_sweep["layer"], idefics2_sweep["auc_mean"], "o-",
             color="#5fa8d3", label="Idefics2 (SigLIP-SO400M)", linewidth=2)
     ax.plot(internvl3_sweep["layer"], internvl3_sweep["auc_mean"], "s-",
