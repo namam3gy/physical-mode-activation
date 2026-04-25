@@ -558,9 +558,9 @@ def _car_geometry(cx: int, cy: int, r: int) -> dict:
     win_top = body_top + int(body_h * 0.1)
     return dict(
         body_box=(body_left, body_top, body_right, body_bottom),
-        wheel_r=wheel_r,
-        wheel_l=(wheel_lx, wheel_y),
-        wheel_r_pos=(wheel_rx, wheel_y),
+        wheel_radius=wheel_r,
+        wheel_left=(wheel_lx, wheel_y),
+        wheel_right=(wheel_rx, wheel_y),
         windshield_box=(win_left, win_top, win_left + win_w, win_top + win_h),
     )
 
@@ -570,8 +570,8 @@ def _draw_line_car(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
     d = ImageDraw.Draw(img)
     d.rectangle(g["body_box"], outline=(0, 0, 0), width=3)
     d.rectangle(g["windshield_box"], outline=(0, 0, 0), width=2)
-    wr = g["wheel_r"]
-    for (wx, wy) in (g["wheel_l"], g["wheel_r_pos"]):
+    wr = g["wheel_radius"]
+    for (wx, wy) in (g["wheel_left"], g["wheel_right"]):
         d.ellipse((wx - wr, wy - wr, wx + wr, wy + wr), outline=(0, 0, 0), width=3)
     return img
 
@@ -580,8 +580,8 @@ def _draw_filled_car(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
     g = _car_geometry(cx, cy, r)
     d = ImageDraw.Draw(img)
     d.rectangle(g["body_box"], fill=(0, 0, 0))
-    wr = g["wheel_r"]
-    for (wx, wy) in (g["wheel_l"], g["wheel_r_pos"]):
+    wr = g["wheel_radius"]
+    for (wx, wy) in (g["wheel_left"], g["wheel_right"]):
         d.ellipse((wx - wr, wy - wr, wx + wr, wy + wr), fill=(0, 0, 0))
     # Windshield in lighter color so silhouette is still recognizably a car.
     d.rectangle(g["windshield_box"], fill=(120, 120, 120))
@@ -603,8 +603,8 @@ def _draw_shaded_car(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
         d.rectangle((bx0, y0, bx1, y1), fill=(c, c, c + 20))
     d.rectangle(g["body_box"], outline=(40, 40, 40), width=2)
     # Wheels: dark circles with subtle gradient.
-    wr = g["wheel_r"]
-    for (wx, wy) in (g["wheel_l"], g["wheel_r_pos"]):
+    wr = g["wheel_radius"]
+    for (wx, wy) in (g["wheel_left"], g["wheel_right"]):
         d.ellipse((wx - wr, wy - wr, wx + wr, wy + wr), fill=(40, 40, 40), outline=(0, 0, 0), width=2)
         d.ellipse((wx - wr // 2, wy - wr // 2, wx + wr // 2, wy + wr // 2), fill=(80, 80, 80))
     # Windshield: light blue glassy shade.
@@ -614,6 +614,8 @@ def _draw_shaded_car(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
 
 def _draw_textured_car(img: Image.Image, cx: int, cy: int, r: int, seed: int) -> Image.Image:
     """Photorealistic-ish car with body color, glass detail, wheel hubs."""
+    # Per-category RNG offset: decouples palette/jitter draws across
+    # categories for the same input seed (car=11000, person=22000, bird=33000).
     rng = random.Random(seed + 11000)
     # Body color: a saturated automotive hue.
     palette = [(180, 30, 30), (40, 80, 160), (30, 120, 60), (200, 160, 30)]
@@ -625,8 +627,8 @@ def _draw_textured_car(img: Image.Image, cx: int, cy: int, r: int, seed: int) ->
     bx0, by0, bx1, by1 = g["body_box"]
     d.rectangle((bx0 + 4, by0 + 4, bx1 - 4, by0 + (by1 - by0) // 5), fill=(min(255, body_color[0] + 60), min(255, body_color[1] + 60), min(255, body_color[2] + 60)))
     # Wheels with hubs.
-    wr = g["wheel_r"]
-    for (wx, wy) in (g["wheel_l"], g["wheel_r_pos"]):
+    wr = g["wheel_radius"]
+    for (wx, wy) in (g["wheel_left"], g["wheel_right"]):
         d.ellipse((wx - wr, wy - wr, wx + wr, wy + wr), fill=(20, 20, 20), outline=(0, 0, 0), width=2)
         # Hub (center disc).
         hr = wr // 2
