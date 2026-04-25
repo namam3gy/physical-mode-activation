@@ -74,8 +74,15 @@ Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the 
 | M6 r1 | **ST5 round 1 — LLaVA-1.5-7B cross-model** | M2 + M4b protocol on LLaVA-1.5-7B. **Key result**: M4b's "circle suppression" is **Qwen-specific** — LLaVA shows the *original* H2 (ball +47.5 pp, all labels positive vs no-label baseline). New unified hypothesis: language prior is positive across labels; Qwen's visual saturation masked the positive contribution. H7 cross-model replicates (planet GAR << ball GAR in both). LLaVA gives the cleanest H1 S-curve in the project. FC excluded (LLaVA returns "A" for every cell). | ✅ | 2026-04-25 |
 | M4c | **Forced-choice label-free** | New `forced_choice_no_label` variant (FC with "the depicted object" antecedent). Qwen reproduces M4b's H2 pattern under FC and adds a planet-suppression effect (option-set bias: orbital regime collapses to D). LLaVA's "A" bias persists under re-template (477/480), confirming model-level pathology. | ✅ | 2026-04-25 |
 | M6 r2 | **Cross-model round 2 (3-model + LLaVA captures + FC logit ratio)** | r2a: InternVL3-8B-hf cross-model behavioral; r2b: LLaVA-1.5 activation captures + cross-model M3/M4 probing; r2c: FC first-token logit-ratio scoring on all FC runs. **Key result**: visual-saturation hypothesis fully validated 3-of-3 models; rooted in vision encoder probe AUC (Qwen 0.99, LLaVA 0.73). H-boomerang revised to Qwen-scoped. New **H-encoder-saturation** hypothesis. LLaVA "A" bias is logit-level (not greedy-level). | ✅ | 2026-04-25 |
-| **M5b** | **ST4 Phase 3 — SIP + patching + SAE** | Semantic Image Pairs + activation patching (needs attention re-capture) + SAE feature decomposition. | ▶ **next (optional)** | — |
-| M6 r3+ | ST5 round 3+ — encoder counterfactuals + LLaVA-Next | LLaVA-Next, vision-encoder swap (test H-encoder-saturation causally), InternVL3 captures. | pending | — |
+| **M8a** | **Stimulus diversification — non-circle synthetic shapes** | Square / triangle / hexagon / irregular polygon × line/filled/shaded/textured × current bg/cue grid. Test whether H1 (S-curve), H7 (label-regime), H-encoder-saturation are shape-invariant or circle-specific. | ▶ **PRIORITY 1 (next)** | — |
+| **M8c** | **Stimulus diversification — real photographs** | 50-100 photo stimuli (real balls, household objects, abstract photos) on the same prompt protocol. Direct comparison: synthetic-textured ball vs photo ball. Tests how much PMR(_nolabel) is determined by photo-realism vs by synthetic cues. | ▶ **PRIORITY 2 (next)** | — |
+| **M8d** | **Stimulus diversification — non-ball physical object categories** | Car / person / plant / etc. with category-appropriate labels and physics regimes. Does H7 ("label selects regime") generalize beyond the ball↔planet axis? E.g., car → "drives/rolls", plant → "grows/sways". | ▶ **PRIORITY 3 (next)** | — |
+| **4.5** | **Cross-encoder swap (CLIP / SigLIP / DINOv2)** | Causal counterfactual for H-encoder-saturation: swap LLaVA's CLIP-ViT-L for SigLIP (or vice-versa for Qwen). The cleanest test of whether the encoder probe AUC is what *causes* saturation level. **PROMOTED from §4.5** to ▶ priority. | ▶ **PRIORITY 4 (next)** | — |
+| **4.6** | **Counterfactual stimulus generation via SAE / VTI reverse** | Use a learned direction (M5a v_L10 or SAE feature) to gradient-ascent-synthesize a stimulus that maximizes physics-mode in the model's eyes. Adversarial / shortcut-revealing extension to M5a. **PROMOTED from §4.6** to ▶ priority. | ▶ **PRIORITY 5 (next)** | — |
+| **4.10** | **Attention visualization UI** | Captured-attention heatmaps × layer × head as an interactive notebook. For paper appendix and qualitative reading. **PROMOTED from §4.10** to ▶ priority. | ▶ **PRIORITY 6 (next)** | — |
+| M5b | ST4 Phase 3 — SIP + patching + SAE | Semantic Image Pairs + activation patching (needs attention re-capture) + SAE feature decomposition. | optional | — |
+| M6 r3+ | ST5 round 3+ — encoder counterfactuals + LLaVA-Next | LLaVA-Next, InternVL3 captures, scale variants (Qwen 32B/72B), other VLM families (Pixtral / Phi-V). | optional | — |
+| M9 | Generalization audit — `(shape × model)` heatmap | Once M8a/c/d + M6 r3+ run, consolidate per-(shape, model) replication of H1/H7/H-encoder-saturation into a single Table-1-style heatmap. Identifies universal vs model-specific vs shape-specific findings. | optional (after M8 + M6 r3+) | — |
 | M7 | Human baseline + paper writing | Prolific 20 raters × 50 stimuli + EMNLP/NeurIPS draft | optional | — |
 
 ---
@@ -373,6 +380,94 @@ Deep dive: `docs/insights/m6_r2_cross_model.md`. Numbers: `docs/experiments/m6_r
 - H7: **3-of-3 cross-model** — orbital-routing dissociation universal so far.
 - H4: **untested for InternVL3 + LLaVA** — FC excluded (cost) / blocked (LLaVA "A" bias).
 
+### M8a — Non-circle synthetic shapes — work plan ▶ priority 1
+
+**Motivation**: every finding so far (H1 S-curve, H7 label-regime, H-boomerang Qwen-scoped, H-encoder-saturation) was measured on circles. External validity requires shape variation.
+
+**Sub-tasks**:
+1. Add primitives: `_draw_square`, `_draw_triangle`, `_draw_hexagon`, `_draw_irregular_polygon` to `src/physical_mode/stimuli/primitives.py`. Each with the same line / filled / shaded / textured abstraction-axis variants as `_draw_*_circle`.
+2. Add `Shape` axis to `FactorialSpec` (default `("circle",)` → `("circle", "square", "triangle", "hexagon", "polygon")`).
+3. Choose label dictionary per shape: e.g. circle → ball/circle/planet (existing), square → brick/square/tile, triangle → ramp/triangle/wedge, polygon → rock/blob/abstract-shape. Mix of "physical-prior" + "abstract" + "neutral" label per shape so paired delta vs label-free is meaningful.
+4. Generate a focused subset (4 abstr × 2 bg × 2 cue × 5 seeds = 80 stim per shape × 5 shapes = 400 stim) — much smaller than M2's 480 to keep cross-shape × cross-model time manageable.
+5. Run on at least 2 models (Qwen + LLaVA-1.5; InternVL3 if time) with `open` + `open_no_label`.
+6. Per-shape replication test: does H1 monotone hold? Does H7-style label-regime mapping appear? Does H-encoder-saturation predict per-shape paired delta?
+
+**Success criteria**:
+- At least 2 of 3 hypotheses replicate on at least 1 non-circle shape on at least 1 model.
+- Shape × model heatmap (preliminary M9 deliverable).
+
+**Estimated effort**: 4-7 hours (3-5 of code + run + analysis + EN/KO docs + notebook).
+
+### M8c — Real photographs — work plan ▶ priority 2
+
+**Motivation**: M2's stimuli are programmatically generated. The "encoder probe AUC" finding may overfit to synthetic patterns. Photos provide an out-of-distribution test for visual-saturation.
+
+**Sub-tasks**:
+1. Curate 50-100 photos: balls (basketball, soccer ball, bowling ball, ping-pong ball, tennis ball, billiard ball), other graspable objects (apple, can, mug, book), abstract photos (drawings, diagrams). Mix license-permissive sources (PEXELS / Unsplash / public datasets like ImageNet sub-classes).
+2. Add a separate `inputs/real_photo_<ts>/` manifest with the same column schema (`sample_id`, `image_path`, label-axis fields where applicable, plus a `source_type ∈ {synthetic, photo}` column).
+3. Run the same prompt protocol (open / open_no_label / forced_choice) on each captured model (Qwen + LLaVA + InternVL3).
+4. Direct comparison: paired (synthetic-textured-ball vs photo-ball) PMR delta. Does photo-realism saturate the encoder further? Does it close LLaVA's gap?
+
+**Success criteria**:
+- Photo PMR(_nolabel) ≥ synthetic textured PMR(_nolabel) for each model — confirms direction.
+- Encoder probe AUC on photos vs synthetic available for at least Qwen + LLaVA.
+
+**Estimated effort**: 4-6 hours (photo curation is the slow step).
+
+### M8d — Non-ball physical-object categories — work plan ▶ priority 3
+
+**Motivation**: H7 ("label selects regime") is currently a `ball ↔ planet` dissociation. Generalization requires showing label-regime mapping for other object kinds.
+
+**Sub-tasks**:
+1. Add object primitives: car-like rectangle, person-stick-figure, plant (tree-stem with leaves), bird (simple silhouette).
+2. Per category, define the label tuple with regime-distinguishable wording:
+   - car → drives / rolls / parks (kinetic / kinetic / static)
+   - person → walks / runs / stands (kinetic / fast-kinetic / static)
+   - plant → grows / sways / withers (slow-temporal / wind-driven / decay)
+   - bird → flies / hovers / lands (aerial-kinetic / aerial-static / kinetic)
+3. Run open prompt + open_no_label cross-model.
+4. Define a regime-classifier (zero-shot LLM judge or hand-annotation on a subset) over the per-category response space.
+5. Per-category H7 test: does each label produce a distinguishable regime distribution under fixed image content?
+
+**Success criteria**:
+- For at least 2 categories, the regime distribution per label is significantly different (chi-square or similar).
+- Per-category, similar `planet GAR << ball GAR`-style dissociation visible.
+
+**Estimated effort**: 4-6 hours.
+
+### 4.5 Cross-encoder swap — work plan ▶ priority 4 (promoted)
+
+**Motivation**: H-encoder-saturation is currently 3-model correlational (M6 r2). The causal test is to *swap* the encoder while holding everything else constant.
+
+**Sub-tasks**:
+1. LLaVA-1.5-7B with SigLIP encoder swap (HF community ports exist: e.g. `google/siglip-base-patch16-224` projector retraining). Or use a from-scratch LLaVA-style training with SigLIP as encoder.
+2. Cleanest alternative: take a LLaVA-1.5-derived family that already swapped encoder (e.g. ShareGPT4V, Bunny). Behavioral run only — confirm whether `PMR(_nolabel)` and encoder AUC track together.
+3. Stretch: train a minimal projector swap (~few hr GPU) to swap CLIP ↔ SigLIP on LLaVA-1.5.
+
+**Estimated effort**: 4-7 hours (using existing swapped variants; +many hours if training a fresh swap).
+
+### 4.6 Counterfactual stimulus generation via SAE / VTI reverse — work plan ▶ priority 5 (promoted)
+
+**Motivation**: "Adversarial physics-mode" stimulus reveals what the model considers physical. If the synthesized stimulus looks abstract to humans but reads as physical to the model, that is a clean shortcut-interpretation finding.
+
+**Sub-tasks**:
+1. Take the M5a steering direction `v_L10` or a learned SAE feature.
+2. Gradient-ascent in image space (PIL / torch differentiable) to maximize the projection of the activation onto `v_L10`.
+3. Inspect the resulting stimulus visually + measure PMR.
+
+**Estimated effort**: 6-10 hours (image differentiability through Qwen pipeline is non-trivial).
+
+### 4.10 Attention visualization UI — work plan ▶ priority 6 (promoted)
+
+**Motivation**: Cross-axis (layer × head × visual-token-position) attention maps qualitatively reveal which heads attend to which cues. Useful as paper appendix figure + for finding patching targets.
+
+**Sub-tasks**:
+1. Re-run a subset (~20-50 stim) with `capture_lm_attentions=True` on Qwen + LLaVA.
+2. Build a notebook UI: select stimulus → layer → head → render attention heatmap overlaid on image, plus attention to label tokens.
+3. Curate 5-10 illustrative cells.
+
+**Estimated effort**: 5-7 hours.
+
 ### M5b — ST4 Phase 3 (SIP patching + SAE) — work plan
 
 **Sub-tasks**:
@@ -408,7 +503,14 @@ Tasks:
 
 ## 4. Additional ideas not in the original project doc
 
-Extensions that came up during the pilot, or that aren't in `references/project.md` §2. Optional — each ~1-2 weeks of work.
+Extensions that came up during the pilot, or that aren't in `references/project.md` §2.
+
+**Promoted to next-tier priority** (work plans now in §3, see corresponding sections):
+- **4.5** Cross-encoder swap — priority 4 after M8a/c/d (causal test of H-encoder-saturation).
+- **4.6** Counterfactual stimulus generation via SAE/VTI reverse — priority 5.
+- **4.10** Attention visualization UI — priority 6.
+
+The remainder are still optional / open ideas.
 
 ### 4.1 Block stack as a separate "abstract-physical" path
 
@@ -426,13 +528,17 @@ Does a Korean `"공"` vs an English `"ball"` on the same stimulus produce differ
 
 Give a (t=0, t=1) frame pair where only the object position differs, then ask "launched by X?". Does the Michotte (1946) launching effect appear in VLMs? A 2-image prompt is a proxy that does not require a video model.
 
-### 4.5 Cross-encoder swap (SigLIP vs CLIP vs DINOv2)
+### 4.5 Cross-encoder swap (SigLIP vs CLIP vs DINOv2) ⭐ promoted
 
 Hypothesis: "cues that are invisible when the encoder is CLIP can be seen by a DINOv2-based model". Continuation of the Eyes Wide Shut (Tong et al. 2024) MoF proposal. Note: a standalone-encoder comparison is implicitly part of M6 (LLaVA-1.5 with CLIP-ViT-L/14 vs Qwen2.5-VL with SigLIP).
 
-### 4.6 Activation-based counterfactual stimulus generation
+**Status (2026-04-25)**: promoted to next-tier priority — H-encoder-saturation (M6 r2) is currently 3-model correlational; this is the causal counterfactual. Detailed work plan in §3 above.
+
+### 4.6 Activation-based counterfactual stimulus generation ⭐ promoted
 
 Use a SAE / VTI steering vector in reverse to gradient-ascent synthesize a stimulus that "maximizes physics-mode in the VLM's eyes". An **adversarial physics-mode prompt** → evidence for shortcut interpretation in open-source VLMs.
+
+**Status (2026-04-25)**: promoted to next-tier priority. The M5a `v_L10` direction is now well characterized (M5a-ext) — reverse-synthesis is the natural extension. Detailed work plan in §3 above.
 
 ### 4.7 Decision-consistency boundary measurement
 
@@ -446,9 +552,11 @@ Per-model PMR for H-class (Qwen2.5-VL-7B/32B/72B) and LLaVA-1.5-7B/13B. Does Mec
 
 `"What do you see? What might happen next?"` — ask the question **without** the word "ball". Measures H2's language-prior contribution as a null-hypothesis test. Easy addition — `prompts.py` `open_no_label` variant.
 
-### 4.10 Attention visualization UI
+### 4.10 Attention visualization UI ⭐ promoted
 
 Captured attentions → interactive heatmap (notebook-based). Per-stimulus, per-layer, per-head visual-token attention. For the paper appendix figure.
+
+**Status (2026-04-25)**: promoted to next-tier priority. Provides a qualitative complement to the per-layer probe AUC numbers and helps target M5b activation patching. Detailed work plan in §3 above.
 
 ### 4.11 H7 follow-up — label-regime category annotation
 
@@ -512,4 +620,5 @@ Systematically validate the M2 finding that "label selects the physics regime" (
 | 2026-04-25 | M4b complete: label-free prompt as H2 null test on M2 stimuli. Paired PMR(ball) − PMR(_nolabel) = +0.006 ≈ 0; PMR(circle) − PMR(_nolabel) = −0.065. **H2 revised** — language prior is asymmetric (circle override, not ball enhancement). M4 visual-token capture is prompt-independent (causal-attention artefact); switching-layer collapse is structural. | `e97db16`, `990ddf7` |
 | 2026-04-25 | M6 round 1 complete (LLaVA-1.5-7B cross-model): paired PMR delta vs label-free → ball +0.475, planet +0.244, circle +0.173 (all positive). **H2 re-revised — visual-saturation hypothesis**: M4b's "circle suppression only" is Qwen-specific; LLaVA shows the original H2 because its visual prior is unsaturated. H1 S-curve cleanest on LLaVA (0.51 → 0.81). H7 replicates cross-model (planet GAR << ball GAR in both). FC excluded — LLaVA returns "A" for every cell. | `c1b885f` |
 | 2026-04-25 | M4c complete (forced-choice label-free): new `forced_choice_no_label` variant. Qwen reproduces M4b under FC (ball ≈ no-label, circle suppresses harder, planet newly suppresses via FC's gravity-centric option set). Qwen open-vs-FC paired delta at no-label = −0.131 (H4 measurable without label confound). LLaVA "A" bias persists under re-template (477/480) — confirmed model-level pathology. | `70dc39c` |
-| 2026-04-25 | M6 round 2 complete (3 sub-deliverables): r2a InternVL3 cross-model (paired delta +0.010 for every label, fully saturated), r2b LLaVA-1.5 captures (vision encoder AUC ~0.73, LM AUC ~0.75 — boomerang gap is Qwen-specific because LLaVA encoder is the bottleneck), r2c FC logit-ratio (LLaVA "A" bias is at logit level — 90% rows only A survives top_p, not just greedy). **New H-encoder-saturation hypothesis** anchors the 3-model H2 pattern to vision encoder probe AUC. | (this commit) |
+| 2026-04-25 | M6 round 2 complete (3 sub-deliverables): r2a InternVL3 cross-model (paired delta +0.010 for every label, fully saturated), r2b LLaVA-1.5 captures (vision encoder AUC ~0.73, LM AUC ~0.75 — boomerang gap is Qwen-specific because LLaVA encoder is the bottleneck), r2c FC logit-ratio (LLaVA "A" bias is at logit level — 90% rows only A survives top_p, not just greedy). **New H-encoder-saturation hypothesis** anchors the 3-model H2 pattern to vision encoder probe AUC. | `47f4b18` |
+| 2026-04-25 | Roadmap re-prioritization: external validity over depth. New milestones **M8a (non-circle synthetic shapes), M8c (real photographs), M8d (non-ball physical-object categories)** added at top priority. **§4.5 (encoder swap), §4.6 (counterfactual stimulus generation), §4.10 (attention viz UI)** promoted to next-tier priority. M5b (SIP+SAE) and M6 r3+ demoted to optional pending M8 + 4.5/6/10 results. New M9 (generalization audit) added as the consolidation milestone after M8 + M6 r3+. | (this commit) |

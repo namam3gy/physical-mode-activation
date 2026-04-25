@@ -74,8 +74,15 @@
 | M6 r1 | **ST5 round 1 — LLaVA-1.5-7B cross-model** | M2 + M4b 프로토콜을 LLaVA-1.5-7B 에. **핵심 결과**: M4b 의 "circle suppression" 은 **Qwen 특이적** — LLaVA 는 *원래의* H2 (ball +47.5 pp, 모든 label 이 no-label baseline 대비 양수). 새 통합 가설: language prior 가 모든 label 에서 양수; Qwen 의 visual saturation 이 양의 기여를 mask 함. H7 cross-model 재현 (planet GAR << ball GAR 두 모델 모두). LLaVA 가 본 프로젝트 가장 깔끔한 H1 S-curve 제공. FC 제외 (LLaVA 가 모든 cell 에 "A" 반환). | ✅ | 2026-04-25 |
 | M4c | **Forced-choice label-free** | 새 `forced_choice_no_label` variant ("the depicted object" antecedent 사용). Qwen 이 FC 하에서 M4b 의 H2 패턴 재현 + planet 억제 효과 추가 (옵션-셋 편향: orbital regime 이 D 로 collapse). LLaVA 의 "A" 편향이 re-template 에서도 유지 (477/480), 모델 수준 pathology 확인. | ✅ | 2026-04-25 |
 | M6 r2 | **Cross-model round 2 (3-model + LLaVA captures + FC logit ratio)** | r2a: InternVL3-8B-hf cross-model 행동; r2b: LLaVA-1.5 activation captures + cross-model M3/M4 probing; r2c: 모든 FC run 의 first-token logit-ratio 채점. **핵심 결과**: visual-saturation 가설 3-of-3 모델 완전 검증; vision encoder probe AUC 에 뿌리 (Qwen 0.99, LLaVA 0.73). H-boomerang 을 Qwen-scoped 로 revised. 신규 **H-encoder-saturation** 가설. LLaVA "A" 편향이 logit-level (greedy-level 아님). | ✅ | 2026-04-25 |
-| **M5b** | **ST4 Phase 3 — SIP + patching + SAE** | Semantic Image Pairs + activation patching (attention 필요 → re-capture) + SAE feature decomposition. | ▶ **다음 (선택)** | — |
-| M6 r3+ | ST5 round 3+ — encoder counterfactuals + LLaVA-Next | LLaVA-Next, vision-encoder swap (H-encoder-saturation 인과 검증), InternVL3 captures. | 대기 | — |
+| **M8a** | **자극 다양화 — 비-원형 합성 shape** | Square / triangle / hexagon / irregular polygon × line/filled/shaded/textured × 기존 bg/cue grid. H1 (S-curve), H7 (label-regime), H-encoder-saturation 이 shape-invariant 인지 circle-specific 인지 검증. | ▶ **PRIORITY 1 (다음)** | — |
+| **M8c** | **자극 다양화 — 실사진** | 50-100 photo 자극 (실제 공, 가정용 사물, 추상 사진) 동일 prompt 프로토콜. 직접 비교: 합성-textured ball vs photo ball. PMR(_nolabel) 이 photo-realism 으로 결정되는 정도 vs 합성 cue 로 결정되는 정도. | ▶ **PRIORITY 2 (다음)** | — |
+| **M8d** | **자극 다양화 — 비-공 물리 객체 카테고리** | Car / person / plant 등 카테고리별 적절한 label 과 physics regime. H7 ("label selects regime") 이 ball↔planet 축 외에도 일반화하는가? 예: car → "drives/rolls", plant → "grows/sways". | ▶ **PRIORITY 3 (다음)** | — |
+| **4.5** | **Cross-encoder swap (CLIP / SigLIP / DINOv2)** | H-encoder-saturation 의 인과적 counterfactual: LLaVA 의 CLIP-ViT-L 을 SigLIP 으로 교체 (Qwen 의 경우 그 반대). Encoder probe AUC 가 saturation 수준의 *원인* 인지 가장 깔끔한 검증. **§4.5 에서 promotion**. | ▶ **PRIORITY 4 (다음)** | — |
+| **4.6** | **SAE / VTI 역방향 counterfactual 자극 생성** | 학습된 방향 (M5a v_L10 또는 SAE feature) 을 사용하여 모델 시각으로 physics-mode 를 maximize 하는 자극을 gradient-ascent 로 합성. M5a 의 adversarial / shortcut-revealing 확장. **§4.6 에서 promotion**. | ▶ **PRIORITY 5 (다음)** | — |
+| **4.10** | **Attention visualization UI** | 캡처된 attention heatmap × layer × head 를 interactive notebook 으로. 논문 부록 + qualitative reading 용. **§4.10 에서 promotion**. | ▶ **PRIORITY 6 (다음)** | — |
+| M5b | ST4 Phase 3 — SIP + patching + SAE | Semantic Image Pairs + activation patching (attention 필요 → re-capture) + SAE feature decomposition. | optional | — |
+| M6 r3+ | ST5 round 3+ — encoder counterfactuals + LLaVA-Next | LLaVA-Next, InternVL3 captures, scale 변종 (Qwen 32B/72B), 다른 VLM family (Pixtral / Phi-V). | optional | — |
+| M9 | 일반화 audit — `(shape × model)` heatmap | M8a/c/d + M6 r3+ 실행 후 per-(shape, model) H1/H7/H-encoder-saturation 재현 결과를 단일 Table-1-style heatmap 으로 통합. universal vs model-specific vs shape-specific 발견 식별. | optional (M8 + M6 r3+ 후) | — |
 | M7 | 인간 baseline + 논문 작성 | Prolific 20명 × 50 stim + EMNLP/NeurIPS 초안 | optional | — |
 
 ---
@@ -389,6 +396,94 @@
 - H7: **3-of-3 cross-model** — orbital-routing dissociation 이 보편적.
 - H4: **InternVL3 + LLaVA 미검정** — FC 제외 (cost) / 차단 (LLaVA "A" 편향).
 
+### M8a — 비-원형 합성 shape — 작업 상세 ▶ priority 1
+
+**동기**: 지금까지의 모든 발견 (H1 S-curve, H7 label-regime, H-boomerang Qwen-scoped, H-encoder-saturation) 이 원에 한해 측정됨. 외부 타당성 (external validity) 을 위해 shape 변동 필요.
+
+**Sub-tasks**:
+1. `src/physical_mode/stimuli/primitives.py` 에 `_draw_square`, `_draw_triangle`, `_draw_hexagon`, `_draw_irregular_polygon` primitive 추가. 각각 `_draw_*_circle` 처럼 line / filled / shaded / textured 추상도 axis variant.
+2. `FactorialSpec` 에 `Shape` axis 추가 (default `("circle",)` → `("circle", "square", "triangle", "hexagon", "polygon")`).
+3. Shape 별 label 사전 결정: 예) circle → ball/circle/planet (기존), square → brick/square/tile, triangle → ramp/triangle/wedge, polygon → rock/blob/abstract-shape. Shape 마다 "physical-prior" + "abstract" + "neutral" label 혼합으로 paired delta vs label-free 의미 있게.
+4. 집중 subset 생성 (4 추상도 × 2 bg × 2 cue × 5 seed = 80 stim/shape × 5 shape = 400 stim) — M2 의 480 보다 작게 cross-shape × cross-model 시간 관리.
+5. 최소 2개 모델 (Qwen + LLaVA-1.5; 시간 되면 InternVL3) 에서 `open` + `open_no_label` 실행.
+6. Per-shape 재현 검증: H1 monotone 성립? H7-style label-regime mapping 등장? H-encoder-saturation 이 per-shape paired delta 예측?
+
+**성공 기준**:
+- 3 가설 중 최소 2개가 비-원 shape 1개 이상에서 1개 이상 모델에서 재현.
+- Shape × model heatmap (예비 M9 deliverable).
+
+**예상 소요**: 4-7 시간 (3-5 코드 + run + 분석 + EN/KO docs + notebook).
+
+### M8c — 실사진 — 작업 상세 ▶ priority 2
+
+**동기**: M2 자극은 프로그램 합성. "encoder probe AUC" 발견이 합성 패턴에 overfit 일 수 있음. 사진은 visual-saturation 의 out-of-distribution 검증.
+
+**Sub-tasks**:
+1. 50-100 사진 큐레이션: 공 (농구공, 축구공, 볼링공, 탁구공, 테니스공, 당구공), 다른 잡을 수 있는 객체 (사과, 캔, 머그, 책), 추상 사진 (도면, 다이어그램). License 허용 source (PEXELS / Unsplash / ImageNet 하위 클래스 등).
+2. 별도 `inputs/real_photo_<ts>/` manifest 에 동일 column schema (`sample_id`, `image_path`, label-axis fields, plus `source_type ∈ {synthetic, photo}` column).
+3. 캡처된 모델 (Qwen + LLaVA + InternVL3) 에 동일 prompt 프로토콜 (open / open_no_label / forced_choice) 실행.
+4. 직접 비교: paired (synthetic-textured-ball vs photo-ball) PMR delta. Photo-realism 이 encoder 를 더 saturate 시키는가? LLaVA gap 을 좁히는가?
+
+**성공 기준**:
+- Photo PMR(_nolabel) ≥ synthetic textured PMR(_nolabel) 각 모델별 — 방향성 확인.
+- 최소 Qwen + LLaVA 에서 photo vs synthetic encoder probe AUC 비교 가능.
+
+**예상 소요**: 4-6 시간 (사진 큐레이션이 slow step).
+
+### M8d — 비-공 물리 객체 카테고리 — 작업 상세 ▶ priority 3
+
+**동기**: H7 ("label selects regime") 이 현재 `ball ↔ planet` dissociation. 다른 객체 종류로 label-regime mapping 일반화 검증 필요.
+
+**Sub-tasks**:
+1. 객체 primitive 추가: car-like 직사각형, person-stick-figure, plant (잎이 있는 줄기), bird (단순 실루엣).
+2. 카테고리별 regime-distinguishable wording label tuple 정의:
+   - car → drives / rolls / parks (kinetic / kinetic / static)
+   - person → walks / runs / stands (kinetic / fast-kinetic / static)
+   - plant → grows / sways / withers (slow-temporal / wind-driven / decay)
+   - bird → flies / hovers / lands (aerial-kinetic / aerial-static / kinetic)
+3. Open prompt + open_no_label cross-model 실행.
+4. 카테고리별 응답 공간에 regime-classifier (zero-shot LLM judge 또는 subset hand-annotation) 정의.
+5. Per-category H7 검증: 고정된 image content 하에서 각 label 이 구별 가능한 regime 분포를 만드는가?
+
+**성공 기준**:
+- 최소 2개 카테고리에서 label 별 regime 분포가 유의하게 다름 (chi-square 등).
+- Per-category 별 `planet GAR << ball GAR` 와 비슷한 dissociation 가시.
+
+**예상 소요**: 4-6 시간.
+
+### 4.5 Cross-encoder swap — 작업 상세 ▶ priority 4 (promoted)
+
+**동기**: H-encoder-saturation 가 현재 3-model correlational (M6 r2). 인과 검증은 모든 것을 고정한 채로 encoder 만 *swap*.
+
+**Sub-tasks**:
+1. SigLIP encoder swap LLaVA-1.5-7B (HF community port 존재: 예: `google/siglip-base-patch16-224` projector retraining). 또는 SigLIP 을 encoder 로 사용한 LLaVA-style from-scratch 학습.
+2. 가장 깔끔한 대안: 이미 encoder swap 한 LLaVA-1.5 파생 family (예: ShareGPT4V, Bunny). 행동 run 만 — `PMR(_nolabel)` 와 encoder AUC 가 함께 움직이는지 확인.
+3. Stretch: minimal projector swap 학습 (~few hr GPU) 으로 LLaVA-1.5 의 CLIP ↔ SigLIP swap.
+
+**예상 소요**: 4-7 시간 (기존 swap variant 사용; +다수 시간 if fresh swap 학습).
+
+### 4.6 SAE / VTI 역방향 counterfactual 자극 생성 — 작업 상세 ▶ priority 5 (promoted)
+
+**동기**: "Adversarial physics-mode" 자극이 모델이 무엇을 physical 로 보는지 드러냄. 합성된 자극이 사람에게는 추상으로 보이지만 모델에는 physical 로 읽히면, 깔끔한 shortcut-interpretation 발견.
+
+**Sub-tasks**:
+1. M5a steering direction `v_L10` 또는 학습된 SAE feature 를 가져옴.
+2. Image space 에서 gradient-ascent (PIL / torch differentiable) 로 활성화의 `v_L10` 사영 maximize.
+3. 결과 자극 시각 검사 + PMR 측정.
+
+**예상 소요**: 6-10 시간 (Qwen 파이프라인 통한 image differentiability 가 non-trivial).
+
+### 4.10 Attention visualization UI — 작업 상세 ▶ priority 6 (promoted)
+
+**동기**: Cross-axis (layer × head × visual-token-position) attention map 이 어떤 head 가 어떤 cue 에 attend 하는지를 정성적으로 드러냄. 논문 부록 figure + patching target 발견에 유용.
+
+**Sub-tasks**:
+1. `capture_lm_attentions=True` 로 subset (~20-50 stim) 을 Qwen + LLaVA 에 재실행.
+2. Notebook UI 구축: stimulus 선택 → layer → head → image 위에 overlay attention heatmap, 추가로 label token 에 대한 attention.
+3. 5-10 illustrative cell 큐레이션.
+
+**예상 소요**: 5-7 시간.
+
 ### M5b — ST4 Phase 3 (SIP patching + SAE) — 작업 상세
 
 **작업 분할**:
@@ -442,6 +537,15 @@
 
 ## 4. 원래 계획에 없던 추가 아이디어
 
+연구 진행 중 떠올랐거나 `references/project.md` §2 에 없는 확장.
+
+**다음-tier priority 로 promotion** (작업 상세는 §3 의 해당 섹션 참조):
+- **4.5** Cross-encoder swap — M8a/c/d 후 priority 4 (H-encoder-saturation 의 인과 검증).
+- **4.6** SAE/VTI 역방향 counterfactual 자극 생성 — priority 5.
+- **4.10** Attention visualization UI — priority 6.
+
+나머지는 여전히 optional / 열린 아이디어.
+
 Pilot 에서 떠오른, 혹은 연구계획 §2 에 없는 확장 방향. 선택적 — 각각 1-2 주 작업.
 
 ### 4.1 Block-stack을 별도 "abstract-physical" 경로로
@@ -460,13 +564,17 @@ Pilot 에서 떠오른, 혹은 연구계획 §2 에 없는 확장 방향. 선택
 
 두 프레임 (t=0, t=1) 에 객체 위치만 달라지는 쌍을 주고 "launched by X?" 질문. Michotte (1946) launching effect 가 VLM 에 나타나는가? 동영상 모델 필요 없이 2-image prompt 로 proxy 가능.
 
-### 4.5 Cross-encoder swap (SigLIP vs CLIP vs DINOv2)
+### 4.5 Cross-encoder swap (SigLIP vs CLIP vs DINOv2) ⭐ promoted
 
 "Vision encoder 가 CLIP 이면 안 보이는 cue 를 DINOv2 기반 모델은 본다" 가설. Eyes Wide Shut (Tong et al. 2024) MoF 제안의 연속선. 단, standalone encoder 는 LLaVA-1.5 (CLIP-ViT-L/14) vs Qwen2.5-VL (SigLIP) 의 자연스러운 비교로 이미 M6 에 포함.
 
-### 4.6 Activation 기반 counterfactual 자극 생성
+**상태 (2026-04-25)**: 다음-tier priority 로 promotion — H-encoder-saturation (M6 r2) 이 현재 3-model correlational; 이건 인과 counterfactual. 작업 상세 §3 위 참조.
+
+### 4.6 Activation 기반 counterfactual 자극 생성 ⭐ promoted
 
 SAE 또는 VTI 로 찾은 steering vector 를 반대로 써서 "VLM 이 보기엔 '물리 모드' 를 최대화하는 자극" 을 gradient ascent 로 합성. **adversarial physics-mode prompt** → 오픈소스 VLM 의 shortcut 해석 증거.
+
+**상태 (2026-04-25)**: 다음-tier priority 로 promotion. M5a `v_L10` 방향이 잘 특성화됨 (M5a-ext) — 역방향 합성이 자연스러운 확장. 작업 상세 §3 위 참조.
 
 ### 4.7 결정 consistency 의 경계 측정
 
@@ -480,9 +588,11 @@ H-class (Qwen2.5-VL-7B/32B/72B), LLaVA-1.5-7B/13B 에서 모델 크기별 PMR. M
 
 `"What do you see? What might happen next?"` — "ball" 단어 **없이** 질문. H2 의 언어 prior 기여를 null-hypothesis 형태로 측정. 쉬운 추가 — `prompts.py` 에 `open_no_label` variant.
 
-### 4.10 Attention visualization UI
+### 4.10 Attention visualization UI ⭐ promoted
 
 Captured attentions 로 interactive heatmap (notebook 기반). Per-stimulus, per-layer, per-head 의 visual token attention. 논문 appendix figure 용.
+
+**상태 (2026-04-25)**: 다음-tier priority 로 promotion. Per-layer probe AUC 수치의 정성적 보완 + M5b activation patching 의 target 발견에 도움. 작업 상세 §3 위 참조.
 
 ### 4.11 H7 follow-up — label-regime 범주 주석
 
@@ -538,4 +648,5 @@ M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static 
 | 2026-04-25 | M4b 완료: M2 자극에 label-free prompt 를 H2 null test 로 적용. Paired PMR(ball) − PMR(_nolabel) = +0.006 ≈ 0; PMR(circle) − PMR(_nolabel) = −0.065. **H2 revised** — language prior 는 비대칭 (circle override, ball enhancement 아님). M4 visual-token capture 가 prompt-independent (causal-attention artefact); switching-layer 의 붕괴는 구조적 현상. | `e97db16`, `990ddf7` |
 | 2026-04-25 | M6 round 1 완료 (LLaVA-1.5-7B cross-model): paired PMR delta vs label-free → ball +0.475, planet +0.244, circle +0.173 (모두 양수). **H2 재개정 — visual-saturation 가설**: M4b 의 "circle suppression only" 은 Qwen 특이적; LLaVA 는 visual prior 가 unsaturated 라서 원래 H2 보여줌. H1 S-curve 가 LLaVA 에서 가장 깔끔 (0.51 → 0.81). H7 cross-model 재현 (planet GAR << ball GAR 두 모델 모두). FC 제외 — LLaVA 가 모든 cell 에 "A" 반환. | `c1b885f` |
 | 2026-04-25 | M4c 완료 (forced-choice label-free): 새 `forced_choice_no_label` variant. Qwen 이 FC 하에서 M4b 재현 (ball ≈ no-label, circle 이 더 강하게 억제, planet 이 FC gravity-centric 옵션 셋으로 인해 새로 억제). Qwen 의 no-label 에서 open-vs-FC paired delta = −0.131 (label confound 없는 H4 측정 가능). LLaVA "A" 편향이 re-template 에서도 유지 (477/480) — 모델 수준 pathology 확인. | `70dc39c` |
-| 2026-04-25 | M6 round 2 완료 (3 sub-deliverable): r2a InternVL3 cross-model (모든 label paired delta +0.010, fully saturated), r2b LLaVA-1.5 captures (vision encoder AUC ~0.73, LM AUC ~0.75 — boomerang gap 이 Qwen 특이적, LLaVA encoder 가 bottleneck), r2c FC logit-ratio (LLaVA "A" 편향이 logit 수준 — top_p 에 90% rows 가 A 만 통과, greedy 가 아님). **신규 H-encoder-saturation 가설** 이 3-model H2 패턴을 vision encoder probe AUC 에 anchor. | (this commit) |
+| 2026-04-25 | M6 round 2 완료 (3 sub-deliverable): r2a InternVL3 cross-model (모든 label paired delta +0.010, fully saturated), r2b LLaVA-1.5 captures (vision encoder AUC ~0.73, LM AUC ~0.75 — boomerang gap 이 Qwen 특이적, LLaVA encoder 가 bottleneck), r2c FC logit-ratio (LLaVA "A" 편향이 logit 수준 — top_p 에 90% rows 가 A 만 통과, greedy 가 아님). **신규 H-encoder-saturation 가설** 이 3-model H2 패턴을 vision encoder probe AUC 에 anchor. | `47f4b18` |
+| 2026-04-25 | Roadmap 우선순위 재배치: depth 보다 외부 타당성 (external validity) 우선. 신규 마일스톤 **M8a (비-원형 합성 shape), M8c (실사진), M8d (비-공 물리 객체 카테고리)** 를 최우선 추가. **§4.5 (encoder swap), §4.6 (counterfactual 자극 생성), §4.10 (attention viz UI)** 를 다음-tier priority 로 promotion. M5b (SIP+SAE) 와 M6 r3+ 는 M8 + 4.5/6/10 결과 이후의 optional 로 강등. M9 (일반화 audit) 신규 추가 — M8 + M6 r3+ 후의 통합 마일스톤. | (this commit) |
