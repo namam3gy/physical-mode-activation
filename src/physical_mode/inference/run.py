@@ -11,7 +11,7 @@ from tqdm import tqdm
 from ..config import EvalConfig
 from ..models.vlm_runner import InferenceArgs, PhysModeVLM
 from ..utils import config_hash, ensure_dir, timestamp
-from .prompts import render
+from .prompts import LABELS_BY_SHAPE, render
 
 
 def run_inference(cfg: EvalConfig, manifest_dir: Path) -> Path:
@@ -56,13 +56,38 @@ def run_inference(cfg: EvalConfig, manifest_dir: Path) -> Path:
     )
 
     # Stream predictions to jsonl so we don't lose work on crash.
+    # When `cfg.factorial.shapes` has >1 shape, labels are dispatched per-shape
+    # via LABELS_BY_SHAPE; cfg.labels is then used as a *role* selector
+    # ("physical" | "abstract" | "exotic"). For single-shape configs the
+    # legacy behavior — cfg.labels is the explicit label tuple — is preserved.
+    multi_shape = len(getattr(cfg.factorial, "shapes", ("circle",))) > 1
+
+    LABEL_ROLES: tuple[str, ...] = ("physical", "abstract", "exotic")
+
+    def labels_for_row(row_shape: str) -> tuple[str, ...]:
+        if not multi_shape:
+            return cfg.labels
+        triplet = LABELS_BY_SHAPE[row_shape]
+        # cfg.labels is interpreted as a list of role names.
+        out: list[str] = []
+        for role in cfg.labels:
+            if role in LABEL_ROLES:
+                out.append(triplet[LABEL_ROLES.index(role)])
+            elif role == "_nolabel":
+                out.append("_nolabel")
+            else:
+                # Legacy literal label (e.g. "ball") — use as-is.
+                out.append(role)
+        return tuple(out)
+
     jsonl_path = out_dir / "predictions.jsonl"
     with open(jsonl_path, "w", encoding="utf-8") as jf:
         total = len(manifest) * len(cfg.labels) * len(cfg.prompt_variants)
         pbar = tqdm(total=total, desc="Inference")
         for _, row in manifest.iterrows():
             img_path = manifest_dir / row["image_path"]
-            for label in cfg.labels:
+            row_shape = row["shape"] if "shape" in row.index else "circle"
+            for label in labels_for_row(row_shape):
                 for variant in cfg.prompt_variants:
                     rp = render(variant, label)
                     gen = vlm.generate(
@@ -74,6 +99,7 @@ def run_inference(cfg: EvalConfig, manifest_dir: Path) -> Path:
                     )
                     rec = {
                         "sample_id": row["sample_id"],
+                        "shape": row_shape,
                         "label": label,
                         "prompt_variant": variant,
                         "event_template": row["event_template"],
@@ -95,7 +121,8 @@ def run_inference(cfg: EvalConfig, manifest_dir: Path) -> Path:
             # behavior; for label-free configs (`open_no_label` first) this captures
             # under the label-free prompt, which is the correct M4-probe input.
             if act_dir is not None:
-                rp = render(cfg.prompt_variants[0], cfg.labels[0])
+                first_label = labels_for_row(row_shape)[0]
+                rp = render(cfg.prompt_variants[0], first_label)
                 cap = vlm.capture(image=img_path, prompt=rp.user, system_prompt=rp.system)
                 if cap:
                     vlm.save_capture(cap, act_dir / f"{row['sample_id']}.safetensors")

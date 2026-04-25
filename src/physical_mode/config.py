@@ -17,7 +17,26 @@ CueLevel = Literal[
     "both",          # shadow + arrow (equivalent to legacy arrow_shadow)
 ]
 EventTemplate = Literal["fall", "roll_slope", "wall_bounce", "hover", "horizontal"]
-Label = Literal["circle", "ball", "planet", "shape", "object", "_nolabel"]
+# axis A1 (M8a): the underlying geometric class. `circle` is the canonical
+# pilot shape; the four non-circle classes were added for the M8a
+# external-validity round.
+Shape = Literal["circle", "square", "triangle", "hexagon", "polygon"]
+Label = Literal[
+    # circle labels (pilot)
+    "circle", "ball", "planet",
+    # generic / no-label sentinels
+    "shape", "object", "_nolabel",
+    # square labels (M8a)
+    "brick", "square", "tile",
+    # triangle labels (M8a)
+    "wedge", "triangle", "sign",
+    # hexagon labels (M8a)
+    "nut", "hexagon", "coin",
+    # polygon labels (M8a)
+    "rock", "polygon", "boulder",
+    # M8a label-role aliases (resolved at run.py to literal labels)
+    "physical", "abstract", "exotic",
+]
 PromptVariant = Literal["open", "open_no_label", "forced_choice", "forced_choice_no_label"]
 
 
@@ -29,6 +48,7 @@ class StimulusRow:
     bg_level: BgLevel
     cue_level: CueLevel
     seed: int
+    shape: Shape = "circle"  # default keeps pilot/MVP runs backward-compatible
 
 
 @dataclass
@@ -37,30 +57,43 @@ class FactorialSpec:
     bg_levels: tuple[BgLevel, ...] = ("blank", "ground", "scene")
     cue_levels: tuple[CueLevel, ...] = ("none", "wind", "arrow_shadow")
     event_templates: tuple[EventTemplate, ...] = ("fall", "horizontal")
+    # M8a external-validity axis. Default kept as ("circle",) so existing
+    # pilot/MVP/cross-model configs reproduce unchanged.
+    shapes: tuple[Shape, ...] = ("circle",)
     seeds_per_cell: int = 10
     base_seed: int = 1000
 
     def iter(self) -> Iterator[StimulusRow]:
         seed = self.base_seed
-        for obj in self.object_levels:
-            for bg in self.bg_levels:
-                for cue in self.cue_levels:
-                    for ev in self.event_templates:
-                        for k in range(self.seeds_per_cell):
-                            sid = f"{obj}_{bg}_{cue}_{ev}_{k:03d}"
-                            yield StimulusRow(
-                                sample_id=sid,
-                                event_template=ev,
-                                object_level=obj,
-                                bg_level=bg,
-                                cue_level=cue,
-                                seed=seed,
-                            )
-                            seed += 1
+        for shp in self.shapes:
+            for obj in self.object_levels:
+                for bg in self.bg_levels:
+                    for cue in self.cue_levels:
+                        for ev in self.event_templates:
+                            for k in range(self.seeds_per_cell):
+                                # Sample id namespacing: include `shape` only when
+                                # >1 shape is present, so single-shape (circle)
+                                # configs match the legacy id format and old
+                                # checkpoints / parquet outputs stay valid.
+                                if len(self.shapes) > 1:
+                                    sid = f"{shp}_{obj}_{bg}_{cue}_{ev}_{k:03d}"
+                                else:
+                                    sid = f"{obj}_{bg}_{cue}_{ev}_{k:03d}"
+                                yield StimulusRow(
+                                    sample_id=sid,
+                                    event_template=ev,
+                                    object_level=obj,
+                                    bg_level=bg,
+                                    cue_level=cue,
+                                    seed=seed,
+                                    shape=shp,
+                                )
+                                seed += 1
 
     def total(self) -> int:
         return (
-            len(self.object_levels)
+            len(self.shapes)
+            * len(self.object_levels)
             * len(self.bg_levels)
             * len(self.cue_levels)
             * len(self.event_templates)

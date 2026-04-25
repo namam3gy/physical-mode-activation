@@ -38,15 +38,15 @@
 
 | ID | 가설 | 상태 (post-M5a-ext recheck) | 근거 / 다음 검증 |
 |---|---|---|---|
-| **H1** | PMR이 추상화 축(line → textured)에 따라 S자형 증가; 3D 음영·지면 도입이 가장 큰 단계 증가. | **지지, LLaVA-clean** | M2 (Qwen): 4개 object_level monotone (0.744 → 0.832) 이지만 saturated. M6 (LLaVA-1.5, 2026-04-25): 동일한 axis 위에서 open prompt 로 깔끔한 S-curve 0.51 → 0.81. Qwen 은 ceiling 이므로 LLaVA S-curve 를 canonical figure 로 권장. |
+| **H1** | PMR이 추상화 축(line → textured)에 따라 S자형 증가; 3D 음영·지면 도입이 가장 큰 단계 증가. | **지지, unsaturated-only (도형 간, M8a)** | M2 (Qwen): 4개 object_level monotone (0.744 → 0.832) 이지만 saturated. M6 (LLaVA-1.5, 2026-04-25): 깔끔한 S-curve 0.51 → 0.81. **M8a (2026-04-25)**: 도형 간 엄격 채점 — Qwen 3/5 (square/triangle 실패; ceiling-effect 압축), LLaVA 4/5 (polygon 만 filled→shaded 역전으로 실패). ramp 는 비전 인코더가 unsaturated 일 때만 작동적으로 측정 가능. |
 | **H2** | "ball" 라벨은 선화에서도 PMR을 크게 증가시킨다 → 언어 prior 독립 기여. | **세 점으로 완전 검증 + encoder-anchored** | Qwen (saturated, M4b): ball/planet ≈ 0, circle = −0.065. LLaVA (unsaturated, M6 r1): ball +0.475, planet +0.244, circle +0.173. InternVL3 (super-saturated, M6 r2a): 모든 label +0.010 ≈ noise. 3-model paired-delta 패턴이 encoder-saturation 예측과 일치. M6 r2b 가 saturation 차이가 vision encoder probe AUC (Qwen 0.99 vs LLaVA 0.73) 에 뿌리내림을 보임. M4b 의 "circle suppression only" 패턴은 encoder 가 이미 saturated 인 Qwen 특이적 증상. |
 | **H3** | 장면 불일치는 RC를 저하시킨다. | **미검증** | axis E 는 M2에서 빠짐 (complexity); 별도 mini-실험으로 처리. RC 인프라는 M2에서 검증됨 (103/288 cells RC<1). |
 | **H4** (pilot-derived) | Open vs forced-choice PMR gap 은 **언어 prior ↔ 시각 증거** 충돌의 안정적 signature다. | **지지 — 확장** | M2: gap이 모든 object_level에 존재 (line 32pp → textured 22pp). 추상도 ↑ 일수록 gap ↑ — abstraction 이 vision 증거를 약화시켜 언어가 더 지배한다는 structural prediction. 다음 검증: ST5 cross-model. |
 | **H5** (pilot-derived) | 지면 한 줄(ground line) 단독이 텍스처 공 + no ground 보다 **더 큰** PMR 증가를 만든다. | **혼재** | M2: bg delta (blank 0.67 → scene 0.88 = +21pp) > object delta (line 0.74 → textured 0.83 = +9pp). 방향은 맞음; 단 scene 이 ground 를 또 넘음. |
 | **H6** (pilot-derived) | arrow+shadow cue의 포화는 **cast shadow 단독**으로도 일어나며, arrow는 annotation에 가깝다. | **지지 (수정)** | M2 분해: cast_shadow 단독 = +17.5 pp above none (Kersten 지면 부착 cue 확인); **그러나 arrow 도 단독으로 0.96 에 saturate** — "arrow 는 annotation" 부분은 반증. Arrow 가 dominant cue, shadow 가 secondary. |
-| **H7** (M2-derived) | 라벨은 PMR 을 toggle 하는 것이 아니라 **어떤 물리 regime** 을 선택한다. | **지지 but narrower; 3-of-3 cross-model 재현** | M2 GAR: ball 0.79 / circle 0.70 / planet 0.48. M5a-ext Exp 2: `line/blank/none × +α=40` 에서 label flip 으로 B↔A swap. M5a-ext Exp 3 qualifier: `textured/blank/none` 에서는 label 단독 flip 실패. M6 r1 + r2a cross-model: `planet GAR << ball/circle GAR` 가 Qwen (0.32 vs 0.71/0.75), LLaVA-1.5 (0.07 vs 0.36/0.15), InternVL3 (0.43 vs 0.82/0.79) 모두에서 성립. Orbital-routing dissociation 이 모델 특이적 아님. |
+| **H7** (M2-derived) | 라벨은 PMR 을 toggle 하는 것이 아니라 **어떤 물리 regime** 을 선택한다. | **지지, 도형 간 unsaturated-only** | M2 GAR: ball 0.79 / circle 0.70 / planet 0.48. M5a-ext Exp 2: `line/blank/none × +α=40` 에서 label flip 으로 B↔A swap. M6 r1 + r2a cross-model: `planet GAR << ball/circle GAR` 가 Qwen (0.32 vs 0.71/0.75), LLaVA-1.5 (0.07 vs 0.36/0.15), InternVL3 (0.43 vs 0.82/0.79) — circle-only. **M8a (2026-04-25)**: 도형 간 role-PMR 엄격 채점 — Qwen 1/5 (square 만; 나머지 -0.10 ~ +0.075 = ceiling-flat), LLaVA 4/5 (triangle 만 +0.025 실패; `wedge` 가 약한 physical 라벨, 도형 실패가 아님). H7-GAR 엄격: Qwen 1/5, LLaVA 5/5. Orbital-routing dissociation 은 인코더가 unsaturated 일 때만 도형 간 일반화. |
 | **H-boomerang** | Encoder 는 알고, decoder 가 gate: vision encoder 가 physics-mode class 를 linear 로 분리하지만 behavior 는 실패. | **Qwen 특이적 (revised)** | Qwen2.5-VL 에서 성립: M3 encoder AUC ~0.99 모든 layer; M4 LM AUC ~0.94 visual tokens; behavioral PMR ~0.93 — 작은 "encoder knows, decoder mildly gates" gap. M5a: L10 causal intervention 이 behavior flip. **LLaVA-1.5 에서 반증** (M6 r2b): vision encoder AUC ~0.73, LM AUC ~0.75, behavioral ~0.78 — pipeline 평탄, encoder 가 bottleneck. Boomerang 현상은 encoder saturation 필요. |
-| **H-encoder-saturation** (M6 r2-derived) | 모델 간 `PMR(_nolabel)` 변동과 per-label paired-delta 방향이 vision encoder 의 physics-vs-abstract probe AUC 에 뿌리내림. | **제안 + 지지 (3-model)** | M6 r2b: Qwen vision AUC 0.99 / behavioral PMR(_nolabel) 0.95; LLaVA AUC 0.73 / behavioral 0.38; InternVL3 미캡처지만 behavioral PMR(_nolabel) 0.99 (saturation profile 일치). 예측: vision-encoder AUC < 0.85 모델은 큰 양의 label delta; AUC > 0.95 모델은 작거나 sign-mixed. Counterfactual (vision-encoder swap) 미실행, Round 3 deferred. |
+| **H-encoder-saturation** (M6 r2-derived) | 모델 간 `PMR(_nolabel)` 변동과 per-label paired-delta 방향이 vision encoder 의 physics-vs-abstract probe AUC 에 뿌리내림. | **강하게 지지 (3-model + 5-shape)** | M6 r2b: Qwen vision AUC 0.99 / behavioral PMR(_nolabel) 0.95; LLaVA AUC 0.73 / behavioral 0.38; InternVL3 미캡처지만 behavioral PMR(_nolabel) 0.99 (saturation profile 일치). **M8a (2026-04-25)**: 도형 간 paired-delta `PMR(physical) − PMR(_nolabel)`: Qwen 5/5 도형이 0 근처 또는 음수 (-0.013 ~ +0.025, square 만 -0.20 = M4b 의 라벨-억제 효과 깔끔한 재현); LLaVA 5/5 도형이 ≥+0.125 (범위 +0.125 ~ +0.625). 가설은 Qwen 의 H1/H7/H7-GAR 실패와 LLaVA 의 통과를 *모두* 예측한다. Counterfactual (vision-encoder swap, §4.5) 아직 미실행. |
 | **H-locus** (M4-derived) | Bottleneck 은 LM final layers + decoding head 에 있으며 그 이전은 아님. | **지지 (early-mid sweet spot)** | M5a: L10 α=40 은 10/10 abstract → physical 응답을 flip; 후반 layer 들은 움직이지 않음. M5a-ext Exp 3: L10 regime-flip (sign 으로 A vs B) 이 모든 cell 에서 성립. Basu et al. 2024 의 early-layer constraint-storage 결과와 정합. |
 | **H-direction-bidirectional** (M5a-ext, 2026-04-24; 개정 2026-04-25) | `v_L10` 은 단순 bidirectional concept axis 로, −α 가 physics-mode 를 abstract 로 억제한다. | **revised — physics-mode 내부의 regime axis** | Exp 1 (textured/ground/both ceiling): −α 효과 없음 → 초기 "one-way activator" 프레이밍. Exp 3 (textured/blank/none moderate, 2026-04-25): −α=40 이 (line, textured) × (ball, circle) 모두에서 D → B ("stays still") 를 균일하게 유도. α 의 sign 이 regime 을 선택 (+kinetic / −static); baseline D 는 \|α\| threshold *아래* 에 위치 (axis endpoint 가 아님). |
 | **H-regime** (M5a-derived) | Steering direction 은 binary "object-ness"이고 physics regime 은 label 이 결정. | **원래 형태로는 반증** | Kinetic vs static 이 이미 sign-selected regime 이어서 H-direction-bidirectional 해석으로 대체. `line/blank/none × +α=40` 의 좁은 label-driven flip (Exp 2) 은 H7 qualifier 로 흡수. |
@@ -74,7 +74,7 @@
 | M6 r1 | **ST5 round 1 — LLaVA-1.5-7B cross-model** | M2 + M4b 프로토콜을 LLaVA-1.5-7B 에. **핵심 결과**: M4b 의 "circle suppression" 은 **Qwen 특이적** — LLaVA 는 *원래의* H2 (ball +47.5 pp, 모든 label 이 no-label baseline 대비 양수). 새 통합 가설: language prior 가 모든 label 에서 양수; Qwen 의 visual saturation 이 양의 기여를 mask 함. H7 cross-model 재현 (planet GAR << ball GAR 두 모델 모두). LLaVA 가 본 프로젝트 가장 깔끔한 H1 S-curve 제공. FC 제외 (LLaVA 가 모든 cell 에 "A" 반환). | ✅ | 2026-04-25 |
 | M4c | **Forced-choice label-free** | 새 `forced_choice_no_label` variant ("the depicted object" antecedent 사용). Qwen 이 FC 하에서 M4b 의 H2 패턴 재현 + planet 억제 효과 추가 (옵션-셋 편향: orbital regime 이 D 로 collapse). LLaVA 의 "A" 편향이 re-template 에서도 유지 (477/480), 모델 수준 pathology 확인. | ✅ | 2026-04-25 |
 | M6 r2 | **Cross-model round 2 (3-model + LLaVA captures + FC logit ratio)** | r2a: InternVL3-8B-hf cross-model 행동; r2b: LLaVA-1.5 activation captures + cross-model M3/M4 probing; r2c: 모든 FC run 의 first-token logit-ratio 채점. **핵심 결과**: visual-saturation 가설 3-of-3 모델 완전 검증; vision encoder probe AUC 에 뿌리 (Qwen 0.99, LLaVA 0.73). H-boomerang 을 Qwen-scoped 로 revised. 신규 **H-encoder-saturation** 가설. LLaVA "A" 편향이 logit-level (greedy-level 아님). | ✅ | 2026-04-25 |
-| **M8a** | **자극 다양화 — 비-원형 합성 shape** | Square / triangle / hexagon / irregular polygon × line/filled/shaded/textured × 기존 bg/cue grid. H1 (S-curve), H7 (label-regime), H-encoder-saturation 이 shape-invariant 인지 circle-specific 인지 검증. | ▶ **PRIORITY 1 (다음)** | — |
+| **M8a** | **자극 다양화 — 비-원형 합성 shape** | Square / triangle / hexagon / irregular polygon × line/filled/shaded/textured × bg/cue grid; Qwen + LLaVA, labeled + label-free arms. **사전 등록 엄격 채점: Qwen 1/4, LLaVA 4/4** — 비대칭이 H-encoder-saturation 을 도형 간 검증. H1 + H7 은 unsaturated-only. Triangle (`wedge`) + polygon (`polygon`) 라벨 설계 약점으로 노출됨. | ✅ | 2026-04-25 |
 | **M8c** | **자극 다양화 — 실사진** | 50-100 photo 자극 (실제 공, 가정용 사물, 추상 사진) 동일 prompt 프로토콜. 직접 비교: 합성-textured ball vs photo ball. PMR(_nolabel) 이 photo-realism 으로 결정되는 정도 vs 합성 cue 로 결정되는 정도. | ▶ **PRIORITY 2 (다음)** | — |
 | **M8d** | **자극 다양화 — 비-공 물리 객체 카테고리** | Car / person / plant 등 카테고리별 적절한 label 과 physics regime. H7 ("label selects regime") 이 ball↔planet 축 외에도 일반화하는가? 예: car → "drives/rolls", plant → "grows/sways". | ▶ **PRIORITY 3 (다음)** | — |
 | **4.5** | **Cross-encoder swap (CLIP / SigLIP / DINOv2)** | H-encoder-saturation 의 인과적 counterfactual: LLaVA 의 CLIP-ViT-L 을 SigLIP 으로 교체 (Qwen 의 경우 그 반대). Encoder probe AUC 가 saturation 수준의 *원인* 인지 가장 깔끔한 검증. **§4.5 에서 promotion**. | ▶ **PRIORITY 4 (다음)** | — |
@@ -396,23 +396,32 @@
 - H7: **3-of-3 cross-model** — orbital-routing dissociation 이 보편적.
 - H4: **InternVL3 + LLaVA 미검정** — FC 제외 (cost) / 차단 (LLaVA "A" 편향).
 
-### M8a — 비-원형 합성 shape — 작업 상세 ▶ priority 1
+### M8a — 비-원형 합성 shape ✅ (2026-04-25)
 
-**동기**: 지금까지의 모든 발견 (H1 S-curve, H7 label-regime, H-boomerang Qwen-scoped, H-encoder-saturation) 이 원에 한해 측정됨. 외부 타당성 (external validity) 을 위해 shape 변동 필요.
+**결과**: 5 도형 × 4 추상화 × 2 bg × 2 cue × 5 시드 = 400 자극; Qwen + LLaVA × labeled + label-free arms = 약 3200 추론, 단일 (혼잡한) GPU 1 에서 약 43 분.
 
-**Sub-tasks**:
-1. `src/physical_mode/stimuli/primitives.py` 에 `_draw_square`, `_draw_triangle`, `_draw_hexagon`, `_draw_irregular_polygon` primitive 추가. 각각 `_draw_*_circle` 처럼 line / filled / shaded / textured 추상도 axis variant.
-2. `FactorialSpec` 에 `Shape` axis 추가 (default `("circle",)` → `("circle", "square", "triangle", "hexagon", "polygon")`).
-3. Shape 별 label 사전 결정: 예) circle → ball/circle/planet (기존), square → brick/square/tile, triangle → ramp/triangle/wedge, polygon → rock/blob/abstract-shape. Shape 마다 "physical-prior" + "abstract" + "neutral" label 혼합으로 paired delta vs label-free 의미 있게.
-4. 집중 subset 생성 (4 추상도 × 2 bg × 2 cue × 5 seed = 80 stim/shape × 5 shape = 400 stim) — M2 의 480 보다 작게 cross-shape × cross-model 시간 관리.
-5. 최소 2개 모델 (Qwen + LLaVA-1.5; 시간 되면 InternVL3) 에서 `open` + `open_no_label` 실행.
-6. Per-shape 재현 검증: H1 monotone 성립? H7-style label-regime mapping 등장? H-encoder-saturation 이 per-shape paired delta 예측?
+**사전 등록 엄격 채점**:
 
-**성공 기준**:
-- 3 가설 중 최소 2개가 비-원 shape 1개 이상에서 1개 이상 모델에서 재현.
-- Shape × model heatmap (예비 M9 deliverable).
+| 기준 | Qwen | LLaVA |
+|---|---|---|
+| H1 ramp (PMR(textured)−PMR(line) ≥ 0.05; 역전 >0.05 없음) | 3/5 ✗ | 4/5 ✓ |
+| H7 (PMR(physical)−PMR(abstract) ≥ 0.05) | 1/5 ✗ | 4/5 ✓ |
+| H7-GAR (GAR(physical) ≥ GAR(abstract)) | 1/5 ✗ | 5/5 ✓ |
+| Visual-saturation Δ on physical role | 3/5 ✓ borderline | 5/5 ✓ |
 
-**예상 소요**: 4-7 시간 (3-5 코드 + run + 분석 + EN/KO docs + notebook).
+**헤드라인 해석**: 포화된 모델은 4개 중 3개 기준에서 실패; 포화되지 않은 모델은 4개 모두 통과. 그 비대칭이 **바로** H-encoder-saturation 의 도형 간 검증 — 가설에 의해 예측됨, 단순히 일치 아님. PMR(_nolabel) 베이스라인: Qwen 도형 간 0.78–0.93 (천장), LLaVA 0.075–0.288 (headroom).
+
+**도형별 주목할 발견**:
+- Qwen `square` paired-delta -0.20 / -0.28 / -0.21 — M4b 의 circle "라벨-억제-물리" 효과의 깔끔한 도형 간 재현.
+- LLaVA `triangle` paired-delta 가 +0.125 / +0.10 / +0.10 만 — `wedge` 가 약한 physical-object 라벨 (PMR(wedge)=0.20 vs PMR(ball/brick/nut/rock)≈0.7). 라벨 설계 caveat, 도형 효과 아님.
+- LLaVA `polygon abstract` paired-delta -0.05 — 음수가 된 유일한 LLaVA paired-delta. "Polygon" 이 수학 용어로 읽힘; 일반 어휘 기하 명사 없는 도형에 대해 role taxonomy 가 샘.
+
+**로드맵 영향**:
+- H1 + H7 은 이제 *unsaturated-only*; 논문에 caveat 추가.
+- H-encoder-saturation 이 3-model correlational 에서 3-model + 5-shape 으로 이동, H1/H7 실패를 예측.
+- Triangle / polygon 라벨 품질 문제는 M8c 사진 큐레이션과 M8d 비-공 카테고리에 피드 (더 강한 physical 라벨 사용).
+
+**아티팩트**: `docs/insights/m8a_non_circle_shapes.md`, `docs/experiments/m8a_non_circle_shapes.md`, `docs/figures/m8a_{shape_grid,full_scene_samples,pmr_ramp,pmr_by_role,paired_delta}.png`, `notebooks/m8a_non_circle_shapes.ipynb`, `outputs/m8a_*` (4 run dirs).
 
 ### M8c — 실사진 — 작업 상세 ▶ priority 2
 
@@ -649,4 +658,5 @@ M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static 
 | 2026-04-25 | M6 round 1 완료 (LLaVA-1.5-7B cross-model): paired PMR delta vs label-free → ball +0.475, planet +0.244, circle +0.173 (모두 양수). **H2 재개정 — visual-saturation 가설**: M4b 의 "circle suppression only" 은 Qwen 특이적; LLaVA 는 visual prior 가 unsaturated 라서 원래 H2 보여줌. H1 S-curve 가 LLaVA 에서 가장 깔끔 (0.51 → 0.81). H7 cross-model 재현 (planet GAR << ball GAR 두 모델 모두). FC 제외 — LLaVA 가 모든 cell 에 "A" 반환. | `c1b885f` |
 | 2026-04-25 | M4c 완료 (forced-choice label-free): 새 `forced_choice_no_label` variant. Qwen 이 FC 하에서 M4b 재현 (ball ≈ no-label, circle 이 더 강하게 억제, planet 이 FC gravity-centric 옵션 셋으로 인해 새로 억제). Qwen 의 no-label 에서 open-vs-FC paired delta = −0.131 (label confound 없는 H4 측정 가능). LLaVA "A" 편향이 re-template 에서도 유지 (477/480) — 모델 수준 pathology 확인. | `70dc39c` |
 | 2026-04-25 | M6 round 2 완료 (3 sub-deliverable): r2a InternVL3 cross-model (모든 label paired delta +0.010, fully saturated), r2b LLaVA-1.5 captures (vision encoder AUC ~0.73, LM AUC ~0.75 — boomerang gap 이 Qwen 특이적, LLaVA encoder 가 bottleneck), r2c FC logit-ratio (LLaVA "A" 편향이 logit 수준 — top_p 에 90% rows 가 A 만 통과, greedy 가 아님). **신규 H-encoder-saturation 가설** 이 3-model H2 패턴을 vision encoder probe AUC 에 anchor. | `47f4b18` |
-| 2026-04-25 | Roadmap 우선순위 재배치: depth 보다 외부 타당성 (external validity) 우선. 신규 마일스톤 **M8a (비-원형 합성 shape), M8c (실사진), M8d (비-공 물리 객체 카테고리)** 를 최우선 추가. **§4.5 (encoder swap), §4.6 (counterfactual 자극 생성), §4.10 (attention viz UI)** 를 다음-tier priority 로 promotion. M5b (SIP+SAE) 와 M6 r3+ 는 M8 + 4.5/6/10 결과 이후의 optional 로 강등. M9 (일반화 audit) 신규 추가 — M8 + M6 r3+ 후의 통합 마일스톤. | (this commit) |
+| 2026-04-25 | Roadmap 우선순위 재배치: depth 보다 외부 타당성 (external validity) 우선. 신규 마일스톤 **M8a (비-원형 합성 shape), M8c (실사진), M8d (비-공 물리 객체 카테고리)** 를 최우선 추가. **§4.5 (encoder swap), §4.6 (counterfactual 자극 생성), §4.10 (attention viz UI)** 를 다음-tier priority 로 promotion. M5b (SIP+SAE) 와 M6 r3+ 는 M8 + 4.5/6/10 결과 이후의 optional 로 강등. M9 (일반화 audit) 신규 추가 — M8 + M6 r3+ 후의 통합 마일스톤. | `cfbe5a2` |
+| 2026-04-25 | **M8a 완료 (비-원형 합성 shape)**: 5 도형 × Qwen + LLaVA, 4 추론 config (모델당 labeled + label-free), 400 자극, ~43 분. 사전 등록 채점 **엄격**: Qwen 1/4 PASS (visual-saturation Δ borderline), LLaVA 4/4 PASS. 비대칭이 *바로* H-encoder-saturation 가설의 도형 간 검증: 포화된 인코더 → ceiling effect → ramp/라벨/중력 사전분포가 작동할 headroom 없음; 포화되지 않은 인코더 → 4가지 모두 측정 가능. H1 (ramp) 와 H7 (label-role) 을 **unsaturated-only** 로 개정 (LLaVA-clean, Qwen-suppressed). H-encoder-saturation 이 도형 간 검증됨 (이전엔 3-model correlational). Triangle 의 `wedge` 와 polygon 의 `polygon` 이 라벨 설계 약점으로 노출; M8c follow-up 에 flag. | (this commit) |

@@ -101,7 +101,7 @@ def summarize(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
     """Grouped summaries — overall and by each factorial axis."""
     out: dict[str, pd.DataFrame] = {}
     out["overall"] = _agg(df, group_cols=[])
-    for col in ("object_level", "bg_level", "cue_level", "event_template", "label", "prompt_variant"):
+    for col in ("object_level", "bg_level", "cue_level", "event_template", "label", "prompt_variant", "shape"):
         if col in df.columns:
             out[f"by_{col}"] = _agg(df, group_cols=[col])
     return out

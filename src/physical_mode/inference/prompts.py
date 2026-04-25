@@ -58,6 +58,34 @@ FORCED_CHOICE_TEMPLATE_NO_LABEL = (
 FC_CHOICES: tuple[str, ...] = ("A", "B", "C", "D")
 
 
+# M8a external-validity round: per-shape label triplets parallel to the
+# circle pilot's (ball / circle / planet). Each tuple is ordered as
+# (physical-mode label, abstract-shape label, exotic / context-flipping label).
+#
+#   physical : a label that strongly invites a physical-object reading
+#   abstract : the geometric-class label (matches the shape name itself)
+#   exotic   : a label whose physical reading is unusual / context-shifted —
+#              the per-shape analogue of "planet" for circle. Tests whether
+#              the H7 GAR-by-label ordering generalizes beyond circle.
+LABELS_BY_SHAPE: dict[str, tuple[str, str, str]] = {
+    "circle":   ("ball",   "circle",   "planet"),
+    "square":   ("brick",  "square",   "tile"),
+    "triangle": ("wedge",  "triangle", "sign"),
+    "hexagon":  ("nut",    "hexagon",  "coin"),
+    # All three roles must be physics-suggesting (or geometric, for `abstract`),
+    # not "more abstract than the geometric label". `boulder` plays the
+    # planet/tile/sign/coin role: an unusual physical reading that still
+    # commits to mass/gravity. (Avoid using "shape" here — "shape" is more
+    # abstract than "polygon" and would invert the role ordering.)
+    "polygon":  ("rock",   "polygon",  "boulder"),
+}
+
+
+def labels_for_shape(shape: str) -> tuple[str, str, str]:
+    """Return the (physical, abstract, exotic) label triplet for a shape."""
+    return LABELS_BY_SHAPE[shape]
+
+
 @dataclass(frozen=True)
 class RenderedPrompt:
     variant: str

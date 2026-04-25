@@ -84,6 +84,7 @@ def render_scene(row: StimulusRow, size: int = CANVAS) -> Image.Image:
         cy=cy,
         radius=OBJ_RADIUS,
         seed=row.seed,
+        shape=getattr(row, "shape", "circle"),
     )
 
     return img

@@ -25,8 +25,9 @@ completes or a new hypothesis/idea surfaces.
 Sub-task 1 MVP, ST2 vision-encoder probing, ST3 LM logit lens, ST4
 Phase-1+2 VTI steering, M5a-ext VTI follow-ups, M4b label-free H2
 null test, M4c FC label-free, M6 round 1 (LLaVA-1.5-7B cross-model),
-and M6 round 2 (InternVL3 + LLaVA captures + FC logit ratio) all
-complete (M0 through M6 r2 — see ROADMAP §3).
+M6 round 2 (InternVL3 + LLaVA captures + FC logit ratio), and **M8a
+non-circle synthetic shapes** all complete (M0 through M8a —
+see ROADMAP §3).
 Key recent findings (2026-04-25):
 - M5a-ext: `v_L10` is a **regime axis within physics-mode** (+α →
   A/kinetic, −α → B/static, baseline D below |α| threshold).
@@ -36,17 +37,26 @@ Key recent findings (2026-04-25):
   (LLaVA encoder is the bottleneck, not the gate). New H-encoder-
   saturation hypothesis. LLaVA "A" bias is logit-level (greedy →
   logit-ratio rescue does not work).
+- **M8a (5-shape × 2-model, pre-registered)**: strict scoring —
+  **Qwen 1/4 PASS, LLaVA 4/4 PASS**. The asymmetry *is* the cross-shape
+  validation of H-encoder-saturation: a saturated encoder's ceiling
+  compresses every H1 / H7 / GAR signal that Qwen could otherwise show.
+  H1 + H7 are now **unsaturated-only**. Triangle `wedge` + polygon
+  `polygon` are label-design weak points; flagged for M8c.
 
 Package at `src/physical_mode/`, entry scripts at `scripts/0{1..6}_*.py`,
 configs at `configs/` (pilot, mvp_full, label_free,
 cross_model_llava{,_label_free,_capture}, cross_model_internvl3{,_label_free},
-fc_label_free_{qwen,llava}), tests at `tests/`. Read `docs/architecture.md`
+fc_label_free_{qwen,llava}, **m8a_{qwen,llava}{,_label_free}**),
+tests at `tests/`. Read `docs/architecture.md`
 for the implementation contract and `references/project.md` for the
 original scientific motivation.
 
-ST4 Phase 3 (SIP activation patching + SAE) and ST5 (cross-model sweep) are
-the next milestones. See `docs/next_steps.md` for code-level plug-in points
-and `references/roadmap.md` §3 for milestone-level framing.
+Next priorities (per `references/roadmap.md` §2): **M8c** (real photographs),
+**M8d** (non-ball physical-object categories), **§4.5** (cross-encoder
+swap — causal counterfactual for H-encoder-saturation). M5b (SIP+SAE)
+and ST5 cross-model sweep deferred to optional. See `docs/next_steps.md`
+for code-level plug-in points.
 
 ## Repository layout
 
