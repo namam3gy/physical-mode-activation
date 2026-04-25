@@ -72,6 +72,11 @@ MODEL_META: dict[str, dict] = {
         "color": "#2ca02c",
         "label": "InternVL3 (InternViT)",
     },
+    "llava_next": {
+        "encoder": "CLIP-ViT-L", "lm": "Mistral-7B",
+        "behavioral_pmr": 0.700, "color": "#ff7f0e",
+        "label": "LLaVA-Next (CLIP-ViT-L+Mistral)",
+    },
 }
 
 

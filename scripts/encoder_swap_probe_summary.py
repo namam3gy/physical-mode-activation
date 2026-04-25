@@ -127,7 +127,8 @@ def main() -> None:
             "color": color,
         })
     table = pd.DataFrame(rows)
-    print("\n=== 4-model encoder-saturation chain (M8a PMR + encoder AUC) ===")
+    n_models = sum(1 for r in rows if r["encoder_auc"] is not None and r["behavioral_pmr_m8a"] is not None)
+    print(f"\n=== {n_models}-model encoder-saturation chain (M8a PMR + encoder AUC) ===")
     print(table.drop(columns=["color"]).round(3).to_string(index=False))
     table.drop(columns=["color"]).to_csv(args.out_dir / "encoder_chain_table.csv", index=False)
 
@@ -163,7 +164,7 @@ def main() -> None:
     ax.set_xlabel("layer")
     ax.set_ylabel("vision-encoder probe AUC (physics vs abstract)")
     ax.set_ylim(0.4, 1.05)
-    n_cap = sum(s is not None for s in (qwen_sweep, llava_sweep, idefics2_sweep, internvl3_sweep))
+    n_cap = sum(s is not None for s in (qwen_sweep, llava_sweep, llava_next_sweep, idefics2_sweep, internvl3_sweep))
     ax.set_title(f"Vision-encoder probe AUC by layer ({n_cap} models)")
     ax.legend(loc="lower left", fontsize=8)
     ax.grid(True, alpha=0.3)
@@ -184,12 +185,18 @@ def main() -> None:
     ax.set_ylim(0.0, 1.05)
     ax.plot([0.5, 1.05], [0.0, 1.05], "k--", alpha=0.3, linewidth=0.7,
             label="y = x reference")
-    ax.set_title("AUC ↔ behavioral PMR — H-encoder-saturation chain\n(4 model points: 3 non-CLIP + 1 CLIP)")
+    n_clip = sum(1 for r in rows if r.get("encoder") == "CLIP-ViT-L"
+                 and r["encoder_auc"] is not None and r["behavioral_pmr_m8a"] is not None)
+    n_nonclip = n_models - n_clip
+    ax.set_title(f"AUC ↔ behavioral PMR — H-encoder-saturation chain\n"
+                 f"({n_models} model points: {n_nonclip} non-CLIP + {n_clip} CLIP)")
     ax.legend(loc="lower right", fontsize=8)
     ax.grid(True, alpha=0.3)
 
-    fig_path = PROJECT_ROOT / "docs" / "figures" / "encoder_chain_4model.png"
-    fig.suptitle("§4.5 ext — Encoder-saturation chain across 4 VLMs (M6 r3 + r4 close the loop)",
+    suffix = "5model" if n_models >= 5 else f"{n_models}model"
+    fig_path = PROJECT_ROOT / "docs" / "figures" / f"encoder_chain_{suffix}.png"
+    fig.suptitle(f"§4.5 ext — Encoder-saturation chain across {n_models} VLMs "
+                 "(M6 r3 + r4 + r6 close the loop)",
                  y=1.02, fontsize=12)
     fig.tight_layout()
     fig.savefig(fig_path, dpi=130, bbox_inches="tight")
