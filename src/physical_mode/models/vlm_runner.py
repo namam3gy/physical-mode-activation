@@ -304,27 +304,46 @@ def _resolve_vision_blocks(model) -> Any:
     LLaVA-1.5 (hf wrapper): model.model.vision_tower.encoder.layers (CLIPVisionModel
         with `encoder` directly, no extra `vision_model` wrapper).
     LLaVA-Next / older wrappers: model.{,model.}vision_tower.vision_model.encoder.layers.
-    InternVL: model.{,model.}vision_model.encoder.layers.
+    Idefics2: model.model.vision_model.encoder.layers (Idefics2VisionTransformer).
+    InternVL3 (hf): model.model.vision_tower.encoder.layer (singular, ModuleList of 24
+        InternVLVisionLayer).
     """
     inner = getattr(model, "model", model)
     # Qwen2.5-VL / Qwen2-VL
     visual = getattr(inner, "visual", None)
     if visual is not None and hasattr(visual, "blocks"):
         return visual.blocks
-    # LLaVA-family vision tower
+
+    def _encoder_layers(holder) -> Any:
+        """Common helper: holder.encoder.layers OR holder.encoder.layer."""
+        enc = getattr(holder, "encoder", None)
+        if enc is None:
+            return None
+        if hasattr(enc, "layers"):
+            return enc.layers
+        if hasattr(enc, "layer"):
+            return enc.layer
+        return None
+
+    # LLaVA-family / InternVL3 vision_tower
     vt = getattr(model, "vision_tower", None) or getattr(inner, "vision_tower", None)
     if vt is not None:
-        # Newer hf wrapper: encoder is directly on vt (CLIPVisionModel).
-        if hasattr(vt, "encoder") and hasattr(vt.encoder, "layers"):
-            return vt.encoder.layers
-        # Older: extra vision_model wrapper.
+        # Newer hf wrapper: encoder directly on vt (CLIPVisionModel / InternVLVisionModel).
+        layers = _encoder_layers(vt)
+        if layers is not None:
+            return layers
+        # Older: extra vision_model wrapper inside vision_tower.
         vm = getattr(vt, "vision_model", None)
-        if vm is not None and hasattr(vm, "encoder") and hasattr(vm.encoder, "layers"):
-            return vm.encoder.layers
-    # InternVL
+        if vm is not None:
+            layers = _encoder_layers(vm)
+            if layers is not None:
+                return layers
+    # Idefics2-style vision_model
     vm = getattr(model, "vision_model", None) or getattr(inner, "vision_model", None)
-    if vm is not None and hasattr(vm, "encoder") and hasattr(vm.encoder, "layers"):
-        return vm.encoder.layers
+    if vm is not None:
+        layers = _encoder_layers(vm)
+        if layers is not None:
+            return layers
     return None
 
 

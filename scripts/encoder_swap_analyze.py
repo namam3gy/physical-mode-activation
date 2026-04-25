@@ -44,6 +44,7 @@ ENCODER_TABLE: tuple[tuple[str, str, str], ...] = (
     ("qwen", "SigLIP", "Qwen2-7B"),
     ("llava", "CLIP-ViT-L", "Vicuna-7B"),
     ("idefics2", "SigLIP-SO400M", "Mistral-7B"),
+    ("internvl3", "InternViT", "InternLM2-7B"),
 )
 
 
@@ -53,16 +54,19 @@ PREFIXES: dict[str, dict[str, str]] = {
         "qwen": "m8a_qwen",
         "llava": "m8a_llava",
         "idefics2": "encoder_swap_idefics2",
+        "internvl3": "encoder_swap_internvl3_m8a",
     },
     "m8d": {
         "qwen": "m8d_qwen",
         "llava": "m8d_llava",
         "idefics2": "encoder_swap_idefics2_m8d",
+        # InternVL3 M8d not yet run — encoder_swap_analyze tolerates missing data.
     },
     "m8c": {
         "qwen": "m8c_qwen",
         "llava": "m8c_llava",
         "idefics2": "encoder_swap_idefics2_m8c",
+        # InternVL3 M8c not yet run.
     },
 }
 
@@ -162,53 +166,71 @@ def _heatmap_panel(ax, pivot: pd.DataFrame, *, cmap: str, vmin: float, vmax: flo
     plt.colorbar(im, ax=ax, fraction=0.04, pad=0.04)
 
 
+def _model_order_and_labels() -> tuple[list[str], list[str]]:
+    order = [m for m, _, _ in ENCODER_TABLE]
+    labels = []
+    for m, enc, lm in ENCODER_TABLE:
+        labels.append(f"{m.capitalize() if len(m) <= 7 else m}\n({enc.split('-')[0]}+{lm.split('-')[0]})")
+    return order, labels
+
+
+def _encoder_color(encoder: str) -> str:
+    if "SigLIP-SO400M" in encoder:
+        return "#5fa8d3"
+    if "SigLIP" in encoder:
+        return "#1f77b4"
+    if "CLIP" in encoder:
+        return "#d62728"
+    if "InternViT" in encoder:
+        return "#2ca02c"
+    return "gray"
+
+
 def fig_encoder_swap_m8a(pmr: pd.DataFrame, h7: pd.DataFrame, out: Path) -> None:
-    """Backward-compatible 3-panel figure (M8a only)."""
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
+    """Backward-compatible 3-panel figure (M8a only) — 3-or-4 model row."""
+    order, labels = _model_order_and_labels()
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.8))
     p_pivot = pmr.pivot(index="model", columns="shape", values="pmr_nolabel").reindex(
-        index=["qwen", "llava", "idefics2"], columns=list(M8A_SHAPES))
+        index=order, columns=list(M8A_SHAPES))
     h_pivot = h7.pivot(index="model", columns="shape", values="h7_phys_minus_abs").reindex(
-        index=["qwen", "llava", "idefics2"], columns=list(M8A_SHAPES))
-    model_labels = ["Qwen\n(SigLIP+Qwen)", "LLaVA\n(CLIP+Vicuna)", "Idefics2\n(SigLIP+Mistral)"]
+        index=order, columns=list(M8A_SHAPES))
     _heatmap_panel(axes[0], p_pivot, cmap="Blues", vmin=0, vmax=1, fmt=".2f",
-                   title="PMR(_nolabel) by (model × shape)", model_labels=model_labels)
+                   title="PMR(_nolabel) by (model × shape)", model_labels=labels)
     _heatmap_panel(axes[1], h_pivot, cmap="RdBu_r", vmin=-0.7, vmax=0.7, fmt="+.2f",
-                   title="H7 (physical − abstract) by (model × shape)", model_labels=["Qwen", "LLaVA", "Idefics2"])
+                   title="H7 (physical − abstract) by (model × shape)", model_labels=order)
 
     ax = axes[2]
     summary = pmr.groupby(["model", "encoder"])["pmr_nolabel"].mean().reset_index()
-    summary = summary.set_index("model").reindex(["qwen", "llava", "idefics2"]).reset_index()
-    colors = ["#1f77b4" if "SigLIP" in e else "#d62728" for e in summary["encoder"]]
+    summary = summary.set_index("model").reindex(order).reset_index()
+    colors = [_encoder_color(e) for e in summary["encoder"]]
     bars = ax.bar(summary["model"], summary["pmr_nolabel"], color=colors, edgecolor="black")
     for bar, enc in zip(bars, summary["encoder"]):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
                 enc, ha="center", fontsize=8)
     ax.set_ylim(0, 1.05)
-    ax.set_ylabel("mean PMR(_nolabel) across 5 shapes")
+    ax.set_ylabel(f"mean PMR(_nolabel) across {len(M8A_SHAPES)} shapes")
     ax.set_title("encoder-swap summary (M8a)")
     ax.grid(True, alpha=0.3, axis="y")
 
-    fig.suptitle("§4.5 — Cross-encoder swap (Idefics2 SigLIP+Mistral, M8a 5 shapes)",
-                 y=1.02, fontsize=12)
+    fig.suptitle("§4.5 — Cross-encoder swap (M8a 5 shapes)", y=1.02, fontsize=12)
     fig.tight_layout()
     fig.savefig(out, dpi=130, bbox_inches="tight")
     plt.close(fig)
 
 
 def fig_encoder_swap_extended(all_pmr: pd.DataFrame, all_h7: pd.DataFrame, out: Path) -> None:
-    """Cross-stim figure: 3 stim sources × 3 models × shapes.
+    """Cross-stim figure: 3 stim sources × N models × shapes.
 
-    Layout: 3 rows (m8a / m8d / m8c) × 2 columns (PMR_nolabel heatmap, H7 heatmap)
-    + a final summary row showing mean PMR(_nolabel) per (stim, model).
+    Layout: 3 rows (m8a / m8d / m8c) × 2 columns (PMR_nolabel heatmap, H7 heatmap).
     """
-    fig, axes = plt.subplots(3, 2, figsize=(14, 12))
+    order, model_labels = _model_order_and_labels()
+    fig, axes = plt.subplots(3, 2, figsize=(14, 13))
 
     stim_specs = [
         ("m8a", M8A_SHAPES, "M8a — synthetic geometric shapes"),
         ("m8d", M8D_SHAPES, "M8d — synthetic non-ball categories"),
         ("m8c", M8C_SHAPES, "M8c — real photographs"),
     ]
-    model_labels = ["Qwen\n(SigLIP+Qwen)", "LLaVA\n(CLIP+Vicuna)", "Idefics2\n(SigLIP+Mistral)"]
 
     for r, (stim, shapes, title) in enumerate(stim_specs):
         sub_p = all_pmr[all_pmr["stim"] == stim]
@@ -220,9 +242,9 @@ def fig_encoder_swap_extended(all_pmr: pd.DataFrame, all_h7: pd.DataFrame, out: 
                 axes[r, c].axis("off")
             continue
         p_pivot = sub_p.pivot(index="model", columns="shape", values="pmr_nolabel").reindex(
-            index=["qwen", "llava", "idefics2"], columns=list(shapes))
+            index=order, columns=list(shapes))
         h_pivot = sub_h.pivot(index="model", columns="shape", values="h7_phys_minus_abs").reindex(
-            index=["qwen", "llava", "idefics2"], columns=list(shapes))
+            index=order, columns=list(shapes))
         _heatmap_panel(axes[r, 0], p_pivot, cmap="Blues", vmin=0, vmax=1, fmt=".2f",
                        title=f"{title}\nPMR(_nolabel)", model_labels=model_labels)
         _heatmap_panel(axes[r, 1], h_pivot, cmap="RdBu_r", vmin=-0.7, vmax=0.7, fmt="+.2f",
@@ -241,10 +263,10 @@ def fig_encoder_swap_summary_bar(all_pmr: pd.DataFrame, out: Path) -> None:
     summary = all_pmr.groupby(["stim", "model", "encoder"])["pmr_nolabel"].mean().reset_index()
 
     stim_order = ["m8a", "m8d", "m8c"]
-    model_order = ["qwen", "llava", "idefics2"]
-    width = 0.25
+    model_order, _ = _model_order_and_labels()
+    width = 0.8 / max(len(model_order), 1)
     x = np.arange(len(stim_order))
-    color_by_encoder = {"SigLIP": "#1f77b4", "CLIP-ViT-L": "#d62728", "SigLIP-SO400M": "#5fa8d3"}
+    offset0 = -(len(model_order) - 1) / 2 * width
 
     for k, model in enumerate(model_order):
         vals: list[float] = []
@@ -253,19 +275,20 @@ def fig_encoder_swap_summary_bar(all_pmr: pd.DataFrame, out: Path) -> None:
             row = summary[(summary["stim"] == stim) & (summary["model"] == model)]
             vals.append(float(row["pmr_nolabel"].iloc[0]) if len(row) else float("nan"))
             encs.append(row["encoder"].iloc[0] if len(row) else "")
-        color = color_by_encoder.get(encs[0], "gray") if encs[0] else "gray"
-        bars = ax.bar(x + (k - 1) * width, vals, width, label=f"{model} ({encs[0]})",
+        color = _encoder_color(encs[0]) if encs[0] else "gray"
+        bars = ax.bar(x + offset0 + k * width, vals, width,
+                      label=f"{model} ({encs[0]})" if encs[0] else model,
                       color=color, edgecolor="black")
         for b, v in zip(bars, vals):
             if not np.isnan(v):
                 ax.text(b.get_x() + b.get_width()/2, b.get_height() + 0.02, f"{v:.2f}",
-                        ha="center", fontsize=8)
+                        ha="center", fontsize=7)
 
     ax.set_xticks(x, ["M8a (synth shapes)", "M8d (synth categories)", "M8c (real photos)"])
     ax.set_ylim(0, 1.1)
     ax.set_ylabel("mean PMR(_nolabel) (averaged across shapes)")
     ax.set_title("§4.5 ext — encoder-swap summary across stim sources")
-    ax.legend(loc="upper right", fontsize=9)
+    ax.legend(loc="upper right", fontsize=8)
     ax.grid(True, alpha=0.3, axis="y")
     fig.tight_layout()
     fig.savefig(out, dpi=130, bbox_inches="tight")

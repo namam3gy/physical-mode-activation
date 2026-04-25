@@ -159,9 +159,10 @@ LLaVA row is the outlier.
 2. **Single shape sweep**: M8a (5 shapes) only; M8d (categories) and
    M8c (photos) not run. Worth doing for a complete cross-encoder
    table.
-3. **No vision-encoder probe AUC for Idefics2**: M6 r2 captured Qwen
-   vision encoder activations; Idefics2 captures not done. Round 2
-   could add encoder probe AUC for Idefics2 to close the loop.
+3. ~~**No vision-encoder probe AUC for Idefics2**~~ → **Resolved (M6 r3, 2026-04-25)**:
+   `docs/insights/m6_r3_idefics2_probe.md` reports Idefics2 SigLIP-SO400M
+   probe AUC = 0.93 across layers (peak 0.948 at layer 9), confirming
+   the encoder-saturation chain at the third SigLIP point.
 4. **Idefics2 is 8B, LLaVA is 7B, Qwen is 7B**: ~1B param difference
    in Idefics2 favor. Unlikely to drive the 6× PMR difference but
    worth noting.

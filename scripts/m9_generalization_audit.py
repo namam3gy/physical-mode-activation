@@ -186,10 +186,16 @@ def fig_summary(summary: pd.DataFrame, out: Path) -> None:
         return
 
     stim_order = ["m8a", "m8d", "m8c"]
-    model_order = ["qwen", "llava", "idefics2"]
-    color_by_encoder = {"SigLIP": "#1f77b4", "CLIP-ViT-L": "#d62728", "SigLIP-SO400M": "#5fa8d3"}
-    width = 0.25
+    model_order = [m for m, _, _ in ENCODER_TABLE]
+    color_by_encoder = {
+        "SigLIP": "#1f77b4",
+        "CLIP-ViT-L": "#d62728",
+        "SigLIP-SO400M": "#5fa8d3",
+        "InternViT": "#2ca02c",
+    }
+    width = 0.8 / max(len(model_order), 1)
     x = np.arange(len(stim_order))
+    offset0 = -(len(model_order) - 1) / 2 * width
 
     for ax, col, title, ylim, err_cols in [
         (axes[0], "mean_pmr_nolabel", "mean PMR(_nolabel) (95% bootstrap CI)", (0, 1.1),
@@ -213,18 +219,19 @@ def fig_summary(summary: pd.DataFrame, out: Path) -> None:
                     errs_low.append(float("nan"))
                     errs_high.append(float("nan"))
             color = color_by_encoder.get(encs[0], "gray") if encs[0] else "gray"
-            bars = ax.bar(x + (k - 1) * width, vals, width,
+            bar_x = x + offset0 + k * width
+            bars = ax.bar(bar_x, vals, width,
                           label=f"{model} ({encs[0]})" if encs[0] else model,
                           color=color, edgecolor="black")
             if err_cols:
                 yerr_lo = [v - lo for v, lo in zip(vals, errs_low)]
                 yerr_hi = [hi - v for v, hi in zip(vals, errs_high)]
-                ax.errorbar(x + (k - 1) * width, vals, yerr=[yerr_lo, yerr_hi],
+                ax.errorbar(bar_x, vals, yerr=[yerr_lo, yerr_hi],
                             fmt="none", ecolor="black", capsize=3, linewidth=0.8)
             for b, v in zip(bars, vals):
                 if not np.isnan(v):
                     ax.text(b.get_x() + b.get_width()/2, b.get_height() + 0.02, f"{v:.2f}",
-                            ha="center", fontsize=8)
+                            ha="center", fontsize=7)
 
         ax.set_xticks(x, ["M8a (synth shapes)", "M8d (synth categories)", "M8c (real photos)"])
         ax.set_ylim(*ylim)
@@ -250,13 +257,16 @@ def fig_table1_heatmap(table: pd.DataFrame, out: Path) -> None:
         plt.close(fig)
         return
 
-    fig, axes = plt.subplots(2, 3, figsize=(16, 7.5))
+    fig, axes = plt.subplots(2, 3, figsize=(16, 8.5))
     stim_specs = [
         ("m8a", M8A_SHAPES, "M8a — 5 synth geometric shapes"),
         ("m8d", M8D_SHAPES, "M8d — 3 synth categories"),
         ("m8c", M8C_SHAPES, "M8c — 5 real-photo categories"),
     ]
-    model_labels = ["Qwen\n(SigLIP+Qwen)", "LLaVA\n(CLIP+Vicuna)", "Idefics2\n(SigLIP+Mistral)"]
+    model_order = [m for m, _, _ in ENCODER_TABLE]
+    model_labels = []
+    for m, enc, lm in ENCODER_TABLE:
+        model_labels.append(f"{m}\n({enc.split('-')[0]}+{lm.split('-')[0]})")
 
     for c, (stim, shapes, title) in enumerate(stim_specs):
         sub = table[table["stim"] == stim]
@@ -268,9 +278,9 @@ def fig_table1_heatmap(table: pd.DataFrame, out: Path) -> None:
             continue
 
         p_pivot = sub.pivot_table(index="model", columns="shape", values="pmr_nolabel").reindex(
-            index=["qwen", "llava", "idefics2"], columns=list(shapes))
+            index=model_order, columns=list(shapes))
         h_pivot = sub.pivot_table(index="model", columns="shape", values="h7_phys_minus_abs").reindex(
-            index=["qwen", "llava", "idefics2"], columns=list(shapes))
+            index=model_order, columns=list(shapes))
 
         for r, (mat, cmap, vmin, vmax, fmt, sub_title) in enumerate([
             (p_pivot, "Blues", 0.0, 1.0, ".2f", "PMR(_nolabel)"),
@@ -279,7 +289,7 @@ def fig_table1_heatmap(table: pd.DataFrame, out: Path) -> None:
             ax = axes[r, c]
             im = ax.imshow(mat.values, cmap=cmap, vmin=vmin, vmax=vmax, aspect="auto")
             ax.set_xticks(range(mat.shape[1]), mat.columns, rotation=20)
-            ax.set_yticks(range(3), model_labels, fontsize=9)
+            ax.set_yticks(range(mat.shape[0]), model_labels, fontsize=9)
             for i in range(mat.shape[0]):
                 for j in range(mat.shape[1]):
                     v = mat.values[i, j]

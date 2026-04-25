@@ -149,9 +149,10 @@ H7 측정 가능성이 PMR(_nolabel) 천장을 추적:
    LLaVA-1.5 가 비슷할 것.
 2. **단일 도형 스윕**: M8a (5 도형) 만; M8d (카테고리) 와 M8c (사진)
    미실행. 완전한 cross-encoder 테이블 위해 가치 있음.
-3. **Idefics2 vision-encoder probe AUC 없음**: M6 r2 가 Qwen vision
-   encoder 활성화 캡처; Idefics2 캡처 미실행. Round 2 가 Idefics2 에
-   encoder probe AUC 추가하여 loop closure.
+3. ~~**Idefics2 vision-encoder probe AUC 없음**~~ → **해결 (M6 r3, 2026-04-25)**:
+   `docs/insights/m6_r3_idefics2_probe.md` 가 Idefics2 SigLIP-SO400M
+   probe AUC = 0.93 (레이어 9 에서 0.948 peak) 보고, 세 번째 SigLIP 점
+   에서 인코더-포화 사슬 확인.
 4. **Idefics2 8B, LLaVA 7B, Qwen 7B**: Idefics2 favor 의 ~1B 파라미터
    차이. 6× PMR 차이를 driver 할 가능성 낮지만 noting 가치.
 
