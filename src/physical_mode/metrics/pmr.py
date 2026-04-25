@@ -10,6 +10,7 @@ import pandas as pd
 
 from .lexicons import (
     ABSTRACT_MARKERS,
+    CATEGORY_REGIME_KEYWORDS,
     DOWN_DIRECTION_PHRASES,
     HOLD_STILL_STEMS,
     PHYSICS_VERB_STEMS,
@@ -155,3 +156,31 @@ def response_consistency(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFram
         .rename("rc")
         .reset_index()
     )
+
+
+def classify_regime(category: str, text: str) -> str:
+    """Classify a free-form response into one of {kinetic, static, abstract, ambiguous}.
+
+    Order of checks:
+      1. abstract markers override everything (e.g., "this is just a silhouette,
+         the bird flies" → abstract because the explicit reject takes precedence
+         over the kinetic keyword).
+      2. category-specific kinetic / static stems decided by `_any_stem_hit`.
+      3. fallback: ambiguous.
+
+    Categories without an entry in CATEGORY_REGIME_KEYWORDS produce a ValueError
+    so M8a categories don't accidentally fall through.
+    """
+    if category not in CATEGORY_REGIME_KEYWORDS:
+        raise ValueError(f"classify_regime called for unsupported category {category!r}")
+    if not text:
+        return "ambiguous"
+    if _any_phrase_hit(text, ABSTRACT_MARKERS):
+        return "abstract"
+    words = _words(text)
+    table = CATEGORY_REGIME_KEYWORDS[category]
+    if _any_stem_hit(words, table["kinetic"]):
+        return "kinetic"
+    if _any_stem_hit(words, table["static"]):
+        return "static"
+    return "ambiguous"

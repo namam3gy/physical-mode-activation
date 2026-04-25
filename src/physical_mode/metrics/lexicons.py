@@ -100,6 +100,7 @@ ABSTRACT_MARKERS: frozenset[str] = frozenset({
     "this is a circle",
     "two-dimensional",
     "2d shape",
+    "silhouette",
     "no motion",
     "nothing will happen",
     "nothing happens",
@@ -109,3 +110,25 @@ ABSTRACT_MARKERS: frozenset[str] = frozenset({
     "does not move",
     "doesn't move",
 })
+
+
+# ---------------------------------------------------------------------------
+# M8d category-specific regime keywords.
+# Used by metrics.pmr.classify_regime to assign one of {kinetic, static,
+# abstract, ambiguous} to a model response.
+# ---------------------------------------------------------------------------
+
+CATEGORY_REGIME_KEYWORDS: dict[str, dict[str, frozenset[str]]] = {
+    "car": {
+        "kinetic": frozenset({"driv", "roll", "spe", "moves", "moving", "moved", "race", "accel"}),
+        "static":  frozenset({"park", "stop", "stay", "stays", "stayed", "still", "stationary", "display"}),
+    },
+    "person": {
+        "kinetic": frozenset({"walk", "run", "jog", "step", "stride", "moves", "moving", "moved"}),
+        "static":  frozenset({"stand", "stays", "still", "stationary", "stand still", "motionless", "frozen"}),
+    },
+    "bird": {
+        "kinetic": frozenset({"fly", "fli", "flew", "flown", "swim", "swam", "soar", "soaring", "waddl", "moves", "moving", "glid"}),
+        "static":  frozenset({"perch", "sit", "stays", "still", "stationary", "rests", "rest"}),
+    },
+}
