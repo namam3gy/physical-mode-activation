@@ -33,6 +33,13 @@ person, bird, abstract} × 3 라벨 역할 {physical, abstract, exotic} ×
 
 ## 결과
 
+![§4.2 H7 효과가 사진에서 절반](../figures/session_image_vs_label_h7.png)
+
+*그림*: 모델별 M8d 합성 카테고리 vs M8c 실사진의 H7 (PMR_physical_label
+− PMR_abstract_label). LLaVA-1.5 의 프로젝트 최강 H7 (M8d +0.31) 이 사진
+에서 **절반** (+0.10). LLaVA-Next M8d 는 약한 반전 (−0.05, noise floor)
+하지만 M8c 는 본질적으로 0.
+
 ### 물리 사진 (ball, car, person, bird — 모델당 n=48)
 
 | model       | encoder         | PMR(_nolabel) | PMR(phys-label) | PMR(abs-label) | phys − abs |

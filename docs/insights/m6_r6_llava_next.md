@@ -153,6 +153,12 @@ LLaVA-Next was also run on M8d (3 categories × 4 abstraction × 2 bg × 2 cue �
 2 events × 5 seeds = 480) and M8c (60 photos), labeled + label-free, ~16 min
 total inference on GPU 0. Three findings:
 
+![5-model × 3-stim PMR ladder](../figures/session_5model_cross_stim_pmr.png)
+
+*Figure*: 5-model × 3-stim PMR with bootstrap CIs. LLaVA-Next sits between
+LLaVA-1.5 floor and the saturated cluster on synthetic stim (M8a, M8d).
+On M8c photos all 5 models compress into [0.18, 0.67].
+
 ### 1. PMR mid-band holds across all 3 stim sources
 
 | stim | model      | mean PMR(_nolabel) | 95% CI         |

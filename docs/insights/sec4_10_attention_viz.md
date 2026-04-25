@@ -90,6 +90,13 @@ subset (limit=20, layers 5/15/20/25). Total disk cost ~2.5 GB
 | Idefics2    | 320           | non-square split  | SigLIP-SO400M  |
 | InternVL3   | 256           | 16×16 (1 tile)    | InternViT      |
 
+![Cross-model attention to visual tokens](../figures/session_attention_cross_model.png)
+
+*Figure*: per-layer fraction of last-token attention going to visual tokens
+across the 5 captured VLMs on the same M8a stim. Dashed lines = uniform
+baseline (n_visual / seq_len, 79–98%). All 5 models attend ≪ baseline,
+peaking at mid-layers (15 or 20).
+
 ### Cross-model fraction of last-token attention on visual tokens
 
 | Model       | layer 5 | layer 15 | layer 20 | layer 25 | n_visual / seq_len |

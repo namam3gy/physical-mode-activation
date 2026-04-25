@@ -36,6 +36,13 @@ image dominated, the gap would be near zero.
 
 ## Result
 
+![§4.2 H7 effect halves on photos](../figures/session_image_vs_label_h7.png)
+
+*Figure*: H7 (PMR_physical_label − PMR_abstract_label) per model on M8d
+synthetic categories vs M8c real photos. LLaVA-1.5's project-strongest
+H7 (M8d +0.31) is **halved** on photos (+0.10). LLaVA-Next M8d shows
+slight inversion (−0.05, noise floor) but M8c is essentially zero.
+
 ### Physical photos (ball, car, person, bird — n=48 per model)
 
 | model       | encoder         | PMR(_nolabel) | PMR(phys-label) | PMR(abs-label) | phys − abs |

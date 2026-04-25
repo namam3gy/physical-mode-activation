@@ -26,6 +26,12 @@ consolidated reproduction notebook:
 
 ## Headline findings (5-model)
 
+![5-model × 3-stim PMR ladder](../figures/session_5model_cross_stim_pmr.png)
+
+*Headline figure*: 5-model PMR ladder across M8a (synthetic shapes), M8d
+(synthetic categories), M8c (real photos). Encoder family separates on
+synthetic; photos compress all 5 into [0.18, 0.67].
+
 ### 1. 5-model M8a chain (paper headline)
 
 | Model       | Encoder         | LM           | M8a PMR(_nolabel) | 95% CI            |
@@ -204,6 +210,8 @@ After M6 r6 was paper-grade complete, two §4 priorities completed:
 
 ### §4.2 Reverse prompting (commit `025ab68`)
 
+![§4.2 H7 effect halves on photos](../figures/session_image_vs_label_h7.png)
+
 Existing M8c labeled-arm data re-analyzed. **Image-prior dominates
 label-prior on real physical photos**: phys_minus_abs ≤ +0.146 across
 all 5 models on M8c, vs LLaVA-1.5 M8d synthetic phys_minus_abs +0.306
@@ -224,11 +232,15 @@ comparison.
 last-token attention to visual tokens despite visual tokens being
 79–98% of the input sequence. Visual attention peaks at mid-layers
 (15 or 20) for every model — same layer band where M4 saw label-physics
-margin development. Consistent with the architecture-level reframe:
-encoder output is uniform (stim-y AUC = 1.0), but the LM only "looks"
-at it briefly at mid-layers, allocating most attention to the
-linguistic context. Architecture differences shape how strongly the
-brief visual peek translates into PMR commitment.
+margin development.
+
+![Cross-model attention to visual tokens](../figures/session_attention_cross_model.png)
+
+Consistent with the architecture-level reframe: encoder output is uniform
+(stim-y AUC = 1.0), but the LM only "looks" at it briefly at mid-layers,
+allocating most attention to the linguistic context. Architecture
+differences shape how strongly the brief visual peek translates into
+PMR commitment.
 
 Doc: `docs/insights/sec4_10_attention_viz.md` (+ ko).
 
