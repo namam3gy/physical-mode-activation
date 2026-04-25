@@ -74,26 +74,82 @@ A qualitative figure for the appendix that:
 - Provides a hook for future work on attention-knockout / SIP / SAE
   decomposition (M5b)
 
+## Cross-model extension (added same day)
+
+LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3 captured at the same M8a
+subset (limit=20, layers 5/15/20/25). Total disk cost ~2.5 GB
+(LLaVA-Next dominates at ~480 MB / file due to AnyRes 5-tile attention).
+
+### Visual token counts differ across architectures
+
+| Model       | Visual tokens | Grid layout       | Encoder        |
+|-------------|--------------:|-------------------|----------------|
+| Qwen2.5-VL  | 324           | 18×18 (1 tile)    | SigLIP         |
+| LLaVA-1.5   | 576           | 24×24 (1 tile)    | CLIP-ViT-L     |
+| LLaVA-Next  | 2928          | 5-tile AnyRes     | CLIP-ViT-L     |
+| Idefics2    | 320           | non-square split  | SigLIP-SO400M  |
+| InternVL3   | 256           | 16×16 (1 tile)    | InternViT      |
+
+### Cross-model fraction of last-token attention on visual tokens
+
+| Model       | layer 5 | layer 15 | layer 20 | layer 25 | n_visual / seq_len |
+|-------------|--------:|---------:|---------:|---------:|-------------------:|
+| Qwen2.5-VL  | 0.030   | 0.044    | **0.146**| 0.102    | 0.831              |
+| LLaVA-1.5   | 0.049   | 0.097    | **0.143**| 0.059    | 0.901              |
+| LLaVA-Next  | 0.187   | **0.206**| 0.085    | 0.090    | 0.976              |
+| Idefics2    | 0.106   | **0.256**| 0.161    | 0.060    | 0.823              |
+| InternVL3   | 0.033   | 0.036    | **0.169**| 0.048    | 0.793              |
+
+**Key finding**: all 5 VLMs attend to visual tokens at only **3–26%**
+even though visual tokens occupy 79–98% of the input sequence. The
+LM's last-token attention is dominated by recent prompt + system tokens.
+Visual attention peaks at mid-layers (15 or 20) for every model — same
+layer band where M4 observed label-physics margin development.
+
+This is consistent with the architecture-level reframe: encoder output
+is uniform (stim-y AUC = 1.0), but the LM only "looks" at it briefly,
+at mid-layers, allocating most attention bandwidth to the linguistic
+context. The **architecture differences shape how strongly the brief
+visual peek translates into PMR commitment** — not whether the visual
+information is present.
+
+### Heatmap overlays (square-grid models)
+
+Section 8 of the notebook shows side-by-side overlays for the 3
+square-grid models (Qwen 18×18 / LLaVA-1.5 24×24 / InternVL3 16×16) at
+layer 20 on the same stim. Visual attention concentrates on the
+object silhouette + ground plane regions for the saturated models.
+
+LLaVA-Next AnyRes (5 tiles) and Idefics2 (non-square split) are skipped
+in the overlay viz — their attention is naturally a multi-tile
+structure that needs per-tile breakdown rather than a single grid.
+
 ## Limitations
 
-1. **Single model only**. Extending to LLaVA-1.5 / LLaVA-Next /
-   Idefics2 / InternVL3 would multiply the disk cost (each capture
-   ~7 MB × 60 records × 5 models = ~2 GB).
-2. **Limited stim subset (n=20)**. The capture covers a
+1. **Limited stim subset (n=20)**. The capture covers a
    representative slice but is not statistically powered.
-3. **Attention is only one slice of the mechanism**. Activation
+2. **Attention is only one slice of the mechanism**. Activation
    patching (M5b) or SAE decomposition is needed to make causal
    claims about what features attention is reading.
-4. **Eager attention is slower than SDPA** — fine for a one-time
+3. **Eager attention is slower than SDPA** — fine for a one-time
    capture, but do not enable in production runs.
+4. **LLaVA-Next + Idefics2 overlays not implemented** — multi-tile
+   structure needs per-tile decomposition, not in this initial round.
+5. **Layer 25 means different things across models**: late-late for
+   Qwen/InternVL3 (28 layers total), early-late for LLaVA-Next/Idefics2
+   (32 layers) and LLaVA-1.5 (32 layers). Cross-model layer comparison
+   is informal — depths are not normalized.
 
 ## Reproducer
 
 ```bash
-# Capture (uses M8a Qwen stim, ~30s)
-uv run python scripts/02_run_inference.py \
-    --config configs/attention_viz_qwen.py \
-    --stimulus-dir inputs/m8a_qwen_<ts>
+# Capture (5 models, M8a Qwen stim, ~30s each on H200)
+for cfg in attention_viz_qwen attention_viz_llava attention_viz_llava_next \
+           attention_viz_idefics2 attention_viz_internvl3; do
+    uv run python scripts/02_run_inference.py \
+        --config configs/$cfg.py \
+        --stimulus-dir inputs/m8a_qwen_<ts>
+done
 
 # View notebook
 uv run jupyter lab notebooks/attention_viz.ipynb
@@ -101,11 +157,14 @@ uv run jupyter lab notebooks/attention_viz.ipynb
 
 ## Artifacts
 
-- `configs/attention_viz_qwen.py` — capture config (limit=20,
-  capture_lm_attentions=True, layers=(5,15,20,25)).
+- `configs/attention_viz_{qwen,llava,llava_next,idefics2,internvl3}.py` —
+  capture configs (each: limit=20, capture_lm_attentions=True,
+  layers=(5,15,20,25)).
 - `src/physical_mode/models/vlm_runner.py` — `attn_implementation`
   auto-switch to `"eager"` when capturing attentions.
-- `outputs/attention_viz_qwen_<ts>/` — predictions + 20 ×
-  safetensors capture files.
-- `notebooks/attention_viz.ipynb` — interactive viz notebook.
+- `outputs/attention_viz_<model>_<ts>/` — predictions + 20 ×
+  safetensors capture files (sizes: Qwen 7 MB, LLaVA-1.5 21 MB,
+  LLaVA-Next 480 MB, Idefics2 10 MB, InternVL3 5 MB per file).
+- `notebooks/attention_viz.ipynb` — 8-section interactive viz notebook
+  (sections 1-6: Qwen single-model; sections 7-8: 5-model cross-model).
 - `docs/insights/sec4_10_attention_viz.md` (this doc, + ko).
