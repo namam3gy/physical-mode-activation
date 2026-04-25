@@ -42,10 +42,18 @@ class ProbeResult:
 
 
 def _mean_pool(tensor: np.ndarray) -> np.ndarray:
-    """(n_tokens, dim) -> (dim,); mean across the token axis."""
-    if tensor.ndim != 2:
-        raise ValueError(f"expected (tokens, dim), got shape {tensor.shape}")
-    return tensor.mean(axis=0)
+    """Pool a vision-encoder activation tensor to a single (dim,) vector.
+
+    Accepted shapes:
+      - 2D `(n_tokens, dim)`  → mean over n_tokens.
+      - 3D `(n_tiles, n_patches, dim)` (Idefics2 image-splitting case)
+                              → mean over (n_tiles, n_patches).
+    """
+    if tensor.ndim == 2:
+        return tensor.mean(axis=0)
+    if tensor.ndim == 3:
+        return tensor.reshape(-1, tensor.shape[-1]).mean(axis=0)
+    raise ValueError(f"unsupported activation shape {tensor.shape}")
 
 
 def _load_layer_activations(
@@ -99,11 +107,16 @@ def load_probing_dataset(
     """
     vision_dir = Path(vision_dir)
     preds = pd.read_parquet(predictions_path)
+    if "pmr" not in preds.columns:
+        from physical_mode.metrics.pmr import score_rows
+        preds = score_rows(preds)
     agg = _aggregate_pmr(preds, pmr_source)
 
     # Attach factorial axes (they're constant across variants for a given sample_id).
+    base_cols = ["sample_id", "object_level", "bg_level", "cue_level", "event_template"]
+    extra_cols = [c for c in ("shape",) if c in preds.columns]
     axes = (
-        preds[["sample_id", "object_level", "bg_level", "cue_level", "event_template"]]
+        preds[base_cols + extra_cols]
         .drop_duplicates("sample_id")
         .reset_index(drop=True)
     )
