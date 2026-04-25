@@ -4,10 +4,11 @@ Variants:
   - `open`: free-form next-state prediction with a `{label}` referent.
   - `forced_choice`: 4-way MCQ over {falls, stays, moves sideways, abstract shape} with a `{label}` referent.
   - `open_no_label`: free-form, no label referent — H2 null-hypothesis probe (§4.9).
+  - `forced_choice_no_label`: 4-way MCQ with "the depicted object" antecedent, no label token. Companion to `open_no_label` for FC-side H2 null-hypothesis testing.
 
 The `{label}` slot carries axis D of the factorial (circle / ball / planet /
-shape). `open_no_label` is label-free by design; its `label` field should be the
-`_nolabel` sentinel so output provenance stays unambiguous.
+shape). The two `_no_label` variants are label-free by design; their `label`
+field should be the `_nolabel` sentinel so output provenance stays unambiguous.
 """
 
 from __future__ import annotations
@@ -41,6 +42,15 @@ FORCED_CHOICE_TEMPLATE = (
     "A) It falls down.\n"
     "B) It stays still.\n"
     "C) It moves sideways.\n"
+    "D) This is an abstract shape — nothing physical happens.\n"
+    "Answer with a single letter (A, B, C, or D), then briefly justify."
+)
+
+FORCED_CHOICE_TEMPLATE_NO_LABEL = (
+    "Look at the image. Which option best describes what will happen next?\n"
+    "A) The depicted object falls down.\n"
+    "B) The depicted object stays still.\n"
+    "C) The depicted object moves sideways.\n"
     "D) This is an abstract shape — nothing physical happens.\n"
     "Answer with a single letter (A, B, C, or D), then briefly justify."
 )
@@ -80,6 +90,14 @@ def render(variant: str, label: str) -> RenderedPrompt:
             label=label,
             system=SYSTEM_PROMPT_FC,
             user=FORCED_CHOICE_TEMPLATE.format(label=label),
+            choice_letters=FC_CHOICES,
+        )
+    if variant == "forced_choice_no_label":
+        return RenderedPrompt(
+            variant="forced_choice_no_label",
+            label=label,
+            system=SYSTEM_PROMPT_FC,
+            user=FORCED_CHOICE_TEMPLATE_NO_LABEL,
             choice_letters=FC_CHOICES,
         )
     raise ValueError(f"unknown prompt variant: {variant}")

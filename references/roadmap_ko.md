@@ -71,6 +71,7 @@
 | M5a-ext | **VTI 후속 (neg α, label swap, 양방향성 재검정)** | Exp 1-2 (2026-04-24): ceiling 에서 neg α + label=ball side-by-side. Exp 3 (2026-04-25): moderate baseline 에서 (α × label × obj) 그리드. **핵심 결과**: `v_L10` 은 physics-mode 내부의 regime axis — +α → A (falls), −α → B (stays still), baseline D 는 threshold 아래. | ✅ | 2026-04-25 |
 | M4b | **Label-free prompt — H2 null test** | M2 자극에 `open_no_label` variant. **핵심 결과**: `ball` ≈ no-label; `circle` 이 PMR 을 6.5 pp 억제. 원래 H2 재해석: language prior 는 비대칭 — circle override, ball enhancement 아님. M4 visual-token capture 가 prompt-independent (구조적 artefact). | ✅ | 2026-04-25 |
 | M6 r1 | **ST5 round 1 — LLaVA-1.5-7B cross-model** | M2 + M4b 프로토콜을 LLaVA-1.5-7B 에. **핵심 결과**: M4b 의 "circle suppression" 은 **Qwen 특이적** — LLaVA 는 *원래의* H2 (ball +47.5 pp, 모든 label 이 no-label baseline 대비 양수). 새 통합 가설: language prior 가 모든 label 에서 양수; Qwen 의 visual saturation 이 양의 기여를 mask 함. H7 cross-model 재현 (planet GAR << ball GAR 두 모델 모두). LLaVA 가 본 프로젝트 가장 깔끔한 H1 S-curve 제공. FC 제외 (LLaVA 가 모든 cell 에 "A" 반환). | ✅ | 2026-04-25 |
+| M4c | **Forced-choice label-free** | 새 `forced_choice_no_label` variant ("the depicted object" antecedent 사용). Qwen 이 FC 하에서 M4b 의 H2 패턴 재현 + planet 억제 효과 추가 (옵션-셋 편향: orbital regime 이 D 로 collapse). LLaVA 의 "A" 편향이 re-template 에서도 유지 (477/480), 모델 수준 pathology 확인. | ✅ | 2026-04-25 |
 | **M5b** | **ST4 Phase 3 — SIP + patching + SAE** | Semantic Image Pairs + activation patching (attention 필요 → re-capture) + SAE feature decomposition. | ▶ **다음 (선택)** | — |
 | M6 r2+ | ST5 round 2+ — 추가 모델 | LLaVA-Next, InternVL2, (optional) Qwen2-VL; FC re-template; LLaVA activation captures (boomerang / steering cross-model). | 대기 | — |
 | M7 | 인간 baseline + 논문 작성 | Prolific 20명 × 50 stim + EMNLP/NeurIPS 초안 | optional | — |
@@ -327,6 +328,43 @@
   cross-model 미검정** — FC 실패가 H4 차단; LLaVA activation capture 부재가
   나머지 차단. Round 2.
 
+### M4c — Forced-choice label-free ✅ (2026-04-25)
+
+실행: `uv run python scripts/02_run_inference.py --config configs/fc_label_free_{qwen,llava}.py --stimulus-dir inputs/mvp_full_20260424-093926_e9d79da3` (두 번 pass), 후 `scripts/03_score_and_summarize.py` 로 채점.
+
+출력:
+- `outputs/fc_label_free_qwen_20260425-042817_eec92f1a/` — Qwen, 480 rows.
+- `outputs/fc_label_free_llava_20260425-044517_81ae56d5/` — LLaVA, 480 rows (degenerate).
+
+심층 인사이트: `docs/insights/m4c_fc_label_free_ko.md`. 원자료: `docs/experiments/m4c_fc_label_free_ko.md`.
+
+**핵심 결과**:
+- Qwen FC label-free 가 FC 하에서 M4b 의 H2 reframing 재현: `ball − _nolabel
+  = +0.013` (≈ 0), `circle − _nolabel = −0.208` (M4b 의 −0.065 보다 강함),
+  `planet − _nolabel = −0.263` (신규 — orbital regime 이 FC 의 gravity-centric
+  옵션 셋 하에서 D 로 collapse).
+- Qwen 의 no-label 동일 자극에서의 open-vs-FC paired delta: **−0.131** —
+  FC 가 일관되게 보수적; label confounding 없는 H4 cross-format 측정 가능.
+- `line/blank/none` 하 FC: 모든 label condition 이 D=10/10 (또는 `_nolabel`
+  의 9/10) 으로 collapse. FC 의 D 옵션이 완전 모호 이미지에서 모든 label
+  condition 을 abstract reject 로 끌어당기는 "abstract sink".
+- LLaVA FC label-free: 477/480 = 99.4 % `A`. "the depicted object" 로
+  re-template 해도 M6 r1 의 편향 완화되지 않음. 모델 수준 pathology 확인,
+  prompt-fixable 아님.
+
+**가설 업데이트**:
+- H2: **추가 강화** — Qwen FC 가 다른 prompt format 에서 M4b 재현. "planet
+  suppression" 발견은 nuance 추가: Qwen 의 per-label suppression 이 부분적
+  으로 옵션-셋 artefact 임을 visual-saturation 프레이밍을 지지.
+- H4: **Qwen no-label 에서 측정 가능** (paired delta = −0.131); cross-model
+  H4 는 LLaVA FC 편향에 막힘.
+- H7: **caveat 추가** — regime 구별은 narrative latitude 가 허용되는 prompt
+  에서만 보임. FC 하에서 모든 non-gravity regime (orbital, "consumed by
+  black hole" 등) 이 D 로 collapse 되어 H7 mask. 확장 FC 옵션 셋이 FC-side
+  H7 에 필요.
+- LLaVA FC pathology: **확정** — round-2 아이디어는 greedy argmax 대신
+  first-token logit 비율 사용.
+
 ### M5b — ST4 Phase 3 (SIP patching + SAE) — 작업 상세
 
 **작업 분할**:
@@ -474,4 +512,5 @@ M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static 
 | 2026-04-24 | M5a-ext Exp 1+2 완료: ceiling 에서 negative α (null — 이후 ceiling artifact 로 판명) + label=ball swap on line/blank/none (clean B→A flip). H-direction-bidirectional 신규 (초기엔 "one-way activator"), H-regime 을 "지지" 로 격상. | `9a0ed86` (merge) |
 | 2026-04-25 | M5a-ext Exp 3 (`textured/blank/none` moderate baseline 에서 양방향성 재검정): −α=40 → (line/textured) × (ball/circle) 모두에서 10 B 를 균일하게 유도. H-direction-bidirectional 을 "physics-mode 내부의 regime axis" 로 개정 (+α kinetic, −α static, baseline D 는 threshold 아래). H-regime 원래 형태 반증 후 H7 qualifier 로 축소. | `f8f0fdd` |
 | 2026-04-25 | M4b 완료: M2 자극에 label-free prompt 를 H2 null test 로 적용. Paired PMR(ball) − PMR(_nolabel) = +0.006 ≈ 0; PMR(circle) − PMR(_nolabel) = −0.065. **H2 revised** — language prior 는 비대칭 (circle override, ball enhancement 아님). M4 visual-token capture 가 prompt-independent (causal-attention artefact); switching-layer 의 붕괴는 구조적 현상. | `e97db16`, `990ddf7` |
-| 2026-04-25 | M6 round 1 완료 (LLaVA-1.5-7B cross-model): paired PMR delta vs label-free → ball +0.475, planet +0.244, circle +0.173 (모두 양수). **H2 재개정 — visual-saturation 가설**: M4b 의 "circle suppression only" 은 Qwen 특이적; LLaVA 는 visual prior 가 unsaturated 라서 원래 H2 보여줌. H1 S-curve 가 LLaVA 에서 가장 깔끔 (0.51 → 0.81). H7 cross-model 재현 (planet GAR << ball GAR 두 모델 모두). FC 제외 — LLaVA 가 모든 cell 에 "A" 반환. | (this commit) |
+| 2026-04-25 | M6 round 1 완료 (LLaVA-1.5-7B cross-model): paired PMR delta vs label-free → ball +0.475, planet +0.244, circle +0.173 (모두 양수). **H2 재개정 — visual-saturation 가설**: M4b 의 "circle suppression only" 은 Qwen 특이적; LLaVA 는 visual prior 가 unsaturated 라서 원래 H2 보여줌. H1 S-curve 가 LLaVA 에서 가장 깔끔 (0.51 → 0.81). H7 cross-model 재현 (planet GAR << ball GAR 두 모델 모두). FC 제외 — LLaVA 가 모든 cell 에 "A" 반환. | `c1b885f` |
+| 2026-04-25 | M4c 완료 (forced-choice label-free): 새 `forced_choice_no_label` variant. Qwen 이 FC 하에서 M4b 재현 (ball ≈ no-label, circle 이 더 강하게 억제, planet 이 FC gravity-centric 옵션 셋으로 인해 새로 억제). Qwen 의 no-label 에서 open-vs-FC paired delta = −0.131 (label confound 없는 H4 측정 가능). LLaVA "A" 편향이 re-template 에서도 유지 (477/480) — 모델 수준 pathology 확인. | (this commit) |

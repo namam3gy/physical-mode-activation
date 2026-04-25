@@ -18,7 +18,7 @@ CueLevel = Literal[
 ]
 EventTemplate = Literal["fall", "roll_slope", "wall_bounce", "hover", "horizontal"]
 Label = Literal["circle", "ball", "planet", "shape", "object", "_nolabel"]
-PromptVariant = Literal["open", "open_no_label", "forced_choice"]
+PromptVariant = Literal["open", "open_no_label", "forced_choice", "forced_choice_no_label"]
 
 
 @dataclass(frozen=True)

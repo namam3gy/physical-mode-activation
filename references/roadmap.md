@@ -71,6 +71,7 @@ Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the 
 | M5a-ext | **VTI follow-ups (neg α, label swap, bidirectionality recheck)** | Exp 1-2 (2026-04-24): neg α at ceiling + label=ball side-by-side. Exp 3 (2026-04-25): (α × label × obj) grid on moderate baseline. **Key result**: `v_L10` is a regime axis within physics-mode — +α → A (falls), −α → B (stays still), baseline D below threshold. | ✅ | 2026-04-25 |
 | M4b | **Label-free prompt — H2 null test** | `open_no_label` variant on M2 stimuli. **Key result**: `ball` ≈ no-label; `circle` suppresses PMR by 6.5 pp. Original H2 reframed: language prior is asymmetric — circle override, not ball enhancement. M4 visual-token capture is prompt-independent (structural artefact). | ✅ | 2026-04-25 |
 | M6 r1 | **ST5 round 1 — LLaVA-1.5-7B cross-model** | M2 + M4b protocol on LLaVA-1.5-7B. **Key result**: M4b's "circle suppression" is **Qwen-specific** — LLaVA shows the *original* H2 (ball +47.5 pp, all labels positive vs no-label baseline). New unified hypothesis: language prior is positive across labels; Qwen's visual saturation masked the positive contribution. H7 cross-model replicates (planet GAR << ball GAR in both). LLaVA gives the cleanest H1 S-curve in the project. FC excluded (LLaVA returns "A" for every cell). | ✅ | 2026-04-25 |
+| M4c | **Forced-choice label-free** | New `forced_choice_no_label` variant (FC with "the depicted object" antecedent). Qwen reproduces M4b's H2 pattern under FC and adds a planet-suppression effect (option-set bias: orbital regime collapses to D). LLaVA's "A" bias persists under re-template (477/480), confirming model-level pathology. | ✅ | 2026-04-25 |
 | **M5b** | **ST4 Phase 3 — SIP + patching + SAE** | Semantic Image Pairs + activation patching (needs attention re-capture) + SAE feature decomposition. | ▶ **next (optional)** | — |
 | M6 r2+ | ST5 round 2+ — additional models | LLaVA-Next, InternVL2, (optional) Qwen2-VL; FC re-template; LLaVA activation captures for boomerang / steering cross-model. | pending | — |
 | M7 | Human baseline + paper writing | Prolific 20 raters × 50 stimuli + EMNLP/NeurIPS draft | optional | — |
@@ -309,6 +310,37 @@ Deep dive: `docs/insights/m6_cross_model_llava.md`. Numbers: `docs/experiments/m
   **untested cross-model in round 1** — FC failure blocks H4; no
   activation captures on LLaVA blocks the others. Round 2.
 
+### M4c — Forced-choice label-free ✅ (2026-04-25)
+
+Run: `uv run python scripts/02_run_inference.py --config configs/fc_label_free_{qwen,llava}.py --stimulus-dir inputs/mvp_full_20260424-093926_e9d79da3` (two passes), then score with `scripts/03_score_and_summarize.py`.
+
+Output:
+- `outputs/fc_label_free_qwen_20260425-042817_eec92f1a/` — Qwen, 480 rows.
+- `outputs/fc_label_free_llava_20260425-044517_81ae56d5/` — LLaVA, 480 rows (degenerate).
+
+Deep dive: `docs/insights/m4c_fc_label_free.md`. Numbers: `docs/experiments/m4c_fc_label_free.md`.
+
+**Key results**:
+- Qwen FC label-free reproduces M4b's H2 reframing under FC: `ball − _nolabel = +0.013` (≈ 0), `circle − _nolabel = −0.208` (stronger than M4b's −0.065), `planet − _nolabel = −0.263` (new — orbital regime collapses to D under FC's gravity-centric option set).
+- Qwen open-vs-FC paired delta at no-label: **−0.131** — FC is consistently more conservative; H4 measurable cross-format without label confounding.
+- `line/blank/none` under FC: every label condition collapses to D=10/10 (or 9/10 for `_nolabel`). FC's D option is an "abstract sink" pulling all label conditions toward abstract reject at fully ambiguous images.
+- LLaVA FC label-free: 477/480 = 99.4 % `A`. Re-templating with "the depicted object" does **not** relax the bias from M6 r1. Confirmed model-level pathology, not prompt-fixable.
+
+**Hypothesis updates**:
+- H2: **further reinforced** — Qwen FC reproduces M4b under a different
+  prompt format. The "planet suppression" finding adds nuance: per-
+  label suppression in Qwen is partly an option-set artefact, supporting
+  the visual-saturation framing rather than literal "abstract override"
+  claims about specific labels.
+- H4: **measurable on Qwen no-label** (paired delta = −0.131); cross-
+  model H4 still blocked by LLaVA's FC bias.
+- H7: **caveat added** — the regime distinction is only visible under
+  prompts that allow narrative latitude. Under FC, all non-gravity
+  regimes (orbital, "consumed by black hole", etc.) collapse to D and
+  H7 is masked. An extended FC option set would be needed for FC-side H7.
+- LLaVA FC pathology: **confirmed** — round-2 idea is to use first-
+  token logit ratios instead of greedy argmax.
+
 ### M5b — ST4 Phase 3 (SIP patching + SAE) — work plan
 
 **Sub-tasks**:
@@ -406,6 +438,7 @@ Systematically validate the M2 finding that "label selects the physics regime" (
 - `docs/insights/m3_encoder_boomerang.md` — M3 encoder boomerang
 - `docs/insights/m4_logit_lens.md` — M4 LM logit lens
 - `docs/insights/m4b_label_free.md` — M4b label-free prompt H2 null test
+- `docs/insights/m4c_fc_label_free.md` — M4c forced-choice label-free (FC version of H2 null test)
 - `docs/insights/m5_vti_steering.md` — M5a VTI steering causal intervention
 - `docs/insights/m5a_ext_bidirection_and_label.md` — M5a extensions (negative α, label × steering, bidirectionality recheck)
 - `docs/insights/m6_cross_model_llava.md` — M6 round 1 (LLaVA-1.5 cross-model H2 + H1 + H7)
@@ -444,4 +477,5 @@ Systematically validate the M2 finding that "label selects the physics regime" (
 | 2026-04-24 | M5a-ext Exp 1+2 complete: negative α at ceiling (null result — later found to be a ceiling artifact) + label=ball swap on line/blank/none (clean B→A flip). H-direction-bidirectional added (initially as "one-way activator"), H-regime upgraded to supported. | `9a0ed86` (merge) |
 | 2026-04-25 | M5a-ext Exp 3 (bidirectionality recheck on `textured/blank/none` moderate baseline): −α=40 → 10 B uniformly across (line/textured) × (ball/circle). H-direction-bidirectional revised to "regime axis within physics-mode" (+α kinetic, −α static, baseline D below threshold). H-regime refuted in original form and narrowed to an H7 qualifier. | `f8f0fdd` |
 | 2026-04-25 | M4b complete: label-free prompt as H2 null test on M2 stimuli. Paired PMR(ball) − PMR(_nolabel) = +0.006 ≈ 0; PMR(circle) − PMR(_nolabel) = −0.065. **H2 revised** — language prior is asymmetric (circle override, not ball enhancement). M4 visual-token capture is prompt-independent (causal-attention artefact); switching-layer collapse is structural. | `e97db16`, `990ddf7` |
-| 2026-04-25 | M6 round 1 complete (LLaVA-1.5-7B cross-model): paired PMR delta vs label-free → ball +0.475, planet +0.244, circle +0.173 (all positive). **H2 re-revised — visual-saturation hypothesis**: M4b's "circle suppression only" is Qwen-specific; LLaVA shows the original H2 because its visual prior is unsaturated. H1 S-curve cleanest on LLaVA (0.51 → 0.81). H7 replicates cross-model (planet GAR << ball GAR in both). FC excluded — LLaVA returns "A" for every cell. | (this commit) |
+| 2026-04-25 | M6 round 1 complete (LLaVA-1.5-7B cross-model): paired PMR delta vs label-free → ball +0.475, planet +0.244, circle +0.173 (all positive). **H2 re-revised — visual-saturation hypothesis**: M4b's "circle suppression only" is Qwen-specific; LLaVA shows the original H2 because its visual prior is unsaturated. H1 S-curve cleanest on LLaVA (0.51 → 0.81). H7 replicates cross-model (planet GAR << ball GAR in both). FC excluded — LLaVA returns "A" for every cell. | `c1b885f` |
+| 2026-04-25 | M4c complete (forced-choice label-free): new `forced_choice_no_label` variant. Qwen reproduces M4b under FC (ball ≈ no-label, circle suppresses harder, planet newly suppresses via FC's gravity-centric option set). Qwen open-vs-FC paired delta at no-label = −0.131 (H4 measurable without label confound). LLaVA "A" bias persists under re-template (477/480) — confirmed model-level pathology. | (this commit) |
