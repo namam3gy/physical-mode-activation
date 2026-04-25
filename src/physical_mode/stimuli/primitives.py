@@ -93,6 +93,16 @@ def draw_object(
         if mode == "textured":
             return _draw_textured_stone(img, cx, cy, radius, seed, verts)
 
+    if shape == "car":
+        if mode == "line":
+            return _draw_line_car(img, cx, cy, radius)
+        if mode == "filled":
+            return _draw_filled_car(img, cx, cy, radius)
+        if mode == "shaded":
+            return _draw_shaded_car(img, cx, cy, radius)
+        if mode == "textured":
+            return _draw_textured_car(img, cx, cy, radius, seed)
+
     raise ValueError(f"unknown (shape, mode): ({shape}, {mode})")
 
 
@@ -516,6 +526,118 @@ def _draw_block_stack(img: Image.Image, cx: int, cy: int, r: int, seed: int) -> 
         left = cx - block_w // 2 + jitter
         right = cx + block_w // 2 + jitter
         d.rectangle((left, top, right, bot), fill=palette[i % 3], outline=(30, 30, 30), width=2)
+    return img
+
+
+# ---------------------------------------------------------------------------
+# M8d car primitives. Body = wide rectangle, two circular wheels below.
+# Compositional drawing — recognizable at every abstraction level.
+# ---------------------------------------------------------------------------
+
+
+def _car_geometry(cx: int, cy: int, r: int) -> dict:
+    """Bounding-box geometry shared by all four car abstractions.
+
+    Body is a horizontal rectangle ~2.0r wide, ~0.7r tall, centered around (cx, cy).
+    Two wheels sit just below, ~0.45r radius each.
+    """
+    body_w = int(r * 2.0)
+    body_h = int(r * 0.7)
+    body_left = cx - body_w // 2
+    body_right = cx + body_w // 2
+    body_top = cy - body_h // 2
+    body_bottom = cy + body_h // 2
+    wheel_r = int(r * 0.35)
+    wheel_y = body_bottom + wheel_r // 2
+    wheel_lx = body_left + int(body_w * 0.22)
+    wheel_rx = body_left + int(body_w * 0.78)
+    # Windshield rectangle (smaller, top-left of body).
+    win_w = int(body_w * 0.4)
+    win_h = int(body_h * 0.55)
+    win_left = body_left + int(body_w * 0.15)
+    win_top = body_top + int(body_h * 0.1)
+    return dict(
+        body_box=(body_left, body_top, body_right, body_bottom),
+        wheel_r=wheel_r,
+        wheel_l=(wheel_lx, wheel_y),
+        wheel_r_pos=(wheel_rx, wheel_y),
+        windshield_box=(win_left, win_top, win_left + win_w, win_top + win_h),
+    )
+
+
+def _draw_line_car(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    g = _car_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.rectangle(g["body_box"], outline=(0, 0, 0), width=3)
+    d.rectangle(g["windshield_box"], outline=(0, 0, 0), width=2)
+    wr = g["wheel_r"]
+    for (wx, wy) in (g["wheel_l"], g["wheel_r_pos"]):
+        d.ellipse((wx - wr, wy - wr, wx + wr, wy + wr), outline=(0, 0, 0), width=3)
+    return img
+
+
+def _draw_filled_car(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    g = _car_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.rectangle(g["body_box"], fill=(0, 0, 0))
+    wr = g["wheel_r"]
+    for (wx, wy) in (g["wheel_l"], g["wheel_r_pos"]):
+        d.ellipse((wx - wr, wy - wr, wx + wr, wy + wr), fill=(0, 0, 0))
+    # Windshield in lighter color so silhouette is still recognizably a car.
+    d.rectangle(g["windshield_box"], fill=(120, 120, 120))
+    return img
+
+
+def _draw_shaded_car(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    """Car with top-lit gradient (lighter top, darker bottom)."""
+    g = _car_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    bx0, by0, bx1, by1 = g["body_box"]
+    body_h = by1 - by0
+    n_strips = 32
+    for i in range(n_strips):
+        t = i / max(1, n_strips - 1)
+        c = int(220 - 110 * t)  # 220 (top) → 110 (bottom)
+        y0 = by0 + int(body_h * (i / n_strips))
+        y1 = by0 + int(body_h * ((i + 1) / n_strips))
+        d.rectangle((bx0, y0, bx1, y1), fill=(c, c, c + 20))
+    d.rectangle(g["body_box"], outline=(40, 40, 40), width=2)
+    # Wheels: dark circles with subtle gradient.
+    wr = g["wheel_r"]
+    for (wx, wy) in (g["wheel_l"], g["wheel_r_pos"]):
+        d.ellipse((wx - wr, wy - wr, wx + wr, wy + wr), fill=(40, 40, 40), outline=(0, 0, 0), width=2)
+        d.ellipse((wx - wr // 2, wy - wr // 2, wx + wr // 2, wy + wr // 2), fill=(80, 80, 80))
+    # Windshield: light blue glassy shade.
+    d.rectangle(g["windshield_box"], fill=(180, 200, 220), outline=(60, 60, 60), width=1)
+    return img
+
+
+def _draw_textured_car(img: Image.Image, cx: int, cy: int, r: int, seed: int) -> Image.Image:
+    """Photorealistic-ish car with body color, glass detail, wheel hubs."""
+    rng = random.Random(seed + 11000)
+    # Body color: a saturated automotive hue.
+    palette = [(180, 30, 30), (40, 80, 160), (30, 120, 60), (200, 160, 30)]
+    body_color = palette[rng.randrange(len(palette))]
+    g = _car_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.rectangle(g["body_box"], fill=body_color, outline=(20, 20, 20), width=2)
+    # Top highlight strip.
+    bx0, by0, bx1, by1 = g["body_box"]
+    d.rectangle((bx0 + 4, by0 + 4, bx1 - 4, by0 + (by1 - by0) // 5), fill=(min(255, body_color[0] + 60), min(255, body_color[1] + 60), min(255, body_color[2] + 60)))
+    # Wheels with hubs.
+    wr = g["wheel_r"]
+    for (wx, wy) in (g["wheel_l"], g["wheel_r_pos"]):
+        d.ellipse((wx - wr, wy - wr, wx + wr, wy + wr), fill=(20, 20, 20), outline=(0, 0, 0), width=2)
+        # Hub (center disc).
+        hr = wr // 2
+        d.ellipse((wx - hr, wy - hr, wx + hr, wy + hr), fill=(180, 180, 180))
+        # Hub center bolt.
+        d.ellipse((wx - 4, wy - 4, wx + 4, wy + 4), fill=(60, 60, 60))
+    # Windshield: glassy blue with a slight gradient.
+    wx0, wy0, wx1, wy1 = g["windshield_box"]
+    d.rectangle(g["windshield_box"], fill=(150, 190, 220), outline=(40, 40, 40), width=1)
+    # Glare line.
+    d.line((wx0 + 4, wy0 + 4, wx1 - 4, wy0 + (wy1 - wy0) // 3), fill=(230, 240, 250), width=2)
     return img
 
 
