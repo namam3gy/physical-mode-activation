@@ -50,13 +50,16 @@ def main() -> None:
                    choices=["rendered_vs_line",
                             "physics_cell_vs_abstract_cell",
                             "within_line_context",
-                            "within_textured_context"],
+                            "within_textured_context",
+                            "physical_shape_vs_abstract_shape"],
                    help="rendered_vs_line: y=(obj!=line). physics_cell_vs_abstract_cell: "
                         "y=1 (textured+ground+both); y=0 (line+blank+none). "
                         "within_line_context: hold obj=line; y=1 if (ground AND both), "
                         "y=0 if (blank AND none) — tests whether encoder picks up gravity-cue "
                         "context on otherwise-identical line drawings. "
-                        "within_textured_context: same idea on obj=textured.")
+                        "within_textured_context: same idea on obj=textured. "
+                        "physical_shape_vs_abstract_shape (M8c): y=1 if shape ∈ "
+                        "{ball, car, person, bird}; y=0 if shape == abstract.")
     args = p.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -97,6 +100,15 @@ def main() -> None:
         y = is_pos[keep].reset_index(drop=True).astype(np.int64).to_numpy()
         print(f"Target {args.target} (obj={obj}, ground+both vs blank+none): "
               f"y=1 {int(y.sum())} / y=0 {int((y == 0).sum())}")
+    elif args.target == "physical_shape_vs_abstract_shape":
+        physical_shapes = {"ball", "car", "person", "bird"}
+        is_phys = manifest["shape"].isin(physical_shapes)
+        is_abs = manifest["shape"] == "abstract"
+        keep = is_phys | is_abs
+        manifest = manifest[keep].reset_index(drop=True)
+        y = is_phys[keep].reset_index(drop=True).astype(np.int64).to_numpy()
+        print(f"Target physical_shape_vs_abstract_shape (M8c): "
+              f"y=1 (physical objects) {int(y.sum())} / y=0 (abstract) {int((y == 0).sum())}")
 
     sample_ids = manifest["sample_id"].tolist()
     X_per_layer = {}
