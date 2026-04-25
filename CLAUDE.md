@@ -22,8 +22,12 @@ source of truth for "what milestone we're on, what's next, what hypotheses
 have been tested, what ideas are still open." Update it when a milestone
 completes or a new hypothesis/idea surfaces.
 
-Sub-task 1 MVP, ST2 vision-encoder probing, ST3 LM logit lens, and ST4
-Phase-1+2 VTI steering all complete (M0 through M5a — see ROADMAP §3).
+Sub-task 1 MVP, ST2 vision-encoder probing, ST3 LM logit lens, ST4
+Phase-1+2 VTI steering, and M5a-ext VTI follow-ups (bidirectionality +
+label × steering) all complete (M0 through M5a-ext — see ROADMAP §3).
+Key M5a-ext finding (2026-04-25): `v_L10` is a **regime axis within
+physics-mode** (+α → A/kinetic, −α → B/static, baseline D below |α|
+threshold), not a simple physics-vs-abstract activator.
 Package at `src/physical_mode/`, entry scripts at `scripts/0{1..6}_*.py`,
 configs at `configs/{pilot,mvp_full}.py`, tests at `tests/`. Read
 `docs/architecture.md` for the implementation contract and

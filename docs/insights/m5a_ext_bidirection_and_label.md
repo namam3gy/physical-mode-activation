@@ -6,21 +6,32 @@ negative-α bidirectionality and label × steering-direction interaction.
 Raw numbers: `docs/experiments/m5a_ext_neg_alpha_and_label.md`.
 Implementation: `scripts/06_vti_steering.py` (extended), `src/physical_mode/metrics/first_letter.py`.
 
+> **Revision 2026-04-25**: Exp 1's "no effect from negative α" was confirmed
+> to be a ceiling artifact. Exp 3 on a moderate baseline revealed that negative
+> α **does** drive a behavioral shift — it flips the model into the "stays
+> still" (B) regime rather than suppressing physics-mode back to abstract.
+> §1, §2.3, §3.3, and §4 have been rewritten accordingly; §2.2 retains the
+> original Exp 1 numbers for completeness.
+
 ## 1. One-line summary
 
-The L10 direction is a **one-way activation, not a bidirectional axis** —
-negative α does not suppress physics-mode — but it is **label-composable**:
-the same `+α · v_L10` routes to "falls" (A) with label `ball` and "stays
-still" (B) with label `circle`. Object-ness is set by steering, regime is
-set by label, causally.
+The L10 direction is a **regime axis within physics-mode**, not a
+physics-vs-abstract activator: large `|α|` at L10 breaks the model out of the
+baseline "abstract / won't move" (D) response into physics-mode, while the
+*sign* of α selects **which** physics regime the model narrates — `+α` pushes
+toward a kinetic "falls" (A) response, `-α` pushes toward a static "stays
+still" (B) response. Label and image priors modulate the positive-α target
+(label=ball or obj=textured is enough to elicit A at +α=40; both abstract
+elicit B at +α=40), but `-α=40` uniformly elicits B regardless of label or
+object level.
 
-## 2. Bidirectionality test (Exp 1)
+## 2. Bidirectionality test
 
-### 2.1 Setup
+### 2.1 Exp 1 setup (ceiling baseline — 2026-04-24)
 
 See run log §Experiment 1.
 
-### 2.2 Result
+### 2.2 Exp 1 result
 
 | α | A | other | D | PMR |
 |---|---|---|---|---|
@@ -30,33 +41,58 @@ See run log §Experiment 1.
 | -20 | 10 | 0 | 0 | 1.0 |
 | -40 | 10 | 0 | 0 | 1.0 |
 
-### 2.3 Interpretation — direction is one-way
+### 2.3 Exp 3 recheck (moderate baseline — 2026-04-25)
 
-Injecting `-α · v_L10` at the physics-mode baseline fails to suppress
-physics-mode: all α ∈ {0, -5, -10, -20, -40} leave the first-letter
-distribution at ≥ 9/10 A. The 1 "other" at α=0 even concentrates into
-A at negative α. Two interpretations are consistent with this null
-result:
+Exp 1's `textured/ground/both` baseline was at PMR=1 ceiling; the
+null-movement under negative α could be either (a) a ceiling artifact or
+(b) genuine asymmetry. Exp 3 moved to `textured/blank/none` (α=0 baseline
+≈ 10/10 D, near floor) and swept α ∈ {−40, −20, −10, −5, 0, 5, 10, 20, 40}
+across both `label ∈ {ball, circle}` and both `obj ∈ {line, textured}` —
+yielding a full (α × label × obj) grid at L10, T=0. Raw tables in the run
+log §Experiment 3.
 
-- **(a) Ceiling effect**: `textured/ground/both` is already at PMR=1 at
-  α=0, so there is no room to observe a physics-mode increase; but the
-  non-movement toward D means -v is not *removing* physics-mode either.
-- **(b) Inherent asymmetry**: the direction activates the physical-object
-  concept but does not have a "abstract-mode" antipode in the same residual
-  direction. Suppressing physics-mode would require a different mechanism
-  (different direction, different layer, or negative sign with a different
-  feature).
+Cross-run summary at |α|=40:
 
-Either way, **the M5a finding should be framed as a one-way activator**:
-M5a showed that positive α pushes abstract → physical; Exp 1 shows that
-negative α does not push physical → abstract. The direction is not a
-bidirectional concept axis as VTI is sometimes assumed to be (e.g.,
-gender, truthfulness directions in LLM literature).
+| obj × label | α=−40 | α=0 | α=+40 |
+|---|---|---|---|
+| line × circle     | **10 B** | 10 D | 10 B |
+| line × ball       | **10 B** | 10 D | 10 A |
+| textured × circle | **10 B** | 10 D | 10 A |
+| textured × ball   | **10 B** |  9 D + 1 B | 10 A |
 
-An important caveat: because the baseline is already at the physics-mode
-ceiling, a cleaner bidirectionality test would use an `textured/blank/none`
-stimulus (moderate baseline PMR around 0.5) where both +α and -α have
-measurement headroom. Deferred.
+- **`-α=40` → 10 B across all four cells**, regardless of label or object.
+- **`+α=40` → 10 A** in three of the four cells (textured/*, and line/ball);
+  only `line × circle` gives 10 B at +α=40 (the original M5a result).
+- `α=0` is always 10 D (modulo one Exp 3a stimulus that was 1 B / 9 D).
+
+### 2.4 Revised interpretation — regime axis within physics-mode
+
+The Exp 1 "no effect" finding was a **ceiling artifact**, not inherent
+asymmetry. Once the baseline drops to the D floor, large |α| at L10
+breaks the model out of D into a physics-mode response, and the **sign**
+selects which physics regime:
+
+- **`+α · v_L10`** → "falls" (A) — kinetic / gravity-active regime. At
+  +α=40, A is elicited whenever *either* the image carries a physical
+  appearance (textured) *or* the label carries a physical prior (ball).
+  A is suppressed only when both image and label are abstract (line +
+  circle), in which case the model instead defaults to B ("stays still").
+- **`-α · v_L10`** → "stays still" (B) — static / gravity-passive regime.
+  The -α=40 target is B uniformly across all four (obj × label) cells in
+  Exp 3; neither label nor image prior moves the target.
+
+So `v_L10` is neither a "physics vs abstract" axis nor an "object-ness
+on/off activator". It is an **axis within the physics-mode subspace**,
+with two opposing regimes (kinetic vs static) at its endpoints and the
+baseline D ("won't move — it's abstract") response sitting *below* the
+|α| threshold rather than at one end of the axis.
+
+This changes the M5a causal story from "object-ness gets turned on / off"
+to "we know the model has a `v_L10`-aligned physics-mode subspace, and we
+can causally pick which regime the model narrates by choosing the sign —
+but only once |α| crosses ~15-20". The D response is outside this
+subspace: neither direction of α returns the model to D once it is pushed
+out.
 
 ## 3. Label × steering (Exp 2)
 
@@ -74,16 +110,32 @@ See run log §Experiment 2.
 | 20 | 0  | 10 | 0.0 |
 | 40 | 10 | 0  | 1.0 |
 
-### 3.3 Interpretation — regime is label-driven, activation is steering-driven
+### 3.3 Interpretation — label interacts with the +α regime target, not the -α regime target
 
-With label=`ball`, α=40 flips 10/10 to A ("falls"). With label=`circle`
-(M5a), the same intervention flipped 10/10 to B ("stays still"). This
-is a **clean dissociation**: holding the image, the stimulus cell, the
-steering vector, and the magnitude constant, only the prompt token
-changes — and the flip target changes from B to A. This is strong
-causal evidence for **H7 (label selects the physics regime)**: the
-steering direction activates "physical object-ness" as a coarse binary,
-while the label prior determines which physics the model narrates.
+At `line/blank/none × +α=40`, the regime target depends on the label:
+- label=`circle` (M5a) → 10/10 B.
+- label=`ball` (Exp 2) → 10/10 A.
+
+Holding the image, stimulus cell, steering vector, and magnitude constant,
+the flip target changes from B to A when the label changes. This is
+dissociation evidence for H7 (label selects physics regime) — but,
+informed by Exp 3, the H7 claim is now **narrower** than originally
+stated:
+
+- **Scope of label-selects-regime**: holds when the image itself is
+  abstract (`line`). In `textured/blank/none × +α=40`, both labels give
+  A (Exp 3a: ball → 10 A; Exp 3b: circle → 10 A) — label is fully
+  dominated by the image-level physical signal once it is present.
+- **-α regime target is label-independent**: `-α=40` elicits B across
+  all four (obj × label) cells in Exp 3. Label does not disambiguate
+  the static regime.
+
+Restated: regime is chosen by a **joint** (image, label, α sign) function,
+not by label alone. Label-driven regime-flipping is visible only when
+the other two channels are weak (abstract image, moderate |α|). The
+cleanest Exp 2 finding — "same steering, only label differs, regime
+flips" — is still a valid causal demonstration, but its generalization is
+restricted to the abstract-image regime.
 
 Subsidiary: the α=0 baseline for ball+line+blank+none is 10/10 D — the
 label prior alone does not make this (abstract) stimulus physics-mode
@@ -96,37 +148,56 @@ variant audit, but not a threat to the present result.
 
 ## 4. Hypothesis scorecard update
 
-| H | Pre-M5a-ext | Post-M5a-ext | Change |
+| H | Pre-M5a-ext | Post-M5a-ext (2026-04-24) | Post-recheck (2026-04-25) |
 |---|---|---|---|
-| H-boomerang | extended + causal | **extended + causal (unchanged)** | Exp 2 reinforces the causal leg (one more mechanism-level intervention shows label × steering composability). |
-| H-locus | supported (early-mid) | **unchanged** | Exp 2 confirms L10 is still the effective site even with the label swap. |
-| H-regime | candidate | **supported (causally)** | Exp 2: same intervention with only label swap produces A vs B flip. Label selects regime under identical steering. |
-| **H-direction-bidirectional** (new) | — | **refuted (as bidirectional), supported (as one-way activator)** | Exp 1: `-α · v_L10` at `textured/ground/both` does not shift toward D. The direction activates object-ness but does not suppress it in the same residual-space direction. |
+| H-boomerang | extended + causal | unchanged | **unchanged** — causal leg reinforced (Exp 2 + Exp 3 grid). |
+| H-locus | supported (early-mid) | unchanged | **unchanged** — L10 effective across all Exp 3 cells. |
+| H-regime | candidate | supported (causally) | **supported but narrower** — label-only regime flip holds when image is abstract; with textured image, +α=40 gives A regardless of label. Regime is chosen by a joint (image, label, α sign) function. |
+| **H-direction-bidirectional** (new 2026-04-24) | — | refuted as bidirectional, supported as one-way activator | **revised**: `v_L10` is a **regime axis within physics-mode** — +α → kinetic/falls (A), -α → static/stays-still (B), baseline D sits below the \|α\| activation threshold. The original "one-way activator" framing was itself a ceiling artifact of Exp 1. |
 
 ## 5. Paper implications
 
-- **Figure 6 (M5a causal steering) gains a companion figure**: the Exp 2
-  side-by-side — same image, same α, only label differs → A vs B — is the
-  cleanest causal demonstration of the decomposition `steering = object-
-  ness; label = regime`. A single side-by-side panel makes the paper's
-  H7 claim self-contained.
-- The H-direction-bidirectional refutation tempers overclaiming: do not
-  call `v_L10` a "physics-mode direction" in abstract; call it a
-  "physical-object-ness activator". Precise language matters because
-  VTI-style vectors in LLM interp are frequently described as
-  bidirectional concept axes.
-- M5b priority: the SAE decomposition from ROADMAP M5b is now more
-  compelling — if `v_L10` is a one-way activator, SAE features could
-  reveal both (a) the activating sub-features and (b) a distinct
-  suppressive direction that a simple mean-difference VTI misses.
+- **Figure 6 (M5a causal steering) gains a multi-panel companion**: the
+  (α × label × obj) grid from Exp 2 + Exp 3 gives a 2×2 of "same image,
+  same α sign, label flip" and "same image, same label, α sign flip"
+  demonstrations. The cleanest single figure is the `-α=40` row: four
+  different (obj, label) cells all collapse to B, independent of any
+  prior signal — this is the strongest isolated causal effect in the
+  paper so far.
+- **Language discipline in the text**: `v_L10` should be described as a
+  "regime axis within physics-mode" rather than a "physics-mode activator"
+  (too narrow, given Exp 3) or a "physics-vs-abstract direction" (simply
+  wrong, given that negative α does not restore D). The paper must also
+  explicitly note that the baseline D response is below the activation
+  threshold rather than at one end of the axis — otherwise readers
+  unfamiliar with VTI will default to the common "bidirectional concept
+  direction" frame.
+- **M5b (SAE) motivation is strengthened**: the regime-axis structure is
+  more compelling for SAE decomposition than a simple activator would
+  be. Expected SAE features: (a) a "kinetic / falls" feature, (b) a
+  "static / stays" feature, and (c) a distinct "abstract / not a
+  physical object" feature that sits outside the physics-mode axis.
+  If SAE recovers (a) + (b) as oppositely-loaded features along the
+  mean-diff direction, that validates the regime-axis interpretation at
+  a finer grain than behavioral steering can.
+- H7 needs a qualifier in the paper: "label selects regime **when image
+  is abstract**" — not a global claim. The Exp 3 data shows label
+  dominance fails as soon as the image carries physical-object signal
+  (textured).
 
 ## 6. Limitations still open
 
-- Exp 1 baseline is at the ceiling (PMR=1.0 at α=0), so the "no
-  bidirectional effect" is confounded with "no room for effect".
-  A moderate-PMR baseline (e.g. `textured/blank/none`) would disambiguate.
-- α=40 remains a magic number; finer sweep (30/35/40/45/50) to locate
-  the threshold precisely is deferred.
-- Only L10 tested in both experiments. The label swap at L15/L20/L25
-  is not replicated.
+- The |α| activation threshold was located to |α|∈[15, 25] by the Exp
+  3a α=+10 (7A+1B+2D) / α=+20 (10A) transition; a finer sweep (10, 12,
+  15, 18, 22, 25) to pin the threshold precisely is deferred.
+- Only L10 tested in Exp 3. The α-sign regime split at L15 / L20 / L25
+  is not replicated; by the M5a single-layer result, later layers may
+  not participate in the regime axis.
+- Exp 3 covers (line, textured) × (ball, circle); the full M2 axis is
+  4 × 3 (obj × label) × `planet`. `planet` and `shaded / filled` are not
+  tested. M2 data suggests `planet` activates orbital physics (not
+  gravity-fall) under baseline — whether `-α=40` still pushes `planet` to
+  B is unknown.
+- The prompt template is still `forced_choice` at T=0. A prompt audit
+  (open-ended / T>0 / label-free §4.9) remains deferred.
 - Does not touch SAE / patching / cross-model — those are M5b/M6.

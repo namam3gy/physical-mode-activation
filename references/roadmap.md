@@ -36,7 +36,7 @@ Measured at two layers:
 
 Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the pilot and MVP-full milestones. Pilot evidence in `docs/insights/m1_pilot.md`.
 
-| ID | Hypothesis | Status (post-M5a) | Evidence / next test |
+| ID | Hypothesis | Status (post-M5a-ext recheck) | Evidence / next test |
 |---|---|---|---|
 | **H1** | PMR rises S-shaped along the abstraction axis (line → textured); 3D shading and ground introduction produce the largest step-changes. | **supported** | M2: monotone across all 4 object_levels (0.744 → 0.790 → 0.822 → 0.832). T=0.7 + 10 seeds resolved the pilot's mid-tie. |
 | **H2** | The "ball" label substantially raises PMR even on line drawings → independent contribution of the language prior. | **quantified** | M2: ball vs circle = +15 pp (line 0.85 vs 0.69; textured 0.93 vs 0.78). `ball+line` > `circle+textured` — language outweighs vision. |
@@ -44,10 +44,11 @@ Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the 
 | **H4** (pilot-derived) | The open vs forced-choice PMR gap is a stable signature of the **language-prior ↔ visual-evidence** conflict. | **supported — extended** | M2: gap present at every object_level (line 32 pp → textured 22 pp). Higher abstraction ⇒ larger gap — a structural prediction that abstraction weakens visual evidence so the language prior dominates more. Next test: ST5 cross-model. |
 | **H5** (pilot-derived) | The single ground line causes a **larger** PMR shift than going from no-ground textured ball to with-ground textured ball. | **mixed** | M2: bg delta (blank 0.67 → scene 0.88 = +21 pp) > object delta (line 0.74 → textured 0.83 = +9 pp). Direction matches; however, scene also surpasses ground. |
 | **H6** (pilot-derived) | The arrow+shadow cue saturation is driven entirely by **cast shadow alone**; the arrow is closer to annotation. | **supported (revised)** | M2 decomposition: cast_shadow alone = +17.5 pp above none (Kersten ground-attachment cue confirmed); **but the arrow alone also saturates at 0.96** — partially refutes the "arrow = annotation" sub-claim. Arrow is the dominant cue, shadow is secondary. |
-| **H7** (M2-derived) | The label does not toggle PMR — it selects **which physics regime** to apply. | **supported** | M2: same image with `circle/ball/planet` yields "static / rolls down the incline / orbits the Sun". GAR: ball 0.79 / circle 0.70 / planet 0.48. M4 logit lens shows label prior shifts physics margin from L5; M5a steering direction encodes "object-ness" not "gravity". |
+| **H7** (M2-derived) | The label does not toggle PMR — it selects **which physics regime** to apply. | **supported but narrower** | M2 GAR: ball 0.79 / circle 0.70 / planet 0.48. M5a-ext Exp 2: label flip @ +α=40 swaps B vs A on `line/blank/none`. M5a-ext Exp 3 qualifier: on `textured/blank/none`, label-only flip fails (+α=40 → A regardless of label); regime is chosen by joint (image, label, α sign). |
 | **H-boomerang** | Encoder knows, decoder gates: vision encoder linearly separates physics-mode classes even where behavior fails. | **supported + causal** | M3: encoder AUC = 1.00 on every factorial axis at every probed layer; behavior 0.28-0.95. M4: information preserved through LM (AUC 0.94-0.95). M5a: causal intervention at L10 flips behavior. |
-| **H-locus** (M4-derived) | The bottleneck is at the LM final layers + decoding head, not earlier. | **supported (early-mid sweet spot)** | M5a: L10 α=40 flips 10/10 abstract → physical responses; later layers do not move. Aligns with the Basu et al. 2024 early-layer constraint-storage finding. |
-| **H-regime** (M5a-derived) | The steering direction is binary "object-ness", not "which physics" — physics regime is label-driven. | **candidate** | M5a: L10 intervention flips D → B (physical static), not D → A (falls). Future test: combine M5a steering with axis D (label) sweep — does each label produce a distinct regime even with a constant residual-stream injection? |
+| **H-locus** (M4-derived) | The bottleneck is at the LM final layers + decoding head, not earlier. | **supported (early-mid sweet spot)** | M5a: L10 α=40 flips 10/10 abstract → physical responses; later layers do not move. M5a-ext Exp 3: L10 regime-flip (A vs B by α sign) holds in all tested cells. Aligns with the Basu et al. 2024 early-layer constraint-storage finding. |
+| **H-direction-bidirectional** (M5a-ext, 2026-04-24; revised 2026-04-25) | `v_L10` is a simple bidirectional concept axis where −α suppresses physics-mode back to abstract. | **revised — regime axis within physics-mode** | Exp 1 (textured/ground/both ceiling): −α has no effect → initially framed as "one-way activator". Exp 3 (textured/blank/none moderate baseline, 2026-04-25): −α=40 flips D → B ("stays still") uniformly across (line, textured) × (ball, circle). Both signs of α activate physics-mode; sign selects regime (+kinetic / −static). Baseline D sits *below* the \|α\| threshold, not at one end of the axis. |
+| **H-regime** (M5a-derived) | The steering direction is binary "object-ness", not "which physics" — physics regime is label-driven. | **refuted in current form** | Replaced by H-direction-bidirectional's regime-axis interpretation (kinetic vs static is already a regime distinction that the steering sign selects, label-independent at |α|=40). Separately, label *does* select regime in the narrow `line/blank/none × +α=40` case (Exp 2), but not globally — this is now folded into the H7 qualifier. |
 
 ### 1.4 Target models & venue
 
@@ -67,6 +68,7 @@ Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the 
 | M3 | **ST2 — Vision encoder probing** | Vision-block capture (8 layers, 12 GB) + layer-wise linear probes. **Boomerang confirmed**: encoder AUC = 1.0 on every axis; behavioral PMR 0.28-0.95. | ✅ | 2026-04-24 |
 | M4 | **ST3 — LM logit lens / layer-wise probe** | LM hidden @ visual tokens AUC 0.94-0.95 across all probed layers; L20 peak. Label prior drives physics margin from L5; object_level effect is 7× smaller. | ✅ | 2026-04-24 |
 | M5a | **ST4 Phase 1+2 — VTI steering** | Direction extraction + residual-stream injection. **L10 α=40 flips 10/10 D → B** — "physical object-ness" direction causally confirmed. | ✅ | 2026-04-24 |
+| M5a-ext | **VTI follow-ups (neg α, label swap, bidirectionality recheck)** | Exp 1-2 (2026-04-24): neg α at ceiling + label=ball side-by-side. Exp 3 (2026-04-25): (α × label × obj) grid on moderate baseline. **Key result**: `v_L10` is a regime axis within physics-mode — +α → A (falls), −α → B (stays still), baseline D below threshold. | ✅ | 2026-04-25 |
 | **M5b** | **ST4 Phase 3 — SIP + patching + SAE** | Semantic Image Pairs + activation patching (needs attention re-capture) + SAE feature decomposition. | ▶ **next (optional)** | — |
 | M6 | ST5 — Cross-model sweep | LLaVA-1.5/Next, InternVL2, (optional) Qwen2-VL | pending | — |
 | M7 | Human baseline + paper writing | Prolific 20 raters × 50 stimuli + EMNLP/NeurIPS draft | optional | — |
@@ -194,6 +196,41 @@ Output: `outputs/mvp_full_20260424-094103_8ae1fa3d/probing_steering/` (vectors) 
 - H-locus: **supported (early-mid layer L10)**.
 - H-regime (new): **candidate** — steering direction is coarse "object-ness", regime selection is label-driven.
 
+### M5a-ext — VTI follow-ups ✅ (2026-04-24, 2026-04-25)
+
+Run: `uv run python scripts/06_vti_steering.py` with `--output-subdir` flag
+to partition sub-experiments within the same M2 output tree.
+
+Output: `outputs/mvp_full_20260424-094103_8ae1fa3d/steering_experiments/{neg_alpha_textured_ground_both, ball_line_blank_none, bidirectional_recheck_*}/`.
+Deep dive: `docs/insights/m5a_ext_bidirection_and_label.md`. Numbers: `docs/experiments/m5a_ext_neg_alpha_and_label.md`.
+
+**Key results**:
+- Exp 1 (ceiling): `-α · v_L10` at `textured/ground/both × circle` leaves the
+  first-letter distribution at 10/10 A. Interpretation was initially "one-way
+  activator"; recheck (Exp 3) revealed this was a ceiling artifact.
+- Exp 2 (label swap): `+α=40 · v_L10` at `line/blank/none × ball` flips 10/10
+  to A ("falls") vs 10/10 B ("stays still") under label=`circle` (M5a).
+  Label-driven regime flip causally demonstrated.
+- Exp 3 (bidirectional recheck, 2026-04-25): full (α × label × obj) grid on
+  `{line, textured} × blank × none`. **New finding**: `-α=40` flips 10/10 to
+  B ("stays still") **uniformly** across all four (obj × label) cells. `v_L10`
+  is therefore a regime axis within physics-mode (+α kinetic, −α static), not
+  a physics-vs-abstract activator. Baseline D sits below the |α| activation
+  threshold, not at one axis endpoint.
+- Exp 3 qualifier on H7: +α=40 on `textured/blank/none` gives A regardless of
+  label; label-only regime flipping fails as soon as the image carries a
+  physical-object signal. Regime is chosen by a joint (image, label, α sign)
+  function.
+
+**Hypothesis updates**:
+- H-direction-bidirectional (new): **revised 2026-04-25** — regime axis
+  interpretation replaces the earlier "one-way activator" framing.
+- H-regime: **refuted in its original form** — the label-only regime flip
+  does not generalize; subsumed by H-direction-bidirectional + the H7
+  qualifier.
+- H-locus: **unchanged (reinforced)** — L10 regime-flip holds across all
+  four Exp 3 cells.
+
 ### M5b — ST4 Phase 3 (SIP patching + SAE) — work plan
 
 **Sub-tasks**:
@@ -291,6 +328,7 @@ Systematically validate the M2 finding that "label selects the physics regime" (
 - `docs/insights/m3_encoder_boomerang.md` — M3 encoder boomerang
 - `docs/insights/m4_logit_lens.md` — M4 LM logit lens
 - `docs/insights/m5_vti_steering.md` — M5a VTI steering causal intervention
+- `docs/insights/m5a_ext_bidirection_and_label.md` — M5a extensions (negative α, label × steering, bidirectionality recheck)
 - (M5b, M6 ... to be added)
 
 **Bilingual file convention**: `references/project.md`, `references/roadmap.md`, every `docs/insights/*.md`, and the various `docs/*.md` reference docs all have an English canonical `*.md` and a Korean translation `*_ko.md`. English is authoritative; if translations drift, English wins. New content → write English first, then translate to Korean.
@@ -322,4 +360,6 @@ Systematically validate the M2 finding that "label selects the physics regime" (
 | 2026-04-24 | M3 complete: vision encoder probing — boomerang confirmed (encoder AUC = 1.0 / behavioral 0.28-0.95); M4 set as next milestone. | `1205821` |
 | 2026-04-24 | M4 complete: LM logit lens + per-layer probe. LM AUC 0.94-0.95 across all layers (peak L20 = 0.953); label drives physics margin from L5; M5 set as next milestone. | `2abdc32` |
 | 2026-04-24 | M5a complete (VTI steering): L10 α=40 flips 10/10 of `line/blank/none` from D (abstract) to B (physical-static). "Object-ness" direction causally confirmed. M5b (SIP+SAE) and M6 still to do. | `61ffd29` |
-| 2026-04-24 | Repository restructure: `references/`, `docs/{insights,experiments,figures}/` scheme; everything bilingual (English canonical + `_ko.md` translation). | (this commit) |
+| 2026-04-24 | Repository restructure: `references/`, `docs/{insights,experiments,figures}/` scheme; everything bilingual (English canonical + `_ko.md` translation). | `963e219` |
+| 2026-04-24 | M5a-ext Exp 1+2 complete: negative α at ceiling (null result — later found to be a ceiling artifact) + label=ball swap on line/blank/none (clean B→A flip). H-direction-bidirectional added (initially as "one-way activator"), H-regime upgraded to supported. | `9a0ed86` (merge) |
+| 2026-04-25 | M5a-ext Exp 3 (bidirectionality recheck on `textured/blank/none` moderate baseline): −α=40 → 10 B uniformly across (line/textured) × (ball/circle). H-direction-bidirectional revised to "regime axis within physics-mode" (+α kinetic, −α static, baseline D below threshold). H-regime refuted in original form and narrowed to an H7 qualifier. | (this commit) |
