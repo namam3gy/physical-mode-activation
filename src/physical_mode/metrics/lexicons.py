@@ -134,6 +134,36 @@ ABSTRACT_MARKERS: frozenset[str] = frozenset({
 #   - "rest" catches rest/rests/rested/resting
 # Phrases with spaces (e.g., "stand still") cannot match here; if needed,
 # add them to a phrase-based lexicon instead.
+# Universal kinetic stems — gravity / collision / locomotion that apply across
+# car / person / bird (and any future M8d category). The qwen smoke surfaced
+# many "the car will fall into the hole" / "the figurine will drop and land"
+# responses being mis-classified as `ambiguous` because the per-category
+# kinetic set didn't include gravity-fall stems. Adding them here keeps the
+# per-category sets focused on category-distinctive verbs.
+UNIVERSAL_KINETIC_STEMS: frozenset[str] = frozenset({
+    "fall",     # fall, falls, falling, fallen
+    "fell",     # past of fall
+    "drop",     # drop, drops, dropped, dropping
+    "land",     # land, lands, landing
+    "plumm",    # plummet
+    "descend",  # descend(s/ing)
+    "sink",     # sink, sinks, sinking
+    "sank",     # past of sink
+    "plung",    # plunge
+    "tumbl",    # tumble
+    "dive",     # dive, dives, diving, dived
+    "crash",    # crash(es/ed)
+    "collid",   # collide
+    "impact",   # impact
+    "hit",      # hit, hits, hitting
+    "bounc",    # bounce
+    "slid",     # slide, slid, sliding
+    "slip",     # slip, slipping
+    "spin",     # spin, spinning
+    "spun",     # past of spin
+    "rotat",    # rotate, rotates, rotating
+})
+
 CATEGORY_REGIME_KEYWORDS: dict[str, dict[str, frozenset[str]]] = {
     "car": {
         # "drift" intentionally NOT included — drift is racing-kinetic but
@@ -144,7 +174,7 @@ CATEGORY_REGIME_KEYWORDS: dict[str, dict[str, frozenset[str]]] = {
         "static":  frozenset({"park", "stop", "stay", "still", "stationary", "display", "remain"}),
     },
     "person": {
-        "kinetic": frozenset({"walk", "run", "jog", "step", "stride", "mov", "march", "pace"}),
+        "kinetic": frozenset({"walk", "run", "jog", "step", "stride", "mov", "march", "pace", "jump"}),
         "static":  frozenset({"stand", "stay", "still", "stationary", "motionless", "frozen", "sit", "rest", "remain"}),
     },
     "bird": {

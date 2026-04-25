@@ -14,6 +14,7 @@ from .lexicons import (
     DOWN_DIRECTION_PHRASES,
     HOLD_STILL_STEMS,
     PHYSICS_VERB_STEMS,
+    UNIVERSAL_KINETIC_STEMS,
 )
 
 
@@ -179,7 +180,12 @@ def classify_regime(category: str, text: str) -> str:
         return "abstract"
     words = _words(text)
     table = CATEGORY_REGIME_KEYWORDS[category]
+    # Category-specific kinetic stems are checked before universal-kinetic
+    # so categorically-distinctive verbs (drives / walks / flies) get
+    # precedence in case of stem overlap.
     if _any_stem_hit(words, table["kinetic"]):
+        return "kinetic"
+    if _any_stem_hit(words, UNIVERSAL_KINETIC_STEMS):
         return "kinetic"
     if _any_stem_hit(words, table["static"]):
         return "static"
