@@ -60,5 +60,63 @@ def test_ambiguous_responses(category, text, expected):
 
 
 def test_abstract_overrides_kinetic_keyword():
-    """'It is a silhouette; the bird flies' → abstract wins because of explicit reject."""
-    assert classify_regime("bird", "It is just a silhouette — nothing physical happens.") == "abstract"
+    """An abstract reject phrase must override even an explicit kinetic verb."""
+    s = "It is just a silhouette; nothing physical happens. The car drives nowhere."
+    assert classify_regime("car", s) == "abstract"
+
+
+# ---------------------------------------------------------------------------
+# Label-echo regression tests.
+#
+# When the M8d abstract-role label ("silhouette" / "stick figure" / "figurine")
+# is used to fill the OPEN_TEMPLATE prompt, the prompt itself contains the
+# label text and the model often echoes it. classify_regime must NOT be
+# fooled into the abstract bucket just because the response contains
+# "silhouette" — the abstract decision has to come from the model, not
+# from the label.
+# ---------------------------------------------------------------------------
+
+LABEL_ECHO_KINETIC_CASES = [
+    ("car",    "The silhouette drives forward at high speed.",  "kinetic"),
+    ("car",    "The figurine moves toward the parking lot.",    "kinetic"),
+    ("bird",   "The silhouette of the duck flies away.",        "kinetic"),
+    ("person", "The stick figure walks forward.",               "kinetic"),
+]
+
+LABEL_ECHO_STATIC_CASES = [
+    ("car",    "The figurine stays on the shelf.",              "static"),
+    ("person", "The stick figure stands still in the field.",   "static"),
+]
+
+
+@pytest.mark.parametrize("category,text,expected", LABEL_ECHO_KINETIC_CASES)
+def test_label_echo_kinetic(category, text, expected):
+    """When model echoes the M8d label (silhouette / stick figure / figurine) in a kinetic
+    response, regime should still be kinetic — silhouette must NOT be in ABSTRACT_MARKERS."""
+    assert classify_regime(category, text) == expected, f"{category}: {text!r}"
+
+
+@pytest.mark.parametrize("category,text,expected", LABEL_ECHO_STATIC_CASES)
+def test_label_echo_static(category, text, expected):
+    assert classify_regime(category, text) == expected, f"{category}: {text!r}"
+
+
+def test_unsupported_category_raises():
+    """classify_regime called for an M8a category (or any unknown) must raise."""
+    with pytest.raises(ValueError, match="circle"):
+        classify_regime("circle", "The ball rolls down.")
+
+
+# Bare-stem coverage tests — pin the "mov" stem regression for the I1 fix
+# (replacing "moves"/"moving"/"moved" with stem "mov", which also covers "move").
+BARE_MOVE_CASES = [
+    ("car",    "The car will move forward.",            "kinetic"),
+    ("car",    "The car moves toward the parking lot.", "kinetic"),
+    ("person", "The person will move toward the door.", "kinetic"),
+    ("bird",   "The bird moves through the air.",       "kinetic"),
+]
+
+
+@pytest.mark.parametrize("category,text,expected", BARE_MOVE_CASES)
+def test_bare_move_stem(category, text, expected):
+    assert classify_regime(category, text) == expected, f"{category}: {text!r}"

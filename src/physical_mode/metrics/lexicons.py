@@ -87,6 +87,14 @@ DOWN_DIRECTION_PHRASES: frozenset[str] = frozenset({
 })
 
 # Explicit "abstract / geometric" cues — the model rejected physical interpretation.
+#
+# IMPORTANT: do NOT add tokens that overlap with M8d *abstract-role labels*
+# (silhouette / stick figure / figurine / duck / statue — see
+# inference.prompts.LABELS_BY_SHAPE). The OPEN_TEMPLATE prompt echoes the
+# label, so any model response on a label-stim contains the label text.
+# Including a label here would force PMR=0 for *every* response on that
+# stim — manufacturing the H7 abstract pole at the classifier level
+# instead of measuring it from model behavior.
 ABSTRACT_MARKERS: frozenset[str] = frozenset({
     "abstract",
     "geometric",
@@ -100,8 +108,9 @@ ABSTRACT_MARKERS: frozenset[str] = frozenset({
     "this is a circle",
     "two-dimensional",
     "2d shape",
-    "silhouette",
     "no motion",
+    "nothing moves",
+    "nothing physical",
     "nothing will happen",
     "nothing happens",
     "won't move",
@@ -118,17 +127,24 @@ ABSTRACT_MARKERS: frozenset[str] = frozenset({
 # abstract, ambiguous} to a model response.
 # ---------------------------------------------------------------------------
 
+# Stems are matched via word.startswith(stem) (see metrics.pmr._any_stem_hit).
+# Use the shortest form that covers all English inflections of interest:
+#   - "mov"  catches move/moves/moved/moving
+#   - "stay" catches stay/stays/stayed/staying
+#   - "rest" catches rest/rests/rested/resting
+# Phrases with spaces (e.g., "stand still") cannot match here; if needed,
+# add them to a phrase-based lexicon instead.
 CATEGORY_REGIME_KEYWORDS: dict[str, dict[str, frozenset[str]]] = {
     "car": {
-        "kinetic": frozenset({"driv", "roll", "spe", "moves", "moving", "moved", "race", "accel"}),
-        "static":  frozenset({"park", "stop", "stay", "stays", "stayed", "still", "stationary", "display"}),
+        "kinetic": frozenset({"driv", "roll", "spee", "mov", "race", "accel"}),
+        "static":  frozenset({"park", "stop", "stay", "still", "stationary", "display"}),
     },
     "person": {
-        "kinetic": frozenset({"walk", "run", "jog", "step", "stride", "moves", "moving", "moved"}),
-        "static":  frozenset({"stand", "stays", "still", "stationary", "stand still", "motionless", "frozen"}),
+        "kinetic": frozenset({"walk", "run", "jog", "step", "stride", "mov"}),
+        "static":  frozenset({"stand", "stay", "still", "stationary", "motionless", "frozen", "sit", "rest"}),
     },
     "bird": {
-        "kinetic": frozenset({"fly", "fli", "flew", "flown", "swim", "swam", "soar", "soaring", "waddl", "moves", "moving", "glid"}),
-        "static":  frozenset({"perch", "sit", "stays", "still", "stationary", "rests", "rest"}),
+        "kinetic": frozenset({"fly", "fli", "flew", "flown", "swim", "swam", "soar", "waddl", "mov", "glid"}),
+        "static":  frozenset({"perch", "sit", "stay", "still", "stationary", "rest"}),
     },
 }
