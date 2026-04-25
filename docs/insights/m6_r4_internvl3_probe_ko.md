@@ -51,38 +51,44 @@ inferences, ~4 분). 총 추론: 12 분.
 레이어 간 평균: **0.90**. Qwen + Idefics2 처럼 AUC 가 가장 이른 캡처
 레이어 (3) 에서 높고 유지 — 인코더-포화 패턴 일관.
 
-### M8a 의 4-모델 인코더-포화 사슬
+### M8a 의 4-모델 인코더-포화 사슬 (apples-to-apples, 4 모델 모두 M8a 캡처)
 
-| 모델          | 인코더          | LM            | 인코더 AUC | M8a 행동 PMR(_nolabel) |
-|---------------|-----------------|---------------|----------:|---------------------:|
-| Qwen2.5-VL    | SigLIP          | Qwen2-7B      | **0.99** (M2)  | **0.838**           |
-| LLaVA-1.5     | CLIP-ViT-L/14   | Vicuna-7B     | **0.73** (M2)  | **0.175**           |
-| Idefics2      | SigLIP-SO400M   | Mistral-7B    | **0.93** (M8a) | **0.882**           |
-| InternVL3     | InternViT       | InternLM2-7B  | **0.89** (M8a) | **0.917**           |
+| 모델          | 인코더          | LM            | 인코더 AUC (M8a) | M8a 행동 PMR(_nolabel) |
+|---------------|-----------------|---------------|----------------:|---------------------:|
+| Qwen2.5-VL    | SigLIP          | Qwen2-7B      | **0.880**       | **0.838**            |
+| LLaVA-1.5     | CLIP-ViT-L/14   | Vicuna-7B     | **0.771**       | **0.175**            |
+| Idefics2      | SigLIP-SO400M   | Mistral-7B    | **0.926**       | **0.882**            |
+| InternVL3     | InternViT       | InternLM2-7B  | **0.886**       | **0.918**            |
 
-**3 비-CLIP 인코더가 AUC 0.89-0.99, 행동 PMR 0.84-0.92 클러스터.**
-**1 CLIP 인코더 (LLaVA) 가 AUC 0.73, 행동 PMR 0.18.**
+**3 비-CLIP 인코더가 AUC 0.88-0.93, 행동 PMR 0.84-0.92 클러스터.**
+**1 CLIP 인코더 (LLaVA) 가 AUC 0.77, 행동 PMR 0.18.**
 
-주의: Qwen + LLaVA AUC 값은 M6 r2 캡처 (M2 stim); Idefics2 + InternVL3
-는 M8a stim. 인코더 probe AUC 는 합성 기하 stim 에서 거의 stim-invariant
-이므로 비교는 정보적이지만 — 논문에서 언급해야. 완전 M8a 재캡처 (Qwen +
-LLaVA) 는 footnote 보충 후속.
+**M6 r2 vs M8a AUC 수치 노트**: M6 r2 가 M2 stim 에서 Qwen 0.99 / LLaVA
+0.73 보고 (12-셀 factorial 의 line/blank/none vs textured/ground/both
+가장 극적인 bimodal 분리 포함). M8a stim 의 더 넓은 per-cell PMR 분포는
+binary y-target 을 덜 깔끔하게 만들어 AUC 가 더 낮게 나옴 (Qwen 0.88,
+LLaVA 0.77). 비-CLIP / CLIP 갭은 두 stim 출처에서 모두 유지: AUC 에서
+~0.10-0.20, 행동 PMR 에서 ~0.65.
+
+비선형 AUC → PMR 매핑 (0.10 AUC 갭 → 0.65 PMR 갭) 은 자체로 H-encoder-
+saturation 과 일치: AUC 임계 위에서 행동 PMR 포화 (0.85+ AUC 밴드), 아래
+에서 headroom 에 위치 (~0.77).
 
 ## 헤드라인 해석
 
 **H-encoder-saturation 사슬이 SigLIP-특이적에서 비-CLIP-일반으로 일반화**:
 
 ```
-인코더 family            인코더 probe AUC      M8a 행동 PMR(_nolabel)
-─────────────            ────────────────      ────────────────────
-SigLIP    (Qwen)              0.99                       0.84
-SigLIP-SO400M (Idefics2)      0.93                       0.88
-InternViT (InternVL3)         0.89                       0.92
-CLIP-ViT-L (LLaVA)            0.73                       0.18
+인코더 family            인코더 probe AUC (M8a)  M8a 행동 PMR(_nolabel)
+─────────────            ──────────────────────  ────────────────────
+SigLIP    (Qwen)                  0.88                       0.84
+SigLIP-SO400M (Idefics2)          0.93                       0.88
+InternViT (InternVL3)             0.89                       0.92
+CLIP-ViT-L (LLaVA)                0.77                       0.18
 ```
 
 **3 별개 비-CLIP 인코더 family** (SigLIP, SigLIP-SO400M, InternViT) 모두
-AUC ≥ 0.89, 행동 PMR ≥ 0.84 도달. **CLIP-ViT-L 만 포화 미달** (0.73 /
+AUC ≥ 0.88, 행동 PMR ≥ 0.84 도달. **CLIP-ViT-L 만 포화 미달** (0.77 /
 0.18). 인코더-포화 체제는 인코더 family 에 의해 견고하게 식별됨, *LM
 family 횡단* (Qwen2-7B, Mistral-7B, InternLM2-7B, Vicuna-7B), *인코더
 구현 횡단*.
@@ -105,9 +111,11 @@ family 횡단* (Qwen2-7B, Mistral-7B, InternLM2-7B, Vicuna-7B), *인코더
 
 ## 한계
 
-1. **Cross-stim AUC mismatch** (Qwen + LLaVA M2; Idefics2 + InternVL3
-   M8a). 선택적 보충: Qwen + LLaVA M8a stim 재캡처. 인코더 probe AUC 는
-   합성 stim 에서 stim-invariant 임이 우리 경험 — footnote, 차단 아님.
+1. ~~**Cross-stim AUC mismatch**~~ → **해결**: Qwen + LLaVA 를 M8a stim
+   에서 재캡처 (이번 라운드 commit). 4 모델 AUC 값 모두 동일 stim 분포
+   에서 계산. 헤드라인 구조 (비-CLIP 클러스터 vs CLIP outlier) 는 두 stim
+   출처에서 모두 유지; 절대 AUC 값은 stim 분포에 따라 다소 변동 (probe
+   AUC 가 y 타겟 결정하는 per-cell PMR 분포에 의존).
 2. **InternVL3 PMR(_nolabel) 가 표 중 최고** (0.92), 그러나 최심 레이어
    AUC (0.886) 가 3 비-CLIP 모델 중 최저. 포화 클러스터 내 살짝 역상관은
    인코더-LM 트레이드오프 시사 가능성 — 그러나 3 모두 포화 체제, LLaVA
@@ -139,8 +147,8 @@ family 횡단* (Qwen2-7B, Mistral-7B, InternLM2-7B, Vicuna-7B), *인코더
 - **동일-LM 인코더 스왑** (예: LLaVA-1.5 CLIP vs LLaVA-1.5 SigLIP via
   Bunny / ShareGPT4V) 가 가장 깔끔한 counterfactual 으로 남음 — 이제
   "라운드 5" 향상, 차단 아님.
-- **Qwen + LLaVA M8a 재캡처** 가 cross-stim AUC 주의 (M2 vs M8a) 제거를
-  위한 논문 보충 작업. ~10 분 wall.
+- ~~**Qwen + LLaVA M8a 재캡처**~~ → **이번 라운드에서 완료.** 4 모델
+  AUC 값이 모두 M8a stim 에서 산출. cross-stim 주의 사항 해결.
 
 ## 산출물
 

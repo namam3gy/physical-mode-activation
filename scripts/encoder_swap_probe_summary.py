@@ -52,6 +52,10 @@ M6_R2_AUC = {
 
 def main() -> None:
     p = argparse.ArgumentParser()
+    p.add_argument("--qwen", type=Path, required=False,
+                   help="outputs/encoder_swap_qwen_m8a_probe (optional — falls back to M6 r2 baseline)")
+    p.add_argument("--llava", type=Path, required=False,
+                   help="outputs/encoder_swap_llava_m8a_probe (optional — falls back to M6 r2 baseline)")
     p.add_argument("--idefics2", type=Path, required=True,
                    help="outputs/encoder_swap_idefics2_probe — must contain layer_sweep.csv")
     p.add_argument("--internvl3", type=Path, required=True,
@@ -64,10 +68,14 @@ def main() -> None:
 
     idefics2_sweep = pd.read_csv(args.idefics2 / "layer_sweep.csv")
     internvl3_sweep = pd.read_csv(args.internvl3 / "layer_sweep.csv")
+    qwen_sweep = pd.read_csv(args.qwen / "layer_sweep.csv") if args.qwen else None
+    llava_sweep = pd.read_csv(args.llava / "layer_sweep.csv") if args.llava else None
 
     # Take the deepest-layer AUC for each model (paper convention).
     idefics2_auc = float(idefics2_sweep["auc_mean"].iloc[-1])
     internvl3_auc = float(internvl3_sweep["auc_mean"].iloc[-1])
+    qwen_auc = float(qwen_sweep["auc_mean"].iloc[-1]) if qwen_sweep is not None else None
+    llava_auc = float(llava_sweep["auc_mean"].iloc[-1]) if llava_sweep is not None else None
 
     pmr = dict(M8A_PMR)
     if "InternVL3" not in pmr:
@@ -84,6 +92,10 @@ def main() -> None:
                 pmr["InternVL3"] = float("nan")
 
     auc = dict(M6_R2_AUC)
+    if qwen_auc is not None:
+        auc["Qwen2.5-VL"] = qwen_auc
+    if llava_auc is not None:
+        auc["LLaVA-1.5"] = llava_auc
     auc["Idefics2"] = idefics2_auc
     auc["InternVL3"] = internvl3_auc
 
@@ -111,18 +123,27 @@ def main() -> None:
 
     # Panel a
     ax = axes[0]
+    if qwen_sweep is not None:
+        ax.plot(qwen_sweep["layer"], qwen_sweep["auc_mean"], "v-",
+                color="#1f77b4", label="Qwen2.5-VL (SigLIP)", linewidth=2)
+    else:
+        ax.axhline(M6_R2_AUC["Qwen2.5-VL"], linestyle="--", color="#1f77b4",
+                   alpha=0.7, label="Qwen2.5-VL (SigLIP, M6 r2 baseline)")
+    if llava_sweep is not None:
+        ax.plot(llava_sweep["layer"], llava_sweep["auc_mean"], "^-",
+                color="#d62728", label="LLaVA-1.5 (CLIP-ViT-L)", linewidth=2)
+    else:
+        ax.axhline(M6_R2_AUC["LLaVA-1.5"], linestyle="--", color="#d62728",
+                   alpha=0.7, label="LLaVA-1.5 (CLIP, M6 r2 baseline)")
     ax.plot(idefics2_sweep["layer"], idefics2_sweep["auc_mean"], "o-",
             color="#5fa8d3", label="Idefics2 (SigLIP-SO400M)", linewidth=2)
     ax.plot(internvl3_sweep["layer"], internvl3_sweep["auc_mean"], "s-",
             color="#2ca02c", label="InternVL3 (InternViT)", linewidth=2)
-    ax.axhline(M6_R2_AUC["Qwen2.5-VL"], linestyle="--", color="#1f77b4",
-               alpha=0.7, label="Qwen2.5-VL (SigLIP, M6 r2 baseline)")
-    ax.axhline(M6_R2_AUC["LLaVA-1.5"], linestyle="--", color="#d62728",
-               alpha=0.7, label="LLaVA-1.5 (CLIP, M6 r2 baseline)")
     ax.set_xlabel("layer")
     ax.set_ylabel("vision-encoder probe AUC (physics vs abstract)")
     ax.set_ylim(0.4, 1.05)
-    ax.set_title("Vision-encoder probe AUC by layer\n(2 captured + 2 M6 r2 baselines)")
+    n_cap = sum(s is not None for s in (qwen_sweep, llava_sweep, idefics2_sweep, internvl3_sweep))
+    ax.set_title(f"Vision-encoder probe AUC by layer ({n_cap} models)")
     ax.legend(loc="lower left", fontsize=8)
     ax.grid(True, alpha=0.3)
 

@@ -56,24 +56,29 @@ Mean across layers: **0.90**. Like Qwen and Idefics2, AUC is high from
 the earliest captured layer (3) and stays high — encoder-saturation
 pattern consistent.
 
-### 4-model encoder-saturation chain on M8a
+### 4-model encoder-saturation chain on M8a (apples-to-apples, all 4 captured on M8a)
 
-| model         | encoder         | LM            | encoder AUC | M8a behavioral PMR(_nolabel) |
-|---------------|-----------------|---------------|------------:|-----------------------------:|
-| Qwen2.5-VL    | SigLIP          | Qwen2-7B      | **0.99** (M2)  | **0.838**                  |
-| LLaVA-1.5     | CLIP-ViT-L/14   | Vicuna-7B     | **0.73** (M2)  | **0.175**                  |
-| Idefics2      | SigLIP-SO400M   | Mistral-7B    | **0.93** (M8a) | **0.882**                  |
-| InternVL3     | InternViT       | InternLM2-7B  | **0.89** (M8a) | **0.917**                  |
+| model         | encoder         | LM            | encoder AUC (M8a) | M8a behavioral PMR(_nolabel) |
+|---------------|-----------------|---------------|------------------:|-----------------------------:|
+| Qwen2.5-VL    | SigLIP          | Qwen2-7B      | **0.880**         | **0.838**                    |
+| LLaVA-1.5     | CLIP-ViT-L/14   | Vicuna-7B     | **0.771**         | **0.175**                    |
+| Idefics2      | SigLIP-SO400M   | Mistral-7B    | **0.926**         | **0.882**                    |
+| InternVL3     | InternViT       | InternLM2-7B  | **0.886**         | **0.918**                    |
 
-**3 non-CLIP encoders cluster at AUC 0.89–0.99, behavioral PMR 0.84–0.92.**
-**1 CLIP encoder (LLaVA) sits at AUC 0.73, behavioral PMR 0.18.**
+**3 non-CLIP encoders cluster at AUC 0.88–0.93, behavioral PMR 0.84–0.92.**
+**1 CLIP encoder (LLaVA) sits at AUC 0.77, behavioral PMR 0.18.**
 
-Caveat: Qwen + LLaVA AUC values are from M6 r2 captures on M2 stim;
-Idefics2 + InternVL3 are M8a stim. Encoder probe AUC is largely
-stim-invariant for synthetic geometric stim, so the comparison is
-informative even with this mismatch — but the paper should note it.
-A complete M8a re-capture for Qwen + LLaVA is a footnote-supplementary
-follow-up.
+**Note on the M6 r2 vs M8a AUC numbers**: M6 r2 reported Qwen 0.99 / LLaVA
+0.73 on M2 stim (12-cell factorial including the most-extreme line/blank/
+none vs textured/ground/both bimodal split). M8a stim's wider per-cell
+PMR distribution makes the binary y-target less clean, so AUCs come in
+lower (Qwen 0.88, LLaVA 0.77). The non-CLIP / CLIP gap holds in either
+stim source: ~0.10–0.20 in AUC, ~0.65 in behavioral PMR.
+
+The nonlinear AUC → PMR mapping (a 0.10 AUC gap → 0.65 PMR gap) is itself
+consistent with H-encoder-saturation: there's an AUC threshold above
+which behavioral PMR saturates (the 0.85+ AUC band) and below which it
+sits at headroom (~0.77).
 
 ## Headline interpretation
 
@@ -81,17 +86,17 @@ The **H-encoder-saturation chain generalizes from SigLIP-specific to
 non-CLIP-general**:
 
 ```
-encoder family           encoder probe AUC      M8a behavioral PMR(_nolabel)
-─────────────            ─────────────────      ────────────────────────────
-SigLIP    (Qwen)              0.99                       0.84
-SigLIP-SO400M (Idefics2)      0.93                       0.88
-InternViT (InternVL3)         0.89                       0.92
-CLIP-ViT-L (LLaVA)            0.73                       0.18
+encoder family           encoder probe AUC (M8a)   M8a behavioral PMR(_nolabel)
+─────────────            ───────────────────────   ────────────────────────────
+SigLIP    (Qwen)                  0.88                       0.84
+SigLIP-SO400M (Idefics2)          0.93                       0.88
+InternViT (InternVL3)             0.89                       0.92
+CLIP-ViT-L (LLaVA)                0.77                       0.18
 ```
 
 **3 distinct non-CLIP encoder families** (SigLIP, SigLIP-SO400M, InternViT)
-all reach AUC ≥ 0.89 and behavioral PMR ≥ 0.84. **Only CLIP-ViT-L falls
-below saturation** (0.73 / 0.18). The encoder-saturation regime is
+all reach AUC ≥ 0.88 and behavioral PMR ≥ 0.84. **Only CLIP-ViT-L falls
+below saturation** (0.77 / 0.18). The encoder-saturation regime is
 robustly identified by encoder family, *across LM families*
 (Qwen2-7B, Mistral-7B, InternLM2-7B, Vicuna-7B) and *across encoder
 implementations*.
@@ -117,10 +122,13 @@ saturating.**
 
 ## Limitations
 
-1. **Cross-stim AUC mismatch** (Qwen + LLaVA from M2; Idefics2 +
-   InternVL3 from M8a). Optional supplementary: re-capture Qwen +
-   LLaVA on M8a stim. Encoder probe AUC is stim-invariant for synth
-   stim in our experience, so this is a footnote, not a blocker.
+1. ~~**Cross-stim AUC mismatch**~~ → **Resolved**: re-captured Qwen +
+   LLaVA on M8a stim (commit `<this round>`). All 4 AUC values now
+   computed on the same stim distribution. Headline structure
+   (non-CLIP cluster vs CLIP outlier) holds in both stim sources;
+   absolute AUC values shift somewhat with stim distribution as
+   expected (probe AUC depends on the per-cell PMR distribution that
+   sets the y target).
 2. **InternVL3 PMR(_nolabel) is the highest in the table** (0.92), but
    AUC at the deepest layer (0.886) is the lowest of the 3 non-CLIP
    models. The slight inverse correlation among the saturated cluster
@@ -155,8 +163,9 @@ saturating.**
 - **Same-LM encoder swap** (e.g., LLaVA-1.5 with CLIP vs LLaVA-1.5
   with SigLIP via Bunny / ShareGPT4V) remains the cleanest
   counterfactual — but is now a "round 5" enhancement, not a blocker.
-- **Re-capture Qwen + LLaVA on M8a** is a paper-supplementary task to
-  remove the cross-stim AUC caveat (M2 vs M8a). ~10 min wall.
+- ~~**Re-capture Qwen + LLaVA on M8a**~~ → **Done in this round.**
+  All 4 models' AUC values now from M8a stim. The cross-stim caveat
+  is resolved.
 
 ## Artifacts
 
