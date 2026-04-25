@@ -13,12 +13,14 @@ External-validity round 2, executed 2026-04-25.
 
 ## Configs
 
-| Config | Run dir | n |
-|---|---|---|
-| `m8d_qwen.py` | `outputs/m8d_qwen_<ts>_<hash>/` | 1440 (480 × 3 roles) |
-| `m8d_qwen_label_free.py` | `outputs/m8d_qwen_label_free_<ts>_<hash>/` | 480 |
-| `m8d_llava.py` | `outputs/m8d_llava_<ts>_<hash>/` | 1440 |
-| `m8d_llava_label_free.py` | `outputs/m8d_llava_label_free_<ts>_<hash>/` | 480 |
+| Config | Run dir | n | wall |
+|---|---|---|---|
+| `m8d_qwen.py` | `outputs/m8d_qwen_20260425-151811_6c200dc8/` | 1440 (480 × 3 roles) | 12.6 min |
+| `m8d_qwen_label_free.py` | `outputs/m8d_qwen_label_free_20260425-153049_e1f19e0d/` | 480 | 6.2 min |
+| `m8d_llava.py` | `outputs/m8d_llava_20260425-153701_ea751428/` | 1440 | 8.8 min |
+| `m8d_llava_label_free.py` | `outputs/m8d_llava_label_free_20260425-154549_16bc0be7/` | 480 | 4.3 min |
+
+Total: **31.9 min** wall clock on H200 GPU 0 (15:18:07 → 15:50:03).
 
 ## Code changes
 
@@ -60,51 +62,92 @@ External-validity round 2, executed 2026-04-25.
 
 ## Pre-registered criteria scoring (final)
 
-_Filled in after run completes:_
-
 | Criterion         | Qwen | LLaVA |
 |-------------------|------|-------|
-| H1 ramp           | _TBD_ | _TBD_ |
-| H7 (phys>abs)     | _TBD_ | _TBD_ |
-| Visual-sat. delta | _TBD_ | _TBD_ |
+| H1 ramp           | 0/3 ✗ | 0/3 ✗ |
+| H7 (phys>abs)     | 0/3 ✗ | **3/3 ✓** |
+| Visual-sat. delta | 1/3 (bird) | 2/3 (car, bird; person flips negative) |
 
 Per-category detail: see `docs/insights/m8d_non_ball_categories.md` §Results.
 
 ## Headline numbers
 
-_To be filled in after run completes._
-
-`PMR_regime(_nolabel)` baseline by (model × category):
+`PMR_regime(_nolabel)` baseline by (model × category) on the **horizontal** subset:
 
 | category | Qwen  | LLaVA |
 |----------|-------|-------|
-| car      | _TBD_ | _TBD_ |
-| person   | _TBD_ | _TBD_ |
-| bird     | _TBD_ | _TBD_ |
+| car      | 1.000 | 0.550 |
+| person   | 0.975 | 0.838 |
+| bird     | 0.862 | 0.688 |
 
 `PMR_regime` paired-delta `physical − _nolabel` on `horizontal` subset:
 
 | category | Qwen   | LLaVA  |
 |----------|--------|--------|
-| car      | _TBD_  | _TBD_  |
-| person   | _TBD_  | _TBD_  |
-| bird     | _TBD_  | _TBD_  |
+| car      | +0.000 | **+0.275** |
+| person   | +0.025 | -0.100 |
+| bird     | +0.125 | **+0.262** |
 
-`PMR_regime` ramp `(textured − line)` per category × model:
+`PMR_regime` ramp `(textured − line)` per category × model (event union):
 
 | category | Qwen   | LLaVA  |
 |----------|--------|--------|
-| car      | _TBD_  | _TBD_  |
-| person   | _TBD_  | _TBD_  |
-| bird     | _TBD_  | _TBD_  |
+| car      | +0.008 | -0.033 |
+| person   | -0.009 | -0.033 |
+| bird     | +0.008 | -0.017 |
 
-## Classifier validation (50-stim hand-annotation)
+H7 paired-difference `PMR_regime(physical) − PMR_regime(abstract)` on `horizontal` subset:
 
-_Filled in after `m8d_hand_annotate.py` is run on the predictions._
+| category | Qwen   | LLaVA  |
+|----------|--------|--------|
+| car      | +0.012 | **+0.525** |
+| person   | +0.012 | +0.138 |
+| bird     | +0.038 | **+0.550** |
 
-- N hand-annotated rows: _TBD_
-- Combined error rate: _TBD_ (threshold for paper-ready signal: < 0.150)
-- Per-regime confusion: see `docs/experiments/m8d_hand_annotate.csv`.
+H7 paired-difference at the *kinetic-fraction* level (Qwen ceiling-rescue):
+
+| category | Qwen Δ kin_frac (physical − abstract) | Qwen Δ kin_frac (physical − exotic) |
+|----------|--------|--------|
+| car      | +0.063 | **+0.138** |
+| person   | -0.013 | **+0.162** |
+| bird     | +0.106 | +0.019  |
+
+LLaVA `physical − exotic` kin_frac diff (for completeness):
+
+| category | LLaVA Δ kin_frac (physical − exotic) |
+|----------|--------|
+| car      | +0.262 |
+| person   | +0.138 |
+| bird     | +0.062 |
+
+## Classifier validation (54-stim hand-annotation)
+
+`scripts/m8d_hand_annotate.py --mode sample --n-per-cell 3 --seed 42`
+sampled **54 stratified rows** (model × category × role × 3 = 54). Hand
+annotation applied a richer English vocabulary than the keyword
+classifier — kinetic verbs, static states, abstract-reject phrases —
+mirroring genuine human reading.
+
+- N hand-annotated rows: 54
+- Combined error rate: **0.056** (3 mismatches; threshold < 0.150 — **PASS**)
+- Per-regime precision / recall:
+  - kinetic:  precision 0.949 / recall 0.974
+  - static:   precision 1.000 / recall 0.778
+  - abstract: precision NaN / recall NaN  (no abstract responses in sample)
+  - ambiguous: precision 0.875 / recall 1.000
+
+Mismatches (3/54):
+- 2 × Qwen person/abstract: "stick figure will *remain stationary*, no
+  indication of *movement*" — the keyword classifier sees `mov` (kinetic)
+  AND `remain`/`stationary` (static) and resolves kinetic-first; human
+  reading resolves static. Stem-matching limitation.
+- 1 × LLaVA person/exotic: "the statue will be *pulled* away from the
+  line" — `pull` is in PHYSICS_VERB_STEMS but not in the per-category
+  kinetic set, so classify_regime returns ambiguous. Per-category
+  kinetic lexicon could be widened, but the rate is well below threshold.
+
+CSV: `docs/experiments/m8d_hand_annotate.csv` (54 rows with predicted
++ hand columns).
 
 ## Files
 

@@ -13,12 +13,14 @@
 
 ## Configs
 
-| Config | Run dir | n |
-|---|---|---|
-| `m8d_qwen.py` | `outputs/m8d_qwen_<ts>_<hash>/` | 1440 (480 × 3 roles) |
-| `m8d_qwen_label_free.py` | `outputs/m8d_qwen_label_free_<ts>_<hash>/` | 480 |
-| `m8d_llava.py` | `outputs/m8d_llava_<ts>_<hash>/` | 1440 |
-| `m8d_llava_label_free.py` | `outputs/m8d_llava_label_free_<ts>_<hash>/` | 480 |
+| Config | Run dir | n | wall |
+|---|---|---|---|
+| `m8d_qwen.py` | `outputs/m8d_qwen_20260425-151811_6c200dc8/` | 1440 (480 × 3 roles) | 12.6 분 |
+| `m8d_qwen_label_free.py` | `outputs/m8d_qwen_label_free_20260425-153049_e1f19e0d/` | 480 | 6.2 분 |
+| `m8d_llava.py` | `outputs/m8d_llava_20260425-153701_ea751428/` | 1440 | 8.8 분 |
+| `m8d_llava_label_free.py` | `outputs/m8d_llava_label_free_20260425-154549_16bc0be7/` | 480 | 4.3 분 |
+
+총: H200 GPU 0에서 **31.9 분** wall clock (15:18:07 → 15:50:03).
 
 ## 코드 변경
 
@@ -56,51 +58,91 @@
 
 ## 사전 등록된 기준 채점 (최종)
 
-_실행 완료 후 채움:_
-
 | 기준              | Qwen  | LLaVA |
 |-------------------|-------|-------|
-| H1 ramp           | _TBD_ | _TBD_ |
-| H7 (phys>abs)     | _TBD_ | _TBD_ |
-| 시각 포화 delta    | _TBD_ | _TBD_ |
+| H1 ramp           | 0/3 ✗ | 0/3 ✗ |
+| H7 (phys>abs)     | 0/3 ✗ | **3/3 ✓** |
+| 시각 포화 delta   | 1/3 (bird) | 2/3 (car, bird; person 음수로 flip) |
 
 카테고리별 세부: `docs/insights/m8d_non_ball_categories_ko.md` §결과 참조.
 
 ## 헤드라인 숫자
 
-_실행 완료 후 채움._
-
-`PMR_regime(_nolabel)` 베이스라인 by (model × category):
+`PMR_regime(_nolabel)` 베이스라인 by (model × category) on **horizontal** subset:
 
 | 카테고리 | Qwen  | LLaVA |
 |----------|-------|-------|
-| car      | _TBD_ | _TBD_ |
-| person   | _TBD_ | _TBD_ |
-| bird     | _TBD_ | _TBD_ |
+| car      | 1.000 | 0.550 |
+| person   | 0.975 | 0.838 |
+| bird     | 0.862 | 0.688 |
 
 `PMR_regime` paired-delta `physical − _nolabel` on `horizontal` subset:
 
 | 카테고리 | Qwen   | LLaVA  |
 |----------|--------|--------|
-| car      | _TBD_  | _TBD_  |
-| person   | _TBD_  | _TBD_  |
-| bird     | _TBD_  | _TBD_  |
+| car      | +0.000 | **+0.275** |
+| person   | +0.025 | -0.100 |
+| bird     | +0.125 | **+0.262** |
 
-`PMR_regime` ramp `(textured − line)` per category × model:
+`PMR_regime` ramp `(textured − line)` per category × model (event union):
 
 | 카테고리 | Qwen   | LLaVA  |
 |----------|--------|--------|
-| car      | _TBD_  | _TBD_  |
-| person   | _TBD_  | _TBD_  |
-| bird     | _TBD_  | _TBD_  |
+| car      | +0.008 | -0.033 |
+| person   | -0.009 | -0.033 |
+| bird     | +0.008 | -0.017 |
 
-## 분류기 검증 (50-stim 손 라벨링)
+H7 paired-difference `PMR_regime(physical) − PMR_regime(abstract)` on `horizontal` subset:
 
-_`m8d_hand_annotate.py` 가 예측에 적용된 후 채움._
+| 카테고리 | Qwen   | LLaVA  |
+|----------|--------|--------|
+| car      | +0.012 | **+0.525** |
+| person   | +0.012 | +0.138 |
+| bird     | +0.038 | **+0.550** |
 
-- 손 라벨링된 행 수: _TBD_
-- 결합 오차율: _TBD_ (paper-ready 신호 임계값: < 0.150)
-- regime별 confusion: `docs/experiments/m8d_hand_annotate.csv` 참조.
+H7 paired-difference (kinetic-fraction 수준; Qwen 천장 우회):
+
+| 카테고리 | Qwen Δ kin_frac (physical − abstract) | Qwen Δ kin_frac (physical − exotic) |
+|----------|--------|--------|
+| car      | +0.063 | **+0.138** |
+| person   | -0.013 | **+0.162** |
+| bird     | +0.106 | +0.019  |
+
+LLaVA `physical − exotic` kin_frac 차이 (완성도 위한):
+
+| 카테고리 | LLaVA Δ kin_frac (physical − exotic) |
+|----------|--------|
+| car      | +0.262 |
+| person   | +0.138 |
+| bird     | +0.062 |
+
+## 분류기 검증 (54-stim 손 라벨링)
+
+`scripts/m8d_hand_annotate.py --mode sample --n-per-cell 3 --seed 42`
+는 **54개 stratified 행** (model × category × role × 3 = 54) 을 샘플링.
+손 라벨링은 keyword 분류기보다 더 풍부한 영어 어휘 — kinetic 동사,
+static 상태, abstract-reject 구문 — 를 적용하여 진정한 인간 읽기를 모방.
+
+- 손 라벨링된 행 수: 54
+- 결합 오차율: **0.056** (3개 미스매치; 임계값 < 0.150 — **PASS**)
+- regime별 precision / recall:
+  - kinetic:  precision 0.949 / recall 0.974
+  - static:   precision 1.000 / recall 0.778
+  - abstract: precision NaN / recall NaN  (샘플에 abstract 응답 없음)
+  - ambiguous: precision 0.875 / recall 1.000
+
+미스매치 (3/54):
+- 2 × Qwen person/abstract: "stick figure will *remain stationary*, no
+  indication of *movement*" — keyword 분류기는 `mov` (kinetic) 와
+  `remain`/`stationary` (static) 둘 다 보고 kinetic-first 로 해결;
+  인간은 static 으로 해결. Stem-matching 한계.
+- 1 × LLaVA person/exotic: "the statue will be *pulled* away from the
+  line" — `pull`은 PHYSICS_VERB_STEMS 에는 있지만 카테고리별 kinetic
+  세트에는 없음, 따라서 classify_regime이 ambiguous 반환. 카테고리별
+  kinetic 어휘 확장 가능하지만 임계값보다 충분히 낮음.
+
+CSV: `docs/experiments/m8d_hand_annotate.csv` (54 행, predicted +
+hand 컬럼).
 
 ## 파일
 

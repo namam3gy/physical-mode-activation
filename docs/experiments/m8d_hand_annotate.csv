@@ -1,0 +1,55 @@
+model,sample_id,shape,object_level,bg_level,cue_level,event_template,label,label_role,raw_text,predicted_regime,hand_regime
+qwen,car_line_ground_none_horizontal_003,car,line,ground,none,horizontal,car,physical,The car will remain stationary unless it is acted upon by an external force such as gravity or a push.,static,static
+qwen,car_line_blank_none_horizontal_001,car,line,blank,none,horizontal,car,physical,The car will likely move forward along its trajectory.,kinetic,kinetic
+qwen,car_filled_ground_both_fall_000,car,filled,ground,both,fall,car,physical,The car will collide with the object on the ground.,kinetic,kinetic
+qwen,car_filled_ground_none_fall_002,car,filled,ground,none,fall,silhouette,abstract,The silhouette may start to move or rotate due to an unseen force or animation effect.,kinetic,kinetic
+qwen,car_filled_blank_both_horizontal_002,car,filled,blank,both,horizontal,silhouette,abstract,The silhouette will move to the right as indicated by the red arrow.,kinetic,kinetic
+qwen,car_line_ground_both_horizontal_000,car,line,ground,both,horizontal,silhouette,abstract,The silhouette will move forward along the track as indicated by the red arrow.,kinetic,kinetic
+qwen,car_line_ground_none_horizontal_001,car,line,ground,none,horizontal,figurine,exotic,The figurine will remain stationary unless acted upon by external forces such as gravity or wind.,static,static
+qwen,car_textured_blank_both_horizontal_004,car,textured,blank,both,horizontal,figurine,exotic,The figurine will likely move forward in the direction indicated by the red arrow.,kinetic,kinetic
+qwen,car_line_ground_none_fall_002,car,line,ground,none,fall,figurine,exotic,The figurine will remain stationary as there is no indication of motion.,static,static
+qwen,person_textured_ground_both_fall_001,person,textured,ground,both,fall,person,physical,The person will fall towards the ground due to gravity.,kinetic,kinetic
+qwen,person_shaded_ground_none_horizontal_003,person,shaded,ground,none,horizontal,person,physical,The person will continue walking forward across the line.,kinetic,kinetic
+qwen,person_line_blank_none_horizontal_003,person,line,blank,none,horizontal,person,physical,The person in the image will likely remain stationary unless a force is applied to it.,static,static
+qwen,person_line_blank_none_horizontal_002,person,line,blank,none,horizontal,stick figure,abstract,"The stick figure will remain stationary on the screen, as there is no indication of movement or action occurring.",kinetic,static
+qwen,person_line_ground_none_fall_003,person,line,ground,none,fall,stick figure,abstract,The stick figure appears to be standing still; there's no indication it will move in the next moment.,kinetic,static
+qwen,person_filled_blank_both_horizontal_000,person,filled,blank,both,horizontal,stick figure,abstract,The stick figure will move towards the right according to the red arrow pointing to the right.,kinetic,kinetic
+qwen,person_filled_blank_both_horizontal_004,person,filled,blank,both,horizontal,statue,exotic,The statue will remain stationary as no force is acting upon it.,static,static
+qwen,person_textured_blank_none_horizontal_004,person,textured,blank,none,horizontal,statue,exotic,The statue will remain stationary without any change in its current position.,static,static
+qwen,person_textured_ground_both_fall_004,person,textured,ground,both,fall,statue,exotic,The statue will fall and land on the ground below.,kinetic,kinetic
+qwen,bird_line_blank_none_horizontal_001,bird,line,blank,none,horizontal,bird,physical,The bird will flap its wings and take flight.,kinetic,kinetic
+qwen,bird_textured_ground_none_fall_003,bird,textured,ground,none,fall,bird,physical,The bird appears to be in a resting position; it is likely to stay still for now.,static,static
+qwen,bird_filled_blank_both_fall_000,bird,filled,blank,both,fall,bird,physical,The bird will likely fly towards the open area below.,kinetic,kinetic
+qwen,bird_textured_blank_both_horizontal_004,bird,textured,blank,both,horizontal,silhouette,abstract,The silhouette is likely to move towards the direction indicated by the red arrow.,kinetic,kinetic
+qwen,bird_shaded_ground_none_horizontal_002,bird,shaded,ground,none,horizontal,silhouette,abstract,The silhouette appears to be in mid-flight and will likely continue to move horizontally across the screen.,kinetic,kinetic
+qwen,bird_filled_blank_both_horizontal_001,bird,filled,blank,both,horizontal,silhouette,abstract,The silhouette is likely to move forward as indicated by the red arrow.,kinetic,kinetic
+qwen,bird_shaded_ground_both_fall_004,bird,shaded,ground,both,fall,duck,exotic,The duck will land on the surface below it.,kinetic,kinetic
+qwen,bird_textured_ground_both_fall_000,bird,textured,ground,both,fall,duck,exotic,The duck will land on the water as indicated by the downward arrow.,kinetic,kinetic
+qwen,bird_filled_ground_both_fall_001,bird,filled,ground,both,fall,duck,exotic,"The duck will fall towards the gray oval, likely landing on it.",kinetic,kinetic
+llava,car_line_blank_none_fall_001,car,line,blank,none,fall,car,physical,The car will move forward.,kinetic,kinetic
+llava,car_filled_blank_none_fall_000,car,filled,blank,none,fall,car,physical,"The car will move away from the camera, as it is currently off-screen.",kinetic,kinetic
+llava,car_shaded_ground_none_horizontal_003,car,shaded,ground,none,horizontal,car,physical,The car will drive forward.,kinetic,kinetic
+llava,car_shaded_blank_none_horizontal_002,car,shaded,blank,none,horizontal,silhouette,abstract,"The image shows a silhouette. In the next moment, the silhouette will become more prominent, as the photo will brighten to reveal the details of the object.",ambiguous,ambiguous
+llava,car_filled_ground_both_fall_001,car,filled,ground,both,fall,silhouette,abstract,"In the next moment, a truck will appear.",ambiguous,ambiguous
+llava,car_line_ground_both_horizontal_004,car,line,ground,both,horizontal,silhouette,abstract,The silhouette will move towards the viewer.,kinetic,kinetic
+llava,car_filled_blank_both_horizontal_000,car,filled,blank,both,horizontal,figurine,exotic,The figurine is going to fall.,kinetic,kinetic
+llava,car_shaded_blank_none_horizontal_001,car,shaded,blank,none,horizontal,figurine,exotic,The toy car will drive away from the toy train.,kinetic,kinetic
+llava,car_line_ground_none_horizontal_001,car,line,ground,none,horizontal,figurine,exotic,A small truck will pass by the figurine.,ambiguous,ambiguous
+llava,person_line_ground_none_fall_003,person,line,ground,none,fall,person,physical,The person will be shot and fall down.,kinetic,kinetic
+llava,person_shaded_blank_both_horizontal_002,person,shaded,blank,both,horizontal,person,physical,The person will be shown walking in the direction of the red arrow.,kinetic,kinetic
+llava,person_line_ground_none_fall_004,person,line,ground,none,fall,person,physical,The person will fall.,kinetic,kinetic
+llava,person_shaded_blank_both_fall_001,person,shaded,blank,both,fall,stick figure,abstract,The stick figure will get hit by the ball.,kinetic,kinetic
+llava,person_shaded_blank_none_horizontal_003,person,shaded,blank,none,horizontal,stick figure,abstract,The stick figure will be removed from the image.,ambiguous,ambiguous
+llava,person_textured_ground_both_fall_004,person,textured,ground,both,fall,stick figure,abstract,The stick figure's shadow will appear on the ground.,ambiguous,ambiguous
+llava,person_filled_ground_none_horizontal_002,person,filled,ground,none,horizontal,statue,exotic,The statue will fall over in the next moment.,kinetic,kinetic
+llava,person_line_blank_both_fall_001,person,line,blank,both,fall,statue,exotic,The statue will fall in the next moment.,kinetic,kinetic
+llava,person_shaded_ground_both_horizontal_002,person,shaded,ground,both,horizontal,statue,exotic,The statue will be pulled away from the line.,ambiguous,kinetic
+llava,bird_textured_blank_both_horizontal_002,bird,textured,blank,both,horizontal,bird,physical,The bird will fly away as the red arrow points to the right.,kinetic,kinetic
+llava,bird_line_ground_both_fall_001,bird,line,ground,both,fall,bird,physical,The bird will fly away.,kinetic,kinetic
+llava,bird_shaded_blank_both_horizontal_001,bird,shaded,blank,both,horizontal,bird,physical,The bird will fly.,kinetic,kinetic
+llava,bird_line_ground_none_fall_000,bird,line,ground,none,fall,silhouette,abstract,The silhouette will vanish in the next moment.,ambiguous,ambiguous
+llava,bird_textured_ground_none_fall_001,bird,textured,ground,none,fall,silhouette,abstract,The bird will fly away and the silhouette will change.,kinetic,kinetic
+llava,bird_filled_ground_both_horizontal_000,bird,filled,ground,both,horizontal,silhouette,abstract,The silhouette will hit the ground in the next moment.,kinetic,kinetic
+llava,bird_textured_ground_both_horizontal_003,bird,textured,ground,both,horizontal,duck,exotic,The duck will be seen flying across the top of the image.,kinetic,kinetic
+llava,bird_shaded_blank_both_fall_002,bird,shaded,blank,both,fall,duck,exotic,The duck will fly away from the circle.,kinetic,kinetic
+llava,bird_textured_ground_none_horizontal_002,bird,textured,ground,none,horizontal,duck,exotic,The duck is looking to its left.,ambiguous,ambiguous
