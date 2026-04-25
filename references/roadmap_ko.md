@@ -75,6 +75,7 @@
 | M6 r1 | **ST5 round 1 — LLaVA-1.5-7B cross-model** | M2 + M4b 프로토콜을 LLaVA-1.5-7B 에. **핵심 결과**: M4b 의 "circle suppression" 은 **Qwen 특이적** — LLaVA 는 *원래의* H2 (ball +47.5 pp, 모든 label 이 no-label baseline 대비 양수). 새 통합 가설: language prior 가 모든 label 에서 양수; Qwen 의 visual saturation 이 양의 기여를 mask 함. H7 cross-model 재현 (planet GAR << ball GAR 두 모델 모두). LLaVA 가 본 프로젝트 가장 깔끔한 H1 S-curve 제공. FC 제외 (LLaVA 가 모든 cell 에 "A" 반환). | ✅ | 2026-04-25 |
 | M4c | **Forced-choice label-free** | 새 `forced_choice_no_label` variant ("the depicted object" antecedent 사용). Qwen 이 FC 하에서 M4b 의 H2 패턴 재현 + planet 억제 효과 추가 (옵션-셋 편향: orbital regime 이 D 로 collapse). LLaVA 의 "A" 편향이 re-template 에서도 유지 (477/480), 모델 수준 pathology 확인. | ✅ | 2026-04-25 |
 | M6 r2 | **Cross-model round 2 (3-model + LLaVA captures + FC logit ratio)** | r2a: InternVL3-8B-hf cross-model 행동; r2b: LLaVA-1.5 activation captures + cross-model M3/M4 probing; r2c: 모든 FC run 의 first-token logit-ratio 채점. **핵심 결과**: visual-saturation 가설 3-of-3 모델 완전 검증; vision encoder probe AUC 에 뿌리 (Qwen 0.99, LLaVA 0.73). H-boomerang 을 Qwen-scoped 로 revised. 신규 **H-encoder-saturation** 가설. LLaVA "A" 편향이 logit-level (greedy-level 아님). | ✅ | 2026-04-25 |
+| **M6 r3** | **Idefics2 비전-인코더 프로브 (AUC↔PMR 사슬 종결)** | 400 M8a stim × SigLIP-SO400M 4 레이어 (88 초 캡처), per-stim PMR 에 대한 per-layer 로지스틱 회귀 프로브. **평균 AUC 0.93 (레이어 9 에서 0.948 최고)** — SigLIP 클러스터가 인코더-family 수준에서 확인 (Qwen 0.99 + Idefics2 0.93 vs LLaVA 0.73). H-encoder-saturation 사슬 `인코더 family → AUC → PMR → H7` 이 메커니즘 수준에서 3 모델 점에 종결. | ✅ | 2026-04-25 |
 | **M8a** | **자극 다양화 — 비-원형 합성 shape** | Square / triangle / hexagon / irregular polygon × line/filled/shaded/textured × bg/cue grid; Qwen + LLaVA, labeled + label-free arms. **사전 등록 엄격 채점: Qwen 1/4, LLaVA 4/4** — 비대칭이 H-encoder-saturation 을 도형 간 검증. H1 + H7 은 unsaturated-only. Triangle (`wedge`) + polygon (`polygon`) 라벨 설계 약점으로 노출됨. | ✅ | 2026-04-25 |
 | **M8d** | **자극 다양화 — 비-공 물리 객체 카테고리** | car / person / bird × line/filled/shaded/textured × bg/cue × `(fall, horizontal)` × 5 seeds. **사전 등록 엄격 채점: Qwen 0/3 H7 (binary, ceiling), LLaVA 3/3 H7 ✓ — 본 프로젝트 가장 강력한 카테고리 횡단 H7 증거.** Qwen 천장 아래에서 regime 분포는 17.5 % static (figurine) / 22.5 % static (statue). H1 양 모델 모두 실패 (도형-축 특정). H-encoder-saturation 카테고리 횡단 검증. 새 `classify_regime` keyword 분류기 (5.6 % 손 라벨링 오차). | ✅ | 2026-04-25 |
 | **M8c** | **자극 다양화 — 실사진** | 60 사진 (12 × {ball, car, person, bird, abstract}) from COCO 2017 + WikiArt. **핵심 결과**: 사진이 Qwen PMR(_nolabel) 을 카테고리에 걸쳐 18-48 pp 낮춤 — 시각-포화 가설 정제: 행동 PMR 포화는 인코더 표현 신뢰 AND 입력-맥락 단순성의 결합. LLaVA H7 부분적 성립 (2/4 binary). LLaVA person 사진 PMR 합성 대비 +39 pp 상승 (인코더가 마침내 사람 인식). | ✅ | 2026-04-25 |
@@ -484,6 +485,28 @@
 
 **아티팩트**: `docs/insights/m8d_non_ball_categories.md` (+ `_ko`), `docs/experiments/m8d_non_ball_categories.md` (+ `_ko`), `docs/figures/m8d_{shape_grid,full_scene_samples,pmr_ramp,pmr_by_role,paired_delta,regime_distribution}.png`, `notebooks/m8d_non_ball_categories.ipynb`, `outputs/m8d_summary/` (모델별 rollup + 결합 주석 parquet).
 
+### M6 r3 — Idefics2 비전-인코더 프로브 ✅ (2026-04-25)
+
+심층: `docs/insights/m6_r3_idefics2_probe.md`.
+
+**범위**: Idefics2 SigLIP-SO400M 비전 활성화를 M8a stim 에서 캡처 (400 자극 × 4 레이어, GPU 0 에서 88 초) + Idefics2 자체 per-stim 라벨링 PMR 을 y 타겟으로 layer-wise 선형 프로브. 세 번째 SigLIP 점에서 AUC ↔ 행동 PMR 사슬 종결.
+
+**헤드라인**: Idefics2 비전-인코더 probe AUC = **0.93** 레이어 간 (레이어 9 에서 0.948 peak). Qwen SigLIP (M3 / M6 r2: 0.99) 와 LLaVA CLIP-ViT-L (M6 r2: 0.73) 사이. 3-모델 AUC ↔ 행동 PMR 사슬:
+
+```
+인코더 family             AUC      M8a PMR(_nolabel)
+─────────────             ────     ─────────────────
+SigLIP    (Qwen)          0.99     0.84
+SigLIP-SO400M (Idefics2)  0.93     0.88     ← M6 r3
+CLIP-ViT-L (LLaVA)        0.73     0.18
+```
+
+**가설 업데이트**: H-encoder-saturation 가 *메커니즘* 수준에서 완전 종결: 인코더 family → 인코더 probe AUC → 행동 PMR(_nolabel) → H7 측정 가능성, 4 노드 모두 3 모델 점에서 경험적 지지. 업데이트된 논문 주장: "인코더 family 가 비전-인코더 probe AUC 포화 야기, 이것이 행동 PMR(_nolabel) 포화 야기, 이것이 H7 측정 가능성 게이팅".
+
+**주의**: per-shape AUC 분산 큼 (`polygon` AUC 가 깊은 레이어에서 0.5 미만 — n-불균형 아티팩트, 진짜 역전 아님). InternVL3 캡처 미실행 — 4 점 probe 표를 위한 자연스러운 다음 단계.
+
+**산출물**: `docs/insights/m6_r3_idefics2_probe.md` (+ `_ko`), `docs/figures/encoder_swap_idefics2_probe.png`, `outputs/encoder_swap_idefics2_probe/{layer_sweep,by_object_level,by_shape}.csv`, `scripts/encoder_swap_idefics2_probe.py`.
+
 ### M9 — 일반화 audit (논문 Table 1) ✅ (2026-04-25)
 
 심층: `docs/insights/m9_generalization_audit.md`.
@@ -713,4 +736,5 @@ M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static 
 | 2026-04-25 | **M8e 완료 (cross-source paired analysis)**: M8a + M8d + M8c 를 단일 (모델 × 카테고리 × source_type) 뷰로 통합. 헤드라인 그림 `m8e_cross_source_heatmap.png` 가 논문 Table 1 후보. cross-source PMR shift 확인. | `87c990c` |
 | 2026-04-25 | **§4.5 cross-encoder swap 완료 (Idefics2)**: Idefics2-8b (SigLIP-SO400M + Mistral-7B) 를 M8a stim 에 → 1600 추론 GPU 0 에서 8 분. **5 도형 평균 PMR(_nolabel): Qwen 0.838 / LLaVA 0.175 / Idefics2 0.882.** Idefics2 가 PMR + H7 (1/5 vs 1/5 strict) 에서 Qwen 과 동일 패턴. LLaVA 만 outlier. **H-encoder-saturation 이 인코더-family 수준에서 인과 확인** — 인코더 type (SigLIP vs CLIP) 이 LM (Qwen2-7B vs Mistral-7B) 와 무관하게 PMR 천장 결정. | `304e927` |
 | 2026-04-25 | **§4.5 ext: Idefics2 on M8d + M8c**: Idefics2 추가 4 config (M8d labeled + label-free, M8c labeled + label-free) → 2160 추론을 GPU 0 에서 11 분. Idefics2 M8d 평균 PMR(_nolabel) **0.890** Qwen **0.869** 와 일치 (vs LLaVA 0.331); Idefics2 M8c **0.417** vs Qwen **0.550** vs LLaVA **0.283** — 3 모델 모두 사진에서 압축. cross-stim 인코더-스왑이 SigLIP 합성 포화, CLIP 비포화, 사진에서 수렴 확인. | `3503cd3` |
-| 2026-04-25 | **M9 완료 (일반화 audit / 논문 Table 1)**: 9 (모델 × stim) 셀 × 부트스트랩 CI (5000 iter). **견고 헤드라인**: (1) 인코더 family 가 합성-stim 천장 인과 (SigLIP CI [0.80, 0.92] vs CLIP [0.14, 0.37] 완전 분리); (2) 사진이 인코더 갭 압축 (3 모델 → [0.18, 0.67]); (3) H7 LLaVA-on-synthetic 에서만 견고. **시사 (강등)**: Idefics2 M8d H7 CI [+0.000, +0.094] 가 0 에 닿음 — LM-modulation 가능하나 논문 옹호 불가. PASS/FAIL binarization 을 부트스트랩 CI 로 대체 — "Qwen 1/5 PASS" 패턴이 noise-floor artifact 임을 드러냄. 신규 **H-LM-modulation** 가설 flag. | (this commit) |
+| 2026-04-25 | **M9 완료 (일반화 audit / 논문 Table 1)**: 9 (모델 × stim) 셀 × 부트스트랩 CI (5000 iter). **견고 헤드라인**: (1) 인코더 family 가 합성-stim 천장 인과 (SigLIP CI [0.80, 0.92] vs CLIP [0.14, 0.37] 완전 분리); (2) 사진이 인코더 갭 압축 (3 모델 → [0.18, 0.67]); (3) H7 LLaVA-on-synthetic 에서만 견고. **시사 (강등)**: Idefics2 M8d H7 CI [+0.000, +0.094] 가 0 에 닿음 — LM-modulation 가능하나 논문 옹호 불가. PASS/FAIL binarization 을 부트스트랩 CI 로 대체 — "Qwen 1/5 PASS" 패턴이 noise-floor artifact 임을 드러냄. 신규 **H-LM-modulation** 가설 flag. | `6210b13` |
+| 2026-04-25 | **M6 r3 완료 (Idefics2 비전-인코더 프로브가 AUC↔PMR 사슬 종결)**: 400 M8a stim × 4 SigLIP-SO400M 레이어를 88 초에 캡처; per-stim PMR 에 대한 layer-wise 로지스틱 회귀 프로브가 **AUC 0.93** 산출 (레이어 9 에서 0.948 peak). 3-점 AUC 사다리 = **Qwen 0.99 / Idefics2 0.93 / LLaVA 0.73** — SigLIP family 가 포화에 클러스터, CLIP 은 headroom. H-encoder-saturation 사슬 `인코더 family → AUC → PMR → H7` 가 4 노드 × 3 모델 점 모두에서 경험적으로 지지. | (this commit) |
