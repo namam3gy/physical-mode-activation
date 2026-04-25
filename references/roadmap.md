@@ -38,13 +38,13 @@ Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the 
 
 | ID | Hypothesis | Status (post-M5a-ext recheck) | Evidence / next test |
 |---|---|---|---|
-| **H1** | PMR rises S-shaped along the abstraction axis (line → textured); 3D shading and ground introduction produce the largest step-changes. | **supported** | M2: monotone across all 4 object_levels (0.744 → 0.790 → 0.822 → 0.832). T=0.7 + 10 seeds resolved the pilot's mid-tie. |
-| **H2** | The "ball" label substantially raises PMR even on line drawings → independent contribution of the language prior. | **revised** | M2 +15 pp "ball vs circle" gap is `circle suppression`, not `ball enhancement`. Paired vs label-free baseline (M4b, 2026-04-25): `PMR(ball) − PMR(_nolabel) = +0.006`, `PMR(planet) − PMR(_nolabel) = +0.006`, `PMR(circle) − PMR(_nolabel) = −0.065`. Language prior is *asymmetric*: ball ≈ no-label (visual default), circle is an abstract override, planet adds orbit prior only on abstract images. |
+| **H1** | PMR rises S-shaped along the abstraction axis (line → textured); 3D shading and ground introduction produce the largest step-changes. | **supported, LLaVA-clean** | M2 (Qwen): monotone across 4 object_levels (0.744 → 0.832) but saturated. M6 (LLaVA-1.5, 2026-04-25): clean S-curve 0.51 → 0.81 over the same axis under the open prompt. Recommend LLaVA's S-curve as canonical figure since Qwen is at ceiling. |
+| **H2** | The "ball" label substantially raises PMR even on line drawings → independent contribution of the language prior. | **revised — visual-saturation hypothesis** | Qwen M4b: paired delta vs label-free → ball/planet ≈ +0.006, circle = −0.065 (asymmetric, only `circle` moves). LLaVA M6: ball +0.475, planet +0.244, circle +0.173 (all positive, original H2 holds). Unified across models: language prior is positive (or zero) for every label; visual saturation can mask the positive contribution and leave only a negative `circle` signal — that's what M4b observed in Qwen. The M4b "circle suppression only" reading is **Qwen-specific**, a consequence of Qwen's PMR(_nolabel) ≈ 0.95 ceiling. |
 | **H3** | Scene inconsistency degrades RC. | **untested** | Axis E was dropped from M2 (complexity); reserved for a focused mini-experiment. RC infrastructure was validated in M2 (103/288 cells with RC<1). |
 | **H4** (pilot-derived) | The open vs forced-choice PMR gap is a stable signature of the **language-prior ↔ visual-evidence** conflict. | **supported — extended** | M2: gap present at every object_level (line 32 pp → textured 22 pp). Higher abstraction ⇒ larger gap — a structural prediction that abstraction weakens visual evidence so the language prior dominates more. Next test: ST5 cross-model. |
 | **H5** (pilot-derived) | The single ground line causes a **larger** PMR shift than going from no-ground textured ball to with-ground textured ball. | **mixed** | M2: bg delta (blank 0.67 → scene 0.88 = +21 pp) > object delta (line 0.74 → textured 0.83 = +9 pp). Direction matches; however, scene also surpasses ground. |
 | **H6** (pilot-derived) | The arrow+shadow cue saturation is driven entirely by **cast shadow alone**; the arrow is closer to annotation. | **supported (revised)** | M2 decomposition: cast_shadow alone = +17.5 pp above none (Kersten ground-attachment cue confirmed); **but the arrow alone also saturates at 0.96** — partially refutes the "arrow = annotation" sub-claim. Arrow is the dominant cue, shadow is secondary. |
-| **H7** (M2-derived) | The label does not toggle PMR — it selects **which physics regime** to apply. | **supported but narrower** | M2 GAR: ball 0.79 / circle 0.70 / planet 0.48. M5a-ext Exp 2: label flip @ +α=40 swaps B vs A on `line/blank/none`. M5a-ext Exp 3 qualifier: on `textured/blank/none`, label-only flip fails (+α=40 → A regardless of label); regime is chosen by joint (image, label, α sign). |
+| **H7** (M2-derived) | The label does not toggle PMR — it selects **which physics regime** to apply. | **supported but narrower; cross-model replicated** | M2 GAR: ball 0.79 / circle 0.70 / planet 0.48. M5a-ext Exp 2: label flip @ +α=40 swaps B vs A on `line/blank/none`. M5a-ext Exp 3 qualifier: on `textured/blank/none`, label-only flip fails (+α=40 → A regardless of label); regime is chosen by joint (image, label, α sign). M6 cross-model: `planet` GAR < `ball`/`circle` GAR holds in LLaVA (0.07 vs 0.36/0.15) as well as in Qwen — the orbital-routing dissociation is not Qwen-specific. |
 | **H-boomerang** | Encoder knows, decoder gates: vision encoder linearly separates physics-mode classes even where behavior fails. | **supported + causal** | M3: encoder AUC = 1.00 on every factorial axis at every probed layer; behavior 0.28-0.95. M4: information preserved through LM (AUC 0.94-0.95). M5a: causal intervention at L10 flips behavior. |
 | **H-locus** (M4-derived) | The bottleneck is at the LM final layers + decoding head, not earlier. | **supported (early-mid sweet spot)** | M5a: L10 α=40 flips 10/10 abstract → physical responses; later layers do not move. M5a-ext Exp 3: L10 regime-flip (A vs B by α sign) holds in all tested cells. Aligns with the Basu et al. 2024 early-layer constraint-storage finding. |
 | **H-direction-bidirectional** (M5a-ext, 2026-04-24; revised 2026-04-25) | `v_L10` is a simple bidirectional concept axis where −α suppresses physics-mode back to abstract. | **revised — regime axis within physics-mode** | Exp 1 (textured/ground/both ceiling): −α has no effect → initially framed as "one-way activator". Exp 3 (textured/blank/none moderate baseline, 2026-04-25): −α=40 flips D → B ("stays still") uniformly across (line, textured) × (ball, circle). Both signs of α activate physics-mode; sign selects regime (+kinetic / −static). Baseline D sits *below* the \|α\| threshold, not at one end of the axis. |
@@ -70,8 +70,9 @@ Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the 
 | M5a | **ST4 Phase 1+2 — VTI steering** | Direction extraction + residual-stream injection. **L10 α=40 flips 10/10 D → B** — "physical object-ness" direction causally confirmed. | ✅ | 2026-04-24 |
 | M5a-ext | **VTI follow-ups (neg α, label swap, bidirectionality recheck)** | Exp 1-2 (2026-04-24): neg α at ceiling + label=ball side-by-side. Exp 3 (2026-04-25): (α × label × obj) grid on moderate baseline. **Key result**: `v_L10` is a regime axis within physics-mode — +α → A (falls), −α → B (stays still), baseline D below threshold. | ✅ | 2026-04-25 |
 | M4b | **Label-free prompt — H2 null test** | `open_no_label` variant on M2 stimuli. **Key result**: `ball` ≈ no-label; `circle` suppresses PMR by 6.5 pp. Original H2 reframed: language prior is asymmetric — circle override, not ball enhancement. M4 visual-token capture is prompt-independent (structural artefact). | ✅ | 2026-04-25 |
+| M6 r1 | **ST5 round 1 — LLaVA-1.5-7B cross-model** | M2 + M4b protocol on LLaVA-1.5-7B. **Key result**: M4b's "circle suppression" is **Qwen-specific** — LLaVA shows the *original* H2 (ball +47.5 pp, all labels positive vs no-label baseline). New unified hypothesis: language prior is positive across labels; Qwen's visual saturation masked the positive contribution. H7 cross-model replicates (planet GAR << ball GAR in both). LLaVA gives the cleanest H1 S-curve in the project. FC excluded (LLaVA returns "A" for every cell). | ✅ | 2026-04-25 |
 | **M5b** | **ST4 Phase 3 — SIP + patching + SAE** | Semantic Image Pairs + activation patching (needs attention re-capture) + SAE feature decomposition. | ▶ **next (optional)** | — |
-| M6 | ST5 — Cross-model sweep | LLaVA-1.5/Next, InternVL2, (optional) Qwen2-VL | pending | — |
+| M6 r2+ | ST5 round 2+ — additional models | LLaVA-Next, InternVL2, (optional) Qwen2-VL; FC re-template; LLaVA activation captures for boomerang / steering cross-model. | pending | — |
 | M7 | Human baseline + paper writing | Prolific 20 raters × 50 stimuli + EMNLP/NeurIPS draft | optional | — |
 
 ---
@@ -268,6 +269,46 @@ Output: `outputs/label_free_20260425-031430_315c5318/` — 480 predictions + 480
   abstraction, the image-side dual of the abstraction → language-prior-gap
   scaling.
 
+### M6 round 1 — LLaVA-1.5-7B cross-model ✅ (2026-04-25)
+
+Run: `uv run python scripts/02_run_inference.py --config configs/cross_model_llava{,_label_free}.py --stimulus-dir inputs/mvp_full_20260424-093926_e9d79da3` (two passes), then `scripts/03_score_and_summarize.py` on each.
+
+Output:
+- `outputs/cross_model_llava_20260425-035506_7ff0256b/` — labeled (1440 rows).
+- `outputs/cross_model_llava_label_free_20260425-040821_39e68cd4/` — label-free (480 rows).
+
+Deep dive: `docs/insights/m6_cross_model_llava.md`. Numbers: `docs/experiments/m6_cross_model_llava.md`.
+
+**Key results**:
+- Paired PMR delta vs label-free baseline (LLaVA): ball **+0.475**,
+  planet +0.244, circle +0.173 — the original H2 pattern, opposite of
+  Qwen's M4b. The H2 reframing was Qwen-specific.
+- Visual-saturation hypothesis: Qwen's `PMR(_nolabel)` ≈ 0.93–0.98
+  across object levels; LLaVA's is 0.14–0.59. Qwen's labeled run
+  cannot show positive label contributions because there's no
+  headroom; LLaVA's labeled run shows them clearly.
+- H1 (S-curve) cleanest on LLaVA (0.51 → 0.81 across line → textured),
+  not visible on Qwen (saturated at 0.93).
+- H7 replicates cross-model: `planet GAR << ball/circle GAR` in both
+  models, with `planet` routing physics narration to orbital / cosmic
+  events ("orbit around the sun", "consumed by a black hole").
+- FC excluded: LLaVA returns "A" for every (image, label) FC stimulus
+  (12/12 on smoke). Pathological model bias, not addressable via
+  prompt template here. Round 2 needs an FC redesign or
+  first-letter-token-probability scoring.
+
+**Hypothesis updates**:
+- H2: **revised again — visual-saturation hypothesis** unifies M4b and
+  M6 within a single statement (positive language-prior contribution
+  exists across labels and models; visual saturation masks it).
+- H1: **supported, sharper on LLaVA** — recommend canonical figure
+  comes from LLaVA's monotone curve.
+- H7: **supported, cross-model** — orbital-routing dissociation
+  replicates.
+- H4 / H-boomerang / H-locus / H-direction-bidirectional:
+  **untested cross-model in round 1** — FC failure blocks H4; no
+  activation captures on LLaVA blocks the others. Round 2.
+
 ### M5b — ST4 Phase 3 (SIP patching + SAE) — work plan
 
 **Sub-tasks**:
@@ -367,7 +408,8 @@ Systematically validate the M2 finding that "label selects the physics regime" (
 - `docs/insights/m4b_label_free.md` — M4b label-free prompt H2 null test
 - `docs/insights/m5_vti_steering.md` — M5a VTI steering causal intervention
 - `docs/insights/m5a_ext_bidirection_and_label.md` — M5a extensions (negative α, label × steering, bidirectionality recheck)
-- (M5b, M6 ... to be added)
+- `docs/insights/m6_cross_model_llava.md` — M6 round 1 (LLaVA-1.5 cross-model H2 + H1 + H7)
+- (M5b, M6 r2+ ... to be added)
 
 **Bilingual file convention**: `references/project.md`, `references/roadmap.md`, every `docs/insights/*.md`, and the various `docs/*.md` reference docs all have an English canonical `*.md` and a Korean translation `*_ko.md`. English is authoritative; if translations drift, English wins. New content → write English first, then translate to Korean.
 
@@ -401,4 +443,5 @@ Systematically validate the M2 finding that "label selects the physics regime" (
 | 2026-04-24 | Repository restructure: `references/`, `docs/{insights,experiments,figures}/` scheme; everything bilingual (English canonical + `_ko.md` translation). | `963e219` |
 | 2026-04-24 | M5a-ext Exp 1+2 complete: negative α at ceiling (null result — later found to be a ceiling artifact) + label=ball swap on line/blank/none (clean B→A flip). H-direction-bidirectional added (initially as "one-way activator"), H-regime upgraded to supported. | `9a0ed86` (merge) |
 | 2026-04-25 | M5a-ext Exp 3 (bidirectionality recheck on `textured/blank/none` moderate baseline): −α=40 → 10 B uniformly across (line/textured) × (ball/circle). H-direction-bidirectional revised to "regime axis within physics-mode" (+α kinetic, −α static, baseline D below threshold). H-regime refuted in original form and narrowed to an H7 qualifier. | `f8f0fdd` |
-| 2026-04-25 | M4b complete: label-free prompt as H2 null test on M2 stimuli. Paired PMR(ball) − PMR(_nolabel) = +0.006 ≈ 0; PMR(circle) − PMR(_nolabel) = −0.065. **H2 revised** — language prior is asymmetric (circle override, not ball enhancement). M4 visual-token capture is prompt-independent (causal-attention artefact); switching-layer collapse is structural. | (this commit) |
+| 2026-04-25 | M4b complete: label-free prompt as H2 null test on M2 stimuli. Paired PMR(ball) − PMR(_nolabel) = +0.006 ≈ 0; PMR(circle) − PMR(_nolabel) = −0.065. **H2 revised** — language prior is asymmetric (circle override, not ball enhancement). M4 visual-token capture is prompt-independent (causal-attention artefact); switching-layer collapse is structural. | `e97db16`, `990ddf7` |
+| 2026-04-25 | M6 round 1 complete (LLaVA-1.5-7B cross-model): paired PMR delta vs label-free → ball +0.475, planet +0.244, circle +0.173 (all positive). **H2 re-revised — visual-saturation hypothesis**: M4b's "circle suppression only" is Qwen-specific; LLaVA shows the original H2 because its visual prior is unsaturated. H1 S-curve cleanest on LLaVA (0.51 → 0.81). H7 replicates cross-model (planet GAR << ball GAR in both). FC excluded — LLaVA returns "A" for every cell. | (this commit) |

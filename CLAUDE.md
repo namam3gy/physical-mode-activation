@@ -23,20 +23,23 @@ have been tested, what ideas are still open." Update it when a milestone
 completes or a new hypothesis/idea surfaces.
 
 Sub-task 1 MVP, ST2 vision-encoder probing, ST3 LM logit lens, ST4
-Phase-1+2 VTI steering, M5a-ext VTI follow-ups (bidirectionality +
-label × steering), and M4b label-free H2 null test all complete (M0
-through M5a-ext + M4b — see ROADMAP §3).
+Phase-1+2 VTI steering, M5a-ext VTI follow-ups, M4b label-free H2
+null test, and M6 round 1 (LLaVA-1.5-7B cross-model) all complete
+(M0 through M6 r1 — see ROADMAP §3).
 Key recent findings (2026-04-25):
 - M5a-ext: `v_L10` is a **regime axis within physics-mode** (+α →
-  A/kinetic, −α → B/static, baseline D below |α| threshold), not a
-  simple physics-vs-abstract activator.
-- M4b: H2 revised — `ball` ≈ no-label baseline; `circle` is the
-  suppressive override (−6.5 pp). The "language prior" is asymmetric.
+  A/kinetic, −α → B/static, baseline D below |α| threshold).
+- M4b + M6 r1: H2 unified under the **visual-saturation hypothesis** —
+  language prior is positive across labels; Qwen's PMR(_nolabel) ≈ 0.95
+  saturation masks it (M4b sees only `circle` suppression), while
+  LLaVA-1.5's lower visual prior recovers the original H2 (`ball
+  +47.5 pp` paired delta vs no-label baseline).
 
 Package at `src/physical_mode/`, entry scripts at `scripts/0{1..6}_*.py`,
-configs at `configs/{pilot,mvp_full,label_free}.py`, tests at `tests/`.
-Read `docs/architecture.md` for the implementation contract and
-`references/project.md` for the original scientific motivation.
+configs at `configs/{pilot,mvp_full,label_free,cross_model_llava{,_label_free}}.py`,
+tests at `tests/`. Read `docs/architecture.md` for the implementation
+contract and `references/project.md` for the original scientific
+motivation.
 
 ST4 Phase 3 (SIP activation patching + SAE) and ST5 (cross-model sweep) are
 the next milestones. See `docs/next_steps.md` for code-level plug-in points
