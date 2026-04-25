@@ -80,6 +80,58 @@ consistent with H-encoder-saturation: there's an AUC threshold above
 which behavioral PMR saturates (the 0.85+ AUC band) and below which it
 sits at headroom (~0.77).
 
+## Methodological note — stim-defined y check (2026-04-25)
+
+A late round of probing held y constant across models by defining it
+from stim properties (instead of each model's own behavioral PMR).
+Three stim-defined targets were tried on the same captures:
+
+| target                                     | n_pos / n_neg | AUC across all 4 models, all layers |
+|--------------------------------------------|---------------|-------------------------------------|
+| rendered_vs_line  (obj != line)            | 300 / 100     | **1.000** (zero variance)           |
+| physics_cell_vs_abstract_cell              |               |                                     |
+|   (textured+ground+both vs line+blank+none)| 25 / 25       | **1.000**                           |
+| within_line_context                        |               |                                     |
+|   (line + ground+both vs line + blank+none)| 25 / 25       | **1.000**                           |
+| within_textured_context                    |               |                                     |
+|   (textured + ground+both vs textured + blank+none)| 25 / 25 | **1.000**                       |
+
+**Every encoder linearly separates these factorial cells at AUC = 1.0.**
+This holds for SigLIP (Qwen), CLIP-ViT-L (LLaVA), SigLIP-SO400M (Idefics2)
+and InternViT (InternVL3) — including within-object-level minimal-pair
+contrasts (same object, same shape, only context axes differ).
+
+**Implication for the H-encoder-saturation claim**: the differences in
+the *behavioral-y* probe AUC (Qwen 0.88, LLaVA 0.77, Idefics2 0.93,
+InternVL3 0.89) reflect alignment between each model's encoder
+representation and that model's *behavioral PMR distribution*, not
+encoder representational capacity per se. All 4 encoders carry the
+factorial information cleanly; what differs across architectures is
+how each LM consumes the encoder output as a physics-mode signal.
+
+The chain is therefore better stated as:
+
+```
+encoder family + LM family together determine joint architecture
+              ↓
+LM-side reading of encoder output as physics-mode signal
+   (non-CLIP architectures: yes; CLIP-LLaVA: no)
+              ↓
+behavioral PMR(_nolabel) saturated vs unsaturated
+              ↓
+H7 measurability gated by behavioral PMR ceiling
+```
+
+This is a refinement, not a refutation, of the §4.5 + M6 r3 + M6 r4
+work. The 4-model behavioral PMR ladder (Qwen 0.84 / Idefics2 0.88 /
+InternVL3 0.92 / LLaVA 0.18) is unchanged. What changes: the mechanism
+locus moves from "encoder representational capacity" to "LM-side
+consumption of encoder output". The original M3/M6 r2 framing of
+"encoder AUC predicts behavioral PMR" is correct as a *downstream-
+conditional* statement (probe AUC trained with behavioral-y) but not
+as an "encoder discriminability" statement (probe AUC trained with
+stim-y is uniformly 1.0).
+
 ## Headline interpretation
 
 The **H-encoder-saturation chain generalizes from SigLIP-specific to
@@ -109,12 +161,17 @@ saturating.**
 
 ## Hypothesis updates
 
-- **H-encoder-saturation** — *strengthened to non-CLIP-general*. Updated
-  paper claim: "Encoder family causally drives encoder-probe AUC and
-  behavioral PMR(_nolabel) saturation. The pattern generalizes across
-  3 non-CLIP encoder families (SigLIP, SigLIP-SO400M, InternViT) with
-  the only tested CLIP-based encoder (CLIP-ViT-L/14) standing as the
-  unsaturated counterexample."
+- **H-encoder-saturation** — *refined to architecture-level (encoder + LM)
+  rather than encoder-discriminability*. Stim-defined y check shows all
+  4 encoders separate factorial cells at AUC = 1.0; encoder family does
+  not differ in raw discriminability. Updated paper claim: "VLM
+  architecture family (non-CLIP encoder + various LMs vs CLIP-ViT-L +
+  Vicuna) causally determines whether the joint system reads encoder
+  output as physics-mode signal on synthetic stim, producing the
+  saturated-vs-unsaturated behavioral PMR(_nolabel) split. The
+  difference is at the encoder-LM fusion level, not at encoder
+  representational capacity." The 4-model behavioral PMR ladder is
+  unchanged; the mechanism locus shifts to LM-side consumption.
 - **H-LM-modulation** (M9-derived) — *unchanged*. With 3 non-CLIP × 3
   LM families now in the table (Qwen2-7B, Mistral-7B, InternLM2-7B)
   showing similar saturation, LM family does not drive saturation. Any

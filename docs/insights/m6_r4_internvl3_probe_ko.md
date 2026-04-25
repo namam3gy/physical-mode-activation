@@ -74,6 +74,52 @@ LLaVA 0.77). 비-CLIP / CLIP 갭은 두 stim 출처에서 모두 유지: AUC 에
 saturation 과 일치: AUC 임계 위에서 행동 PMR 포화 (0.85+ AUC 밴드), 아래
 에서 headroom 에 위치 (~0.77).
 
+## 방법론 노트 — stim-defined y 검증 (2026-04-25)
+
+후반 라운드에서 y 를 모델별 행동 PMR 대신 stim 속성으로 정의해 모델 간
+고정. 동일 캡처에서 3 개 stim-정의 타겟 시도:
+
+| 타겟                                       | n_pos / n_neg | 4 모델 모든 레이어 AUC |
+|--------------------------------------------|---------------|----------------------|
+| rendered_vs_line  (obj != line)            | 300 / 100     | **1.000** (분산 0)   |
+| physics_cell_vs_abstract_cell              |               |                      |
+|   (textured+ground+both vs line+blank+none)| 25 / 25       | **1.000**            |
+| within_line_context                        |               |                      |
+|   (line + ground+both vs line + blank+none)| 25 / 25       | **1.000**            |
+| within_textured_context                    |               |                      |
+|   (textured + ground+both vs textured + blank+none)| 25 / 25 | **1.000**         |
+
+**모든 인코더가 이 factorial 셀들을 AUC = 1.0 으로 선형 분리.** SigLIP
+(Qwen), CLIP-ViT-L (LLaVA), SigLIP-SO400M (Idefics2), InternViT (InternVL3)
+모두에서 — within-object-level 최소-짝 대비 (동일 객체, 동일 도형, 컨텍스트
+축만 다름) 포함.
+
+**H-encoder-saturation 주장에 대한 함의**: *행동-y* probe AUC 차이 (Qwen
+0.88, LLaVA 0.77, Idefics2 0.93, InternVL3 0.89) 는 각 모델의 인코더 표상
+과 그 모델의 *행동 PMR 분포* 간 정렬을 반영하지, 인코더 표상 능력 자체는
+아님. 4 모델 인코더 모두 factorial 정보를 깔끔히 보유; 아키텍처 간 차이는
+각 LM 이 인코더 출력을 physics-mode 신호로 *어떻게 소비하는가*.
+
+따라서 사슬은 다음과 같이 재진술:
+
+```
+인코더 family + LM family 가 함께 joint 아키텍처 결정
+              ↓
+LM 의 인코더 출력 → physics-mode 신호 읽기
+   (비-CLIP 아키텍처: yes; CLIP-LLaVA: no)
+              ↓
+행동 PMR(_nolabel) 포화 vs 비포화
+              ↓
+H7 측정 가능성 = 행동 PMR 천장에 의해 게이팅
+```
+
+§4.5 + M6 r3 + M6 r4 작업의 정련이지 반증 아님. 4-모델 행동 PMR 사다리
+(Qwen 0.84 / Idefics2 0.88 / InternVL3 0.92 / LLaVA 0.18) 는 변하지 않음.
+변하는 것: 메커니즘 좌표가 "인코더 표상 능력"에서 "인코더 출력의 LM-side
+소비"로 이동. 원래 M3/M6 r2 의 "인코더 AUC 가 행동 PMR 예측" 프레이밍은
+*downstream-conditional* 진술로는 (행동-y 로 학습한 probe AUC) 정확하나,
+"인코더 식별 능력" 진술로는 부정확 (stim-y 로 학습한 probe AUC 는 균일 1.0).
+
 ## 헤드라인 해석
 
 **H-encoder-saturation 사슬이 SigLIP-특이적에서 비-CLIP-일반으로 일반화**:
@@ -100,11 +146,14 @@ family 횡단* (Qwen2-7B, Mistral-7B, InternLM2-7B, Vicuna-7B), *인코더
 
 ## 가설 업데이트
 
-- **H-encoder-saturation** — *비-CLIP-일반으로 강화*. 업데이트된 논문
-  주장: "인코더 family 가 인과적으로 인코더-probe AUC 와 행동 PMR(_nolabel)
-  포화 driver. 패턴이 3 비-CLIP 인코더 family (SigLIP, SigLIP-SO400M,
-  InternViT) 에 일반화, 테스트된 유일한 CLIP-기반 인코더 (CLIP-ViT-L/14)
-  가 비포화 counterexample."
+- **H-encoder-saturation** — *아키텍처 수준 (인코더 + LM) 으로 정련, 인코더
+  식별 능력 아님*. Stim-정의 y 검증이 4 인코더 모두 factorial 셀 AUC = 1.0
+  분리 보임; 인코더 family 는 raw 식별 능력 차이 없음. 업데이트된 논문 주장:
+  "VLM 아키텍처 family (비-CLIP 인코더 + 다양한 LM vs CLIP-ViT-L + Vicuna)
+  가 합성 stim 에서 joint 시스템이 인코더 출력을 physics-mode 신호로 읽는지
+  여부를 인과적으로 결정, 포화 vs 비포화 행동 PMR(_nolabel) 분리 산출. 차이
+  는 인코더-LM fusion 수준, 인코더 표상 능력 수준 아님." 4-모델 행동 PMR
+  사다리는 불변; 메커니즘 좌표만 LM-side 소비로 이동.
 - **H-LM-modulation** (M9 도출) — *변경 없음*. 표에 3 비-CLIP × 3 LM family
   (Qwen2-7B, Mistral-7B, InternLM2-7B) 가 모두 유사한 포화 보임 — LM
   family 가 포화 driver 아님. 잔여 H7 효과는 sub-saturation 잡음.
