@@ -703,11 +703,24 @@ Per-model PMR for H-class (Qwen2.5-VL-7B/32B/72B) and LLaVA-1.5-7B/13B. Does Mec
 
 `"What do you see? What might happen next?"` — ask the question **without** the word "ball". Measures H2's language-prior contribution as a null-hypothesis test. Easy addition — `prompts.py` `open_no_label` variant.
 
-### 4.10 Attention visualization UI ⭐ promoted
+### 4.10 Attention visualization UI ✅ (2026-04-25)
 
-Captured attentions → interactive heatmap (notebook-based). Per-stimulus, per-layer, per-head visual-token attention. For the paper appendix figure.
+Captured attentions → interactive heatmap (notebook-based). Per-stimulus,
+per-layer, per-head visual-token attention. For the paper appendix figure.
 
-**Status (2026-04-25)**: promoted to next-tier priority. Provides a qualitative complement to the per-layer probe AUC numbers and helps target M5b activation patching. Detailed work plan in §3 above.
+**Done 2026-04-25** (initial release, Qwen2.5-VL only):
+- New `configs/attention_viz_qwen.py` (M8a stim, limit=20, layers (5,15,20,25),
+  `capture_lm_attentions=True`).
+- `src/physical_mode/models/vlm_runner.py` — `attn_implementation` auto-switches
+  to `"eager"` when capturing attentions (SDPA does not return attention weights).
+- `notebooks/attention_viz.ipynb` — 6-section interactive notebook: load
+  capture, per-layer heatmap, image overlay, physics-vs-abstract comparison,
+  per-head fine structure, attention-entropy aggregate.
+- Capture cost: ~30s + ~7 MB per stim.
+- Full doc: `docs/insights/sec4_10_attention_viz.md` (+ ko).
+
+Extending to LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3 is a follow-up
+that would multiply disk cost (~2 GB total for 5 models × 60 records).
 
 ### 4.11 H7 follow-up — label-regime category annotation
 

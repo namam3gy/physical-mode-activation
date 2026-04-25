@@ -705,11 +705,24 @@ H-class (Qwen2.5-VL-7B/32B/72B), LLaVA-1.5-7B/13B 에서 모델 크기별 PMR. M
 
 `"What do you see? What might happen next?"` — "ball" 단어 **없이** 질문. H2 의 언어 prior 기여를 null-hypothesis 형태로 측정. 쉬운 추가 — `prompts.py` 에 `open_no_label` variant.
 
-### 4.10 Attention visualization UI ⭐ promoted
+### 4.10 Attention visualization UI ✅ (2026-04-25)
 
-Captured attentions 로 interactive heatmap (notebook 기반). Per-stimulus, per-layer, per-head 의 visual token attention. 논문 appendix figure 용.
+Captured attention 으로 interactive heatmap (노트북 기반). Per-stimulus,
+per-layer, per-head 의 visual token attention. 논문 appendix figure 용.
 
-**상태 (2026-04-25)**: 다음-tier priority 로 promotion. Per-layer probe AUC 수치의 정성적 보완 + M5b activation patching 의 target 발견에 도움. 작업 상세 §3 위 참조.
+**2026-04-25 완료** (초기 release, Qwen2.5-VL 만):
+- 신규 `configs/attention_viz_qwen.py` (M8a stim, limit=20, layer (5,15,20,25),
+  `capture_lm_attentions=True`).
+- `src/physical_mode/models/vlm_runner.py` — `attn_implementation` 가 캡처
+  시 자동으로 `"eager"` 전환 (SDPA 는 attention weight 반환 안함).
+- `notebooks/attention_viz.ipynb` — 6 섹션 인터랙티브 노트북: 캡처 로드,
+  per-layer heatmap, 이미지 overlay, physics-vs-abstract 비교, per-head
+  미세 구조, attention-entropy 집계.
+- 캡처 비용: ~30초 + stim 당 ~7 MB.
+- 전체 문서: `docs/insights/sec4_10_attention_viz_ko.md`.
+
+LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3 으로 확장은 follow-up; 디스크
+비용 ~2 GB (5 모델 × 60 record).
 
 ### 4.11 H7 follow-up — label-regime 범주 주석
 

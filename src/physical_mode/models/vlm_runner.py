@@ -45,15 +45,17 @@ class PhysModeVLM:
         dtype = dtype_map[torch_dtype] if self.device == "cuda" else torch.float32
 
         self.processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+        # SDPA does not return attention weights; eager does. Switch when capturing.
+        attn_impl = "eager" if capture_lm_attentions else "sdpa"
         self.model = AutoModelForImageTextToText.from_pretrained(
             model_id,
             dtype=dtype,
             trust_remote_code=True,
             device_map=self.device,
-            attn_implementation="sdpa",
+            attn_implementation=attn_impl,
         )
         if hasattr(self.model.config, "_attn_implementation"):
-            self.model.config._attn_implementation = "sdpa"
+            self.model.config._attn_implementation = attn_impl
         self.model.eval()
 
         self.capture_lm_layers = tuple(capture_lm_layers) if capture_lm_layers else ()
