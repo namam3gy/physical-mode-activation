@@ -862,20 +862,22 @@ def _draw_textured_bird(img: Image.Image, cx: int, cy: int, r: int, seed: int) -
     bx0, by0, bx1, by1 = g["body_box"]
     body_w = bx1 - bx0
     body_h = by1 - by0
+    feather_color = (
+        max(0, body_color[0] - 30),
+        max(0, body_color[1] - 30),
+        max(0, body_color[2] - 30),
+    )
     for _ in range(28):
         sx = bx0 + rng.randint(8, body_w - 8)
         sy = by0 + rng.randint(8, body_h - 8)
         # Inside-ellipse check.
         if ((sx - cx) / (body_w / 2)) ** 2 + ((sy - cy) / (body_h / 2)) ** 2 > 0.85:
             continue
-        ex = sx + rng.randint(-8, 8)
-        ey = sy + rng.randint(2, 8)
-        feather_color = (
-            max(0, body_color[0] - 30),
-            max(0, body_color[1] - 30),
-            max(0, body_color[2] - 30),
-        )
-        d.line(((sx, sy), (ex, ey)), fill=feather_color, width=1)
+        tx = sx + rng.randint(-8, 8)
+        ty = sy + rng.randint(2, 8)
+        d.line(((sx, sy), (tx, ty)), fill=feather_color, width=1)
+    # Wing chord, drawn beneath the head/beak/eye (after the feather loop, before the head).
+    d.line(g["wing"], fill=feather_color, width=3)
     # Head with same base color but slightly lighter.
     head_color = (min(255, body_color[0] + 20), min(255, body_color[1] + 20), min(255, body_color[2] + 20))
     d.ellipse(g["head_box"], fill=head_color, outline=(30, 30, 30), width=2)
