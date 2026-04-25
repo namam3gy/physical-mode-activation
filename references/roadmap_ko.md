@@ -660,9 +660,18 @@ Pilot 에서 떠오른, 혹은 연구계획 §2 에 없는 확장 방향. 선택
 
 현재 코드 (`primitives.py::_draw_block_stack`) 는 있으나 pilot 에서 미사용. 블록은 "추상적인 기하 + 명백한 물리" 조합이라 **원-공 축과 다른 질문**을 묻는다: "도형은 추상인데 구성(stacking)은 물리인 자극에서 VLM 이 어느 쪽으로 가는가?" → 예상: PMR 높음 + abstract_reject 낮음. 원-공 축의 컨트롤로 유용.
 
-### 4.2 역과제 (reverse prompting)
+### 4.2 역과제 (reverse prompting) ✅ (2026-04-25)
 
-프롬프트에 `"The image shows an abstract diagram"` 라벨을 *실제* 사진 공에 붙였을 때 PMR 떨어지는가? H4 (언어 prior 지배) 의 counterfactual. 1 시간 실험.
+프롬프트에 `"abstract"` 라벨을 *실제* 공 사진에 붙였을 때 PMR 떨어지는가?
+H2 (언어 prior 지배) 의 counterfactual. **2026-04-25 기존 M8c labeled-arm
+데이터 재사용으로 완료** (5 모델 × 3 라벨 역할 × 4 물리 사진 카테고리 ×
+12 seed = 모델당 720). **헤드라인**: 실 물리 사진에서 image-prior 가
+label-prior 를 지배 — 5 모델 모두 phys_minus_abs ≤ +0.146, vs LLaVA-1.5
+M8d 합성 phys_minus_abs +0.306 (사진에서 라벨 효과 절반). **LLaVA-Next
+phys − abs = 0.000** on 물리 사진: 실 공을 `"circle"` 이라 부르는 것이
+`"ball"` 보다 PMR 낮추지 않음. 이미지 vs 라벨 trade-off 가 입력 측에서
+본 saturation 효과: 풍부한 이미지 → 이미지 지배; 빈약한 이미지 → 라벨
+지배. 전체 문서: `docs/insights/sec4_2_reverse_prompting_ko.md`.
 
 ### 4.3 Label 언어 전환
 

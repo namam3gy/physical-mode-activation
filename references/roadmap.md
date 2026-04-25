@@ -656,9 +656,20 @@ The remainder are still optional / open ideas.
 
 The code (`primitives.py::_draw_block_stack`) exists but the pilot never used it. Blocks are an "abstract geometry + clearly physical" combination, asking a **different question from the circle-ball axis**: "given an abstract shape but a physical configuration (stacking), which way does the VLM go?" → expected: high PMR + low abstract_reject. Useful as a control on the circle-ball axis.
 
-### 4.2 Reverse prompting
+### 4.2 Reverse prompting ✅ (2026-04-25)
 
-What happens to PMR when an `"abstract diagram"` label is attached to a *real* photograph of a ball? A counterfactual for H4 (language-prior dominance). 1-hour experiment.
+What happens to PMR when an `"abstract"` label is attached to a *real*
+photograph of a ball? A counterfactual for H2 (language-prior dominance).
+**Done 2026-04-25 by reusing existing M8c labeled-arm data** (5 models ×
+3 label roles × 4 physical photo categories × 12 seeds = 720/model).
+**Headline**: image-prior dominates label-prior on real physical photos —
+phys_minus_abs ≤ +0.146 across all 5 models, vs LLaVA-1.5 M8d synthetic
+phys_minus_abs +0.306 (label effect halved on photos). **LLaVA-Next phys
+− abs = 0.000** on physical photos: calling a real ball `"circle"` does
+not lower PMR vs `"ball"`. The image vs label trade-off is the saturation
+effect viewed from the input side: rich image → image dominates;
+impoverished image → label dominates. Full doc:
+`docs/insights/sec4_2_reverse_prompting.md` (+ ko).
 
 ### 4.3 Label language switching
 
