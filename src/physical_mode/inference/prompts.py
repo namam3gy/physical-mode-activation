@@ -84,6 +84,11 @@ LABELS_BY_SHAPE: dict[str, tuple[str, str, str]] = {
     "car":      ("car",    "silhouette",  "figurine"),
     "person":   ("person", "stick figure", "statue"),
     "bird":     ("bird",   "silhouette",  "duck"),
+    # M8c real photographs. `ball` reuses the circle triplet (a ball is a
+    # ball regardless of whether it's drawn or photographed). `abstract`
+    # gets a fresh triplet for unstructured / depiction-style photos.
+    "ball":     ("ball",   "circle",      "planet"),
+    "abstract": ("object", "drawing",     "diagram"),
 }
 
 
