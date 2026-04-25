@@ -77,8 +77,12 @@ Idefics2 에 M8a labeled + label-free 프로토콜 실행:
 - LLaVA 4/5 ✓ (triangle 은 `wedge` 약 라벨)
 - Idefics2 1/5 ✗ (circle 만)
 
-**Idefics2 가 H7 에서 Qwen 과 동일 패턴.** 둘 다 천장 포화; H7 은
-인코더가 headroom 을 남길 때만 측정 가능.
+**SigLIP 두 모델 모두 strict H7 미달** — 깔끔한 per-shape H7 ramp 가
+나오지 않음. 정확한 주장은 *"둘 다 천장 포화, 둘 다 H7 미달"* 이지
+*"동일한 per-shape H7 PASS 셀"* 은 아님: 통과한 도형이 서로 다르다
+(Qwen=square, Idefics2=circle). 이는 floor 부근의 약한 per-shape
+노이즈를 시사. 헤드라인 결과는 1/5 라는 floor 자체이며 (LLaVA 4/5
+대비), 이것이 H-encoder-saturation 의 예측.
 
 ## 헤드라인 해석
 

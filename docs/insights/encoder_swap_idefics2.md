@@ -79,8 +79,13 @@ LLaVA's range is 0.075-0.288 — a different regime.
 - LLaVA 4/5 ✓ (triangle is the `wedge` weak-label)
 - Idefics2 1/5 ✗ (only circle)
 
-**Idefics2 patterns identically with Qwen on H7.** Both ceiling-
-saturated; H7 only measurable when encoder leaves headroom.
+**Both SigLIP models fail H7 at the strict criterion** — neither
+yields a clean per-shape H7 ramp. The accurate claim is *"both
+ceiling-saturate, neither passes H7"* rather than *"identical H7
+PASS cells"*: the lone passing shape differs (Qwen=square,
+Idefics2=circle), suggesting weak per-shape noise around the floor.
+The headline result is the floor itself (1/5 ≪ LLaVA's 4/5),
+which is what H-encoder-saturation predicts.
 
 ## Headline interpretation
 
