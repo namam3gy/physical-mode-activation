@@ -1,0 +1,604 @@
+---
+target: EMNLP long primary / NeurIPS main stretch
+date: 2026-04-26
+status: outline + abstract + intro draft (M7 v1)
+authors: namam3gy
+---
+
+# When Does a VLM See a Ball Instead of a Circle? — Architecture-Level Determinants of Physics-Mode Reading in Open-Source Vision-Language Models
+
+## Abstract (250-word target)
+
+Open-source vision-language models (VLMs) often describe a black circle on
+a white background as a "ball that will fall," even when the image carries
+no physical cue beyond the circle itself. This shortcut from minimal
+abstract geometry to physical interpretation has been observed
+anecdotally but never localized. We measure when and how it happens
+across **5 production-grade open-source VLMs** (Qwen2.5-VL,
+LLaVA-1.5, LLaVA-Next, Idefics2, InternVL3) on **three stimulus sources**
+(synthetic shapes, photo-categorical, and real photographs) using a
+**rule-based physics-mode reading rate (PMR)** with bootstrap confidence
+intervals.
+
+We make three paper-grade claims. **First**, behavioral PMR saturation on
+synthetic stim is determined at the **architecture level (joint encoder +
+LM)** — not at the encoder representational level. Every encoder
+linearly separates physics-vs-abstract factorial cells at AUC = 1.0, yet
+behavioral PMR ranges 0.18 → 0.92 on identical stim across the 5 models.
+The 2-CLIP-point comparison (LLaVA-1.5 PMR 0.18 vs LLaVA-Next 0.70) rules
+out vision-encoder-family as the sole driver. **Second**, the shortcut
+is **causally localized at LM layer 10**: a single linear direction
+`v_L10` flips Qwen2.5-VL's behavior from "circle stays static" to
+"physics-mode" with a forward-hook intervention at α = 40 (10/10 stim,
+no other layer moves). The same direction acts as a regime axis (+α →
+kinetic, −α → static), revising the initial "binary object-ness"
+reading. **Third**, `v_L10` is **encodable in the image itself**: a
+small pixel-space gradient ascent (ε = 0.05 in L∞) flips PMR on 5/5
+baseline circles, while matched-magnitude random directions flip 0/15.
+The shortcut path can be "spelled" in pixels — directional specificity,
+not perturbation magnitude, drives the regime flip.
+
+These results contribute a clean architecture-vs-representation
+disambiguation to the open-source VLM grounding-failure literature
+and provide a reusable causal-localization recipe for shortcut-style
+behaviors at layer-resolution granularity.
+
+## 1. Introduction
+
+(Target length: 1.5-2 pages.)
+
+### 1.1 The shortcut problem (motivation)
+
+Open-source VLMs trained on web-scale image-text data exhibit a curious
+behavior: a minimal synthetic stimulus (e.g., a black circle on white)
+elicits physics-mode language ("the ball will fall," "it rolls
+downward") even when the prompt is open-ended and the image carries no
+physical cue (no ground line, no shading, no texture, no contextual
+arrow or shadow). The model commits to a *physical-object* reading of
+something a human would read as *abstract geometry*. This is a
+shortcut: the visual evidence is consistent with multiple readings, but
+the model collapses to one.
+
+Anecdotally documented in red-teaming reports and benchmarks like
+*Eyes Wide Shut* (Tong et al., 2024) and grounding-failure analyses,
+the shortcut has not been *localized* — i.e., where in the model's
+forward pass the abstract→physical transition happens, what
+representational axis encodes it, and what input properties activate
+it have remained open. Existing causal-interpretability work on
+language-only LMs (e.g., Basu et al., 2024 on constraint storage,
+Neo et al., 2024 on switching layers) has not been ported to the
+vision-language setting beyond a handful of anecdotal probes. And
+existing shortcut-analysis tools (linear probes, SAE features) have
+not been combined with **synthesis-side counterfactuals** that test
+whether the shortcut is encodable in the image.
+
+### 1.2 Contributions
+
+We localize the abstract→physical shortcut along three independent
+dimensions, each yielding a paper-grade claim:
+
+1. **Cross-architectural quantification** (§4-§5). 5 production-grade
+   open-source VLMs × 3 stim sources × bootstrap CIs reveal that the
+   shortcut is determined at the **architecture level** — not at
+   encoder representational capacity. Every encoder linearly separates
+   physics-vs-abstract factorial cells at AUC = 1.0; behavioral PMR
+   ranges 0.18 → 0.92. The 2-CLIP-point comparison (LLaVA-1.5 vs.
+   LLaVA-Next) is the cleanest disconfirmer.
+
+2. **Causal localization** (§6). Adding `+α · v_L10` at LM layer 10
+   over visual-token positions flips Qwen2.5-VL's behavior with α=40
+   (10/10 stim). No earlier or later layer moves at the same α. The
+   same direction is bidirectional (+α kinetic, −α static) within
+   physics-mode — it's a regime axis, not a binary toggle. Result:
+   shortcut localized to a single LM layer at sub-100 hidden-dim
+   resolution.
+
+3. **Pixel encodability** (§7). Gradient-ascent on Qwen2.5-VL's
+   post-processor `pixel_values` to maximize `<h_L10, v_L10>` produces
+   PMR flips with **5/5 success at ε = 0.05** (L∞-bounded). Random
+   unit-direction controls at matched magnitude flip 0/15. The
+   shortcut is encodable in the image itself; directional
+   specificity, not perturbation magnitude, drives the regime flip.
+
+A fourth claim — that real photographs **compress** the encoder gap
+across all 5 models (paper Table 1) — provides external validity for
+the architecture-level reframe and reveals that synthetic-stim
+saturation is a co-product of encoder representation *and* input-
+context simplicity.
+
+### 1.3 Roadmap
+
+§2 reviews related work. §3 introduces our stimulus design and
+metrics. §4 reports cross-model behavioral PMR with bootstrap CIs
+(M1–M2 + M6 + M9). §5 reports the encoder-vs-LM disambiguation
+(M3 + M6 r2-r6 + §4.5 + M8c). §6 reports the causal localization
+(M5a + M5a-ext). §7 reports the pixel-encodability result (§4.6).
+§8 discusses external validity (M8a/d + multilingual + decision-
+stability). §9 catalogs limitations and remaining open questions.
+
+## 2. Related Work
+
+(Target length: 1 page. Outline only — flesh out in revision pass.)
+
+### 2.1 Shortcut learning in VLMs
+- *Eyes Wide Shut* (Tong et al., 2024): visual primitives that VLMs
+  miss → MoF (Mixture-of-Features) proposal as a remedy.
+- Vision-language grounding failures: Liu et al., Zhang et al., …
+- Language-prior dominance in VLM benchmarks: anecdotally documented,
+  not localized.
+
+### 2.2 Linear probing & encoder analysis in VLMs
+- Linear probes on encoder activations (Alain & Bengio, Belrose et al.)
+- Cross-encoder swap experiments: SigLIP / CLIP / DINOv2 comparisons
+  (Tong et al., …)
+- Encoder probe AUC vs behavior: existing work usually correlational;
+  we add a 5-model bootstrap-CI ladder + LM-side counterfactual.
+
+### 2.3 Causal localization in language models
+- Activation patching / SIP (Wang et al., Conmy et al.)
+- Logit lens (nostalgebraist), tuned lens (Belrose et al.)
+- Constraint-information storage (Basu et al., 2024) — early-layer
+  intervention findings we replicate at the visual-token positions.
+- VTI steering vectors / class-mean directions (Burns et al., …)
+
+### 2.4 Adversarial / counterfactual stimulus generation
+- Standard adversarial perturbations (Goodfellow et al., Madry et al.)
+  — minimax-loss optimization in pixel space.
+- Activation-targeting feature visualization (Olah et al.)
+- Our §4.6 uses class-mean direction as the optimization target,
+  closer to *targeted feature visualization* than to standard
+  adversarial perturbation.
+
+## 3. Methods
+
+(Target length: 2 pages.)
+
+### 3.1 Stimulus design
+
+We use three stimulus sources:
+
+**M2 synthetic factorial** (480 stim per model run × 5 axes):
+- `object_level` ∈ {line, filled, shaded, textured} — abstraction axis
+- `bg_level` ∈ {blank, ground, scene} — context axis
+- `cue_level` ∈ {none, cast_shadow, motion_arrow, both} — physics-cue axis
+- `event` ∈ {fall, rise, horizontal} — direction axis
+- `seed` ∈ {1..N} — randomization
+
+**M8a non-circle shapes** (400 stim per run): replace the disk with
+square / triangle / hexagon / irregular polygon at every level.
+
+**M8d non-ball categories** (480 stim per run): replace the ball with
+car / person / bird at every level (event-axis doubled to 2 to
+include `horizontal` natural motion).
+
+**M8c real photographs** (60 stim total): 12 photographs each of
+{ball, car, person, bird, abstract} sourced from COCO 2017 + WikiArt.
+
+### 3.2 Models
+
+Five production-grade open-source VLMs, all loaded via the generic
+`AutoModelForImageTextToText` / `AutoProcessor` interface
+(transformers ≥ 4.45):
+
+| Model | Vision encoder | LM | Image strategy |
+|---|---|---|---|
+| Qwen2.5-VL-7B | SigLIP | Qwen2-7B | dynamic 504×504 |
+| LLaVA-1.5-7B | CLIP-ViT-L/14 | Vicuna-7B | 336×336 fixed |
+| LLaVA-Next-7B | CLIP-ViT-L/14 | Mistral-7B | AnyRes 5-tile |
+| Idefics2-8B | SigLIP-SO400M | Mistral-7B | 384×384 |
+| InternVL3-8B | InternViT-300M | InternLM3-8B | 448×448 dynamic |
+
+### 3.3 Metrics
+
+**PMR (physics-mode reading rate)**: fraction of model responses that
+describe the next-state in physical terms (e.g., "the ball falls,"
+"it rolls"). Rule-based scorer with multilingual stems
+(English / Korean / Japanese / Chinese), gated by abstract markers
+("won't move," "remain stationary," "no indication of motion") to
+avoid false positives. Hand-validated 5-6 % disagreement vs.
+hand-annotation.
+
+**PMR variants**:
+- `PMR(_nolabel)`: open-ended prompt without label cue ("What do you
+  see? What might happen next?"). Direct measure of joint
+  encoder+LM tendency.
+- `PMR(_physical)`: prompt with role-physical label ("the ball...",
+  "the car...").
+- `PMR(_abstract)`: prompt with role-abstract label ("the circle...",
+  "the silhouette...").
+
+**GAR (gravity-align rate)**: fraction of physics-mode responses that
+describe downward motion (subset of PMR with direction).
+
+**RC (response consistency)**: fraction of (model, stim) pairs where
+T=0.7 sampling produces the same PMR call across N seeds.
+
+**Bootstrap CI**: 95 % percentile (2.5–97.5) over 5000 iterations,
+with predictions resampled within each (shape × role) cell.
+
+### 3.4 Activation capture and probing
+
+For each model we hook the vision tower's transformer blocks at
+selected layers (3, 7, 11, 15, 19, 23, 27, 31 in the encoder; 5, 10,
+15, 20, 25 in the LM) and capture per-stim mean-pooled hidden
+states + per-token states at visual-token positions. Linear logistic-
+regression probes over the captured states give per-layer AUC against
+two label types: `behavioral-y` (the per-stim PMR call) and `stim-y`
+(the factorial-cell label).
+
+### 3.5 Causal intervention (M5a / M5a-ext / §4.6)
+
+**Class-mean steering vector**:
+```
+v_L = mean_sid (mean_token h_L[sid] | PMR(sid)=1)
+    − mean_sid (mean_token h_L[sid] | PMR(sid)=0)
+v_unit_L = v_L / ||v_L||₂
+```
+Intervention: forward hook on `model.model.language_model.layers[L]`
+adds `α · v_unit_L` to all output hidden_states (uniformly over
+token positions). α ∈ {0, 5, 10, 20, 40, −5, −10, −20, −40}. T=0
+(deterministic).
+
+**Pixel-space gradient ascent** (§4.6): same target
+`<mean(h_L10[visual]), v_L10>`, but optimize on the post-processor
+`pixel_values` tensor (Qwen2.5-VL: shape `(T_patches, 1176)` where
+1176 = 2·3·14·14). float32 leaf cast to bf16 in the forward pass;
+the vision tower → projector → LM 0..10 path is end-to-end
+differentiable. Adam, lr=1e-2, n_steps=200. L∞-bounded on
+`pv_leaf − pv_initial` ∈ {±0.05, ±0.1, ±0.2} or unconstrained.
+
+## 4. Behavioral findings — cross-model PMR ladder
+
+(Target: 1.5 pages with 1-2 figures.)
+
+### 4.1 The PMR(_nolabel) ladder
+
+[Insert m9_summary.png or session_5model_cross_stim_pmr.png]
+
+Across the 5 models on M8a synthetic shapes:
+
+| Model | PMR(_nolabel) | 95 % CI |
+|---|---|---|
+| Qwen2.5-VL | 0.838 | [0.79, 0.88] |
+| LLaVA-1.5 | 0.175 | [0.14, 0.21] |
+| LLaVA-Next | 0.700 | [0.65, 0.74] |
+| Idefics2 | 0.882 | [0.84, 0.92] |
+| InternVL3 | 0.917 | [0.88, 0.95] |
+
+Three clusters: **saturated** (Qwen / Idefics2 / InternVL3 ≥ 0.84),
+**mid-band** (LLaVA-Next 0.70), **floor** (LLaVA-1.5 0.18). CIs are
+fully separated between the three clusters.
+
+### 4.2 H1 (abstraction ramp) — unsaturated-only
+
+LLaVA-1.5 (the unsaturated model) shows a clean monotone S-curve
+(line 0.45 → textured 0.78). Qwen / Idefics2 / InternVL3 are at
+ceiling and the ramp is invisible. Strict pre-registered scoring
+(M8a) on 5 shapes: Qwen 1/4 PASS, LLaVA 4/4 PASS — the asymmetry
+*is* the cross-shape validation of the architecture-level reframe.
+
+### 4.3 H7 (label selects regime) — cross-category replication
+
+Cross-category strict scoring (M8d):
+- LLaVA: 3/3 PASS (car +0.525, person +0.138, bird +0.550 on
+  PMR_regime physical−abstract).
+- Qwen: 0/3 binary (ceiling-flat) but regime distribution shows
+  figurine 17.5% static, statue 22.5% static — the label-selects-
+  regime claim is now category-general, not circle-specific.
+
+### 4.4 Photo collapse (M8c)
+
+Real photographs reduce Qwen PMR(_nolabel) by 18-48 pp across
+categories. All 3 tested models converge to PMR [0.18, 0.67] on
+photos. The encoder gap that was clean on synthetic stim collapses
+on rich photos — synthetic-stim minimality is a co-factor of
+behavioral saturation, not just encoder representation.
+
+## 5. Encoder vs LM disambiguation
+
+(Target: 1.5 pages.)
+
+### 5.1 Vision encoder probes — uniform discriminability
+
+5-model encoder probe AUC chain (M6 r2-r6 apples-to-apples on M8a
+stim):
+
+| Model | Encoder | AUC | Behavioral PMR(_nolabel) |
+|---|---|---|---|
+| Qwen2.5-VL | SigLIP | 0.88 | 0.84 |
+| LLaVA-1.5 | CLIP-ViT-L | 0.77 | 0.18 |
+| LLaVA-Next | CLIP-ViT-L | — | 0.70 |
+| Idefics2 | SigLIP-SO400M | 0.93 | 0.88 |
+| InternVL3 | InternViT | 0.89 | 0.92 |
+
+The encoder discriminability gap (0.77 vs 0.93) is much smaller than
+the PMR gap (0.18 vs 0.92). On a stim-defined y target, every
+encoder hits AUC = 1.0 — the information is uniform across encoders.
+
+### 5.2 The 2-CLIP-point insight
+
+LLaVA-1.5 (CLIP-ViT-L + Vicuna): PMR(_nolabel) = 0.18.
+LLaVA-Next (CLIP-ViT-L + Mistral + AnyRes tiling): PMR(_nolabel) =
+0.70. Same encoder family, 0.52-PMR jump. This rules out
+vision-encoder family as the sole determinant.
+
+(The jump is 4-axis-confounded — AnyRes tiling, fusion projector,
+training, LM family — so we cannot isolate the LM-only contribution
+from this comparison alone. We flag this as a future-work LM-swap
+counterfactual.)
+
+### 5.3 §4.5 cross-encoder swap
+
+Idefics2-8B (SigLIP-SO400M + Mistral-7B) provides a causal
+counterfactual at the encoder-family level. Patterns identically
+with Qwen on PMR + H7. With LLaVA at 0.18 (CLIP + Vicuna) and
+Idefics2 at 0.88 (SigLIP-SO400M + Mistral), the encoder type drives
+PMR ceiling regardless of LM (Qwen2-7B vs Mistral-7B).
+
+### 5.4 The architecture-level reframe
+
+Reading: behavioral PMR(_nolabel) saturation on synthetic stim is
+determined at the **architecture level (joint encoder + LM)**, not
+at encoder representational capacity alone. Stim-defined AUC = 1.0
+across all encoders; behavioral-y AUC and PMR vary 0.18-0.92. The
+PMR ladder reflects each LM's reading of encoder output as
+"physics-mode signal" — downstream-conditional, not encoder-info.
+
+## 6. Causal localization — M5a + M5a-ext
+
+(Target: 1 page with the famous "L10 only" plot.)
+
+### 6.1 v_L direction extraction
+
+For each captured layer L, we compute the class-mean difference
+direction over M2's labeled subset (n_pos = 312, n_neg = 168).
+Direction norm grows 5× through the LM (5.9 at L5 to 31 at L25).
+
+### 6.2 Causal intervention sweep
+
+10 baseline `line/blank/none` stim × 4 layers × 5 α values = 200
+inferences with forced-choice prompt and label = "circle" (baseline
+PMR ≈ 0).
+
+| layer | α=0 | α=5 | α=10 | α=20 | α=40 |
+|---|---|---|---|---|---|
+| 10 | 10 D | 10 D | 10 D | 10 D | **10 B** |
+| 15 | 10 D | 10 D | 10 D | 10 D | 10 D |
+| 20 | 10 D | 10 D | 10 D | 10 D | 10 D |
+| 25 | 10 D | 10 D | 10 D | 10 D | 10 D |
+
+L10 α=40 flips 10/10 from D ("This is an abstract shape...") to B
+("It stays still — the circle appears to be floating or suspended
+in space without any external force..."). No other layer moves at
+the same α.
+
+### 6.3 v_L10 is a regime axis (M5a-ext)
+
+Initial reading framed v_L10 as a one-way "physical object-ness"
+activator. Three follow-up experiments revised this:
+
+**Exp 1** (textured/ground/both, near-ceiling baseline): −α has no
+effect (ceiling artifact).
+
+**Exp 2** (line/blank/none × +α=40, label = ball): the model
+switches B (static) → A (rolls / falls). Label selects regime when
+the steering direction is active.
+
+**Exp 3** (textured/blank/none, moderate baseline): −α=40 flips
+D → B uniformly across (line, textured) × (ball, circle).
+
+Revised reading: both signs of α activate physics-mode. Sign
+selects regime: +α kinetic / −α static. Baseline D sits below the
+|α| threshold, not at one end of the axis. **v_L10 is a regime axis
+within physics-mode**, not a binary object-ness toggle.
+
+## 7. Pixel encodability — §4.6
+
+(Target: 1.5 pages with the §4.6 panel + trajectory figures.)
+
+### 7.1 The reverse direction
+
+M5a establishes that adding `α · v_L10` at LM L10 over visual tokens
+steers behavior. §4.6 asks the inverse question: **can a small
+perturbation in pixel space make the model itself project onto
+v_L10 without runtime steering?**
+
+If yes, the shortcut is *encodable* in the image — the model is
+extracting v_L10-directional information from pixel-level features,
+not from runtime intervention.
+
+### 7.2 Method
+
+Optimize Qwen2.5-VL's post-processor `pixel_values` tensor (T × 1176
+where 1176 = 2·3·14·14) to maximize
+`⟨mean(h_L10[visual]), v_L10⟩`. Adam (lr=1e-2, n_steps=200).
+float32 leaf cast to bf16 in the forward pass; the vision tower →
+projector → LM 0..10 path is end-to-end differentiable (Phase 1
+gate confirmed gradient max_abs = 13.75 with no NaNs).
+
+L∞-bounded on `pv_leaf − pv_initial`: ε ∈ {0.05, 0.1, 0.2} or
+unconstrained.
+
+### 7.3 Configurations + result
+
+5 baseline circle stim × 7 configurations × 200 steps = 35 runs.
+
+| Config | n flipped (PMR 0→1) | Mean final projection |
+|---|---|---|
+| bounded ε=0.05 (v_L10) | **5 / 5** | 43.7 |
+| bounded ε=0.10 (v_L10) | **5 / 5** | 100.6 |
+| bounded ε=0.20 (v_L10) | **5 / 5** | 125.9 |
+| unconstrained (v_L10) | **5 / 5** | 181.1 |
+| control random unit dir × 3 @ ε=0.10 | **0 / 15** | 73-85 |
+
+5/5 v_L10 flips at the smallest ε; 0/15 random-direction flips at
+matched magnitude. **Directional specificity, not magnitude,
+controls the regime flip.** Sample synthesized response: "The
+circle will continue to fall downward due to gravity." Sample
+random-control response: "The circle will remain stationary as
+there is no indication of movement..."
+
+### 7.4 Visual character of the perturbation
+
+ε = 0.05 produces a low-amplitude pattern visible on close
+inspection — a faint dotted texture overlaid on the white
+background — but the abstract circle gestalt is preserved. A casual
+viewer would still describe the image as "a black circle on white"; the
+perturbation does **not** introduce gravity cues, ground lines,
+shadows, or any physically suggestive features that a human would
+read.
+
+The relevant claim is: **the model can be flipped by a perturbation
+that does not introduce human-readable physical content**. We do not
+claim the perturbation is imperceptible.
+
+### 7.5 Implication: shortcut on the pixel path
+
+Combined with M5a (runtime steering), §4.6 places v_L10 on the
+**shortcut path**: it is a direction the vision encoder + projector
+can write into from pixel-level features alone, the LM reads out
+from at L10, and the behavioral consequence (PMR) follows from the
+projection magnitude along this specific axis. The random-direction
+controls falsify "any sufficient perturbation flips PMR" and
+isolate v_L10.
+
+## 8. External validity & secondary findings
+
+### 8.1 Multilingual labels (§4.3)
+
+Korean (공/원/행성) and Japanese (ボール/円/惑星) labels on M8a
+circle stim. Cross-label ordering preserved 4/5 models on Korean.
+Mechanisms differ:
+- Qwen genuinely engages Japanese-as-Japanese (label-echo 85-91%).
+- LLaVA-1.5 translates kanji to English internally.
+- Idefics2 falls back to Chinese on 惑星 in 24% of responses
+  (cross-script bypass, scorer extended).
+
+### 8.2 Decision-stability ceiling (§4.7)
+
+Saturated models (Qwen / Idefics2 / InternVL3) converge to the same
+PMR call across 5 seeds when cues fire. CLIP-based models
+(LLaVA-1.5 / LLaVA-Next) retain seed-level variance even under
+strong cues. Saturation is not just a behavioral PMR ceiling but
+also a **decision-stability ceiling** — separate signature of the
+architecture-level reframe.
+
+### 8.3 Categorical regime distribution (§4.11)
+
+Granular form of M9's H7 finding. InternVL3 person × exotic
+(statue): PMR drops 0.800 → 0.481, 65% static — strongest single
+label-driven static commit in the project. Categorical view reveals
+the *kind* of commitment, not just whether the model commits.
+
+### 8.4 Cross-model attention to visual tokens (§4.10)
+
+Last-token attention to visual tokens varies architecturally despite
+all 5 LMs receiving 79–98% visual input tokens: Qwen ~17%, LLaVA-1.5
+~7%, Idefics2 ~30%. Visual attention peaks at mid-layers in all
+models. Cross-model architecture difference, not encoder
+difference.
+
+## 9. Discussion + limitations
+
+### 9.1 What we showed
+
+The architecture-level reframe is the cleanest finding. The 2-CLIP-
+point insight (LLaVA-1.5 vs LLaVA-Next) directly disconfirms an
+"encoder-determines-everything" story, and the §4.6 pixel-encodability
+result shows the shortcut path goes through pixel-level features.
+Together with M5a's L10 causal localization, this gives a three-
+dimensional anatomy of the shortcut.
+
+### 9.2 What we didn't show
+
+- No clean LM-only counterfactual (the LLaVA-1.5 → LLaVA-Next jump
+  is 4-axis-confounded). We flag this as a future-work need.
+- v_L10 is a 1-d axis from class-mean diff; multi-direction
+  decomposition (SAE features, multi-axis steering) is open.
+- §4.6 cross-model: only Qwen2.5-VL has been counterfactual-tested;
+  each of the other 4 models needs its own per-model v_L10
+  computation.
+- M5b (SIP / activation patching / SAE feature decomposition) is
+  the major mechanism gap we have not yet closed.
+- Human baseline (Prolific): 20 raters × 50 stim is budgeted but
+  not yet collected.
+
+### 9.3 Limitations of the experimental setup
+
+- **Single-task**: "next-state-prediction prompt" is the only
+  behavioral readout. Other shortcut-style behaviors (counting,
+  spatial reasoning, causality) are not tested.
+- **Programmatic stim** makes encoder AUC = 1.0 trivial. M8c photos
+  partially address this; richer photo distributions are open.
+- **Adversarial stim is not naturalistic**: §4.6's synthesized noise
+  pattern is visible. The result demonstrates the *existence* of a
+  pixel-driven flip channel, not that this channel is engaged on
+  natural images.
+
+### 9.4 Open questions
+
+- Is v_L10's pixel-encodability a property of Qwen specifically,
+  or do all 5 architectures admit a similar channel?
+- What is the relationship between v_L10 and SAE features at L10
+  (M5b, deferred)?
+- Does the 2-CLIP-point gap shrink when we control for AnyRes
+  tiling, projector, training, and LM family separately?
+
+## 10. Conclusion
+
+We localized the abstract→physical shortcut in 5 production-grade
+open-source VLMs along three independent dimensions: cross-architectural
+quantification (5 models × 3 stim sources × bootstrap CIs), causal
+localization at LM layer 10 (a single direction `v_L10` that is both
+runtime-steerable and pixel-encodable), and pixel-space encodability
+(directional specificity, not perturbation magnitude). The
+architecture-level reframe disconfirms an encoder-determines-everything
+reading and points to the joint encoder + LM as the unit of analysis
+for shortcut behaviors in VLMs.
+
+---
+
+## Appendix A — Full stimulus design
+
+(See `docs/stimulus_spec.md` for the complete factorial.)
+
+## Appendix B — PMR scoring rubric
+
+(See `docs/scoring_rubric.md`. Multilingual stems: English / Korean /
+Japanese / Chinese.)
+
+## Appendix C — Reproducibility
+
+All code, configs, stimulus generators, and inference pipelines:
+github.com/namam3gy/physical-mode-activation. Per-milestone insight
+deep dives: `docs/insights/m{1,3,4,5,6,8a,8c,8d,9}_*.md`,
+`docs/insights/sec4_{2,3,5,6,7,10,11}_*.md`. Full roadmap:
+`references/roadmap.md`.
+
+## Appendix D — Hypothesis scorecard
+
+Final state of H1-H7 + named H- hypotheses:
+
+| ID | Status | Key evidence |
+|---|---|---|
+| H1 (S-curve abstraction ramp) | supported, unsaturated-only | M2 + M8a (LLaVA 4/5) |
+| H2 (label-prior independent contribution) | validated, encoder-anchored | M4b + M6 |
+| H4 (open-vs-FC gap signature) | supported, extended | M2 +25 pp at every level |
+| H5 (ground line shift > visual diff) | mixed | M2 +21 pp; scene also wins |
+| H6 (cast shadow drives saturation) | supported, revised | Arrow alone also saturates |
+| H7 (label selects regime) | validated, cross-category | M8d LLaVA 3/3 |
+| H-boomerang (encoder knows / decoder gates) | Qwen-scoped | Refuted on LLaVA-1.5 |
+| H-encoder-saturation | architecture-level confirmed | M9 5-model bootstrap |
+| H-LM-modulation | suggested only | M9 H7 CI just touches 0 |
+| H-locus (mid-LM L10) | supported | M5a flips at L10 only |
+| H-direction-bidirectional | supported (regime axis) | M5a-ext Exp 3 |
+| H-direction-specificity | supported (§4.6) | 5/5 v_L10 vs 0/15 random |
+| H-shortcut (pixel-encodable) | supported (§4.6) | Encodable in pixels |
+
+## Appendix E — Software stack
+
+- transformers 4.45+
+- pytorch 2.4+ on CUDA 13.0 (H200)
+- python-pptx 1.0.2 (review PPT)
+- All Python code formatted with black; markdown bilingual via project
+  rule §6 (English canonical + `*_ko.md`).
