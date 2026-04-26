@@ -63,7 +63,7 @@ PREFIXES: dict[str, dict[str, str]] = {
         "llava": "m8d_llava",
         "llava_next": "encoder_swap_llava_next_m8d",
         "idefics2": "encoder_swap_idefics2_m8d",
-        # InternVL3 M8d not yet run — encoder_swap_analyze tolerates missing data.
+        "internvl3": "encoder_swap_internvl3_m8d",
     },
     "m8c": {
         "qwen": "m8c_qwen",
