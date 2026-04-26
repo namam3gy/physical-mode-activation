@@ -35,6 +35,12 @@ PMR_POSITIVE = [
     "지면으로 떨어 지기 시작.",
     "위로 이동.",
     "공이 움직이기 시작될 것입니다.",
+    # Japanese fallback (§4.3 ext: anticipated kanji/hiragana responses).
+    "ボールは地面に落ちます。",          # ball falls to ground
+    "ボールが転がっていきます。",         # ball rolls away
+    "円は移動するでしょう。",            # circle will move
+    "惑星は落下します。",                # planet falls
+    "ボールが動いています。",             # ball is moving
 ]
 
 PMR_NEGATIVE = [
@@ -52,6 +58,10 @@ PMR_NEGATIVE = [
     "원이 더 작아지기 시작될 것",     # abstract change, no physics verb
     "행성이 그대로 있을 것입니다.",      # 그대로 abstract marker
     "공이 움직이지 않을 것입니다.",     # 움직이지 않 abstract marker
+    # Japanese negatives.
+    "ボールはそのままです。",                # そのまま abstract marker
+    "円は動かない状態です。",                # 動かない abstract marker
+    "惑星は静止しています。",                # 静止 abstract marker
 ]
 
 

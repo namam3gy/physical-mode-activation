@@ -174,6 +174,54 @@ KOREAN_ABSTRACT_MARKERS: frozenset[str] = frozenset({
 })
 
 
+# Japanese physics-verb stems for §4.3-style runs where the model
+# emits Japanese-only or Japanese-mixed responses. Stems are matched
+# as substrings against the raw text. Japanese is also non-space-
+# segmented like Korean, so substring matching catches verb conjugations
+# (落ちる / 落ちて / 落ちた / 落ちている all contain 落ち).
+#
+# Same overlap-with-label rule as KOREAN_PHYSICS_VERB_STEMS — do NOT
+# add Japanese tokens that overlap with §4.3 labels (ボール / 円 / 惑星).
+# In particular: 動 alone overlaps with 運動 / 動物 / 動作 (compound
+# nouns); we use 動く + 動い to bind the verb-form context.
+JAPANESE_PHYSICS_VERB_STEMS: frozenset[str] = frozenset({
+    "落ち",         # 落ちる fall (落ちる / 落ちて / 落ちた / 落ちます / 落ちている)
+    "落下",         # 落下 falling (Sino-Japanese)
+    "落とし",       # 落とす drop (transitive)
+    "動く",         # 動く move (verb form)
+    "動い",         # 動いている / 動いて / 動いた (move conjugations)
+    "移動",         # 移動 movement
+    "転が",         # 転がる roll
+    "跳ね",         # 跳ねる bounce
+    "滑",           # 滑る slide (also 滑り)
+    "飛ん",         # 飛んで / 飛んだ / 飛んでいる fly
+    "飛び",         # 飛び去る / 飛び立つ
+    "衝突",         # 衝突 collision
+    "ぶつか",       # ぶつかる collide
+    "回転",         # 回転 rotation
+    "揺れ",         # 揺れる sway
+    "倒れ",         # 倒れる fall over
+    "転落",         # 転落 falling
+    "降り",         # 降りる descend
+    "加速",         # 加速 acceleration
+    "墜落",         # 墜落 crash
+})
+
+# Japanese abstract / hold-still markers — substring matched against text.
+# Conservative set; avoids ambiguous tokens like 静か (quiet, often
+# kinetic-context-compatible).
+JAPANESE_ABSTRACT_MARKERS: frozenset[str] = frozenset({
+    "動かない",     # doesn't move (verb negation)
+    "動きません",   # doesn't move (polite)
+    "そのまま",     # as is, unchanged
+    "変わらない",   # doesn't change
+    "変化なし",     # no change
+    "変化はない",   # no change is
+    "静止",         # stationary
+    "抽象",         # abstract
+})
+
+
 # ---------------------------------------------------------------------------
 # M8d category-specific regime keywords.
 # Used by metrics.pmr.classify_regime to assign one of {kinetic, static,
