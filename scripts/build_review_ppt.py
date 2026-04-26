@@ -284,13 +284,15 @@ def slide_stim_design(prs):
         add_text_box(s, x, yy + Inches(2.0), fig_w, Inches(0.3), lbl,
                      size=10, color=GRAY_MID, align=PP_ALIGN.CENTER)
     add_text_box(s, Inches(8.5), y + Inches(0.5), Inches(4.5), Inches(5.0),
+                 "M2 (this slide) is Qwen2.5-VL-only.\n"
                  "Each cell tested with 3 prompts:\n"
                  "• Open: \"What will happen next?\"\n"
                  "• Forced-choice (A/B/C/D)\n"
                  "• Label-free open: \"What do you see?\"\n\n"
                  "PMR is the rule-based scorer over the open response.\n\n"
-                 "Effective n per (model × prompt) = 480-2880 depending on subset.",
-                 size=14, color=GRAY_DARK)
+                 "Cross-model generalization of M2's headlines lives in\n"
+                 "M8a / M8d / M8c — see later slides.",
+                 size=13, color=GRAY_DARK)
     return s
 
 
@@ -317,9 +319,10 @@ def slide_m1_pilot(prs):
 
 def slide_m2(prs):
     s = new_slide(prs)
-    y = add_title_bar(s, "M2 MVP-full — 2880-stim factorial",
-                      subtitle="H1 monotone S-curve confirmed; H7 emerged "
-                      "(label selects regime, not just toggles PMR)")
+    y = add_title_bar(s, "M2 MVP-full — 2880-stim factorial (Qwen2.5-VL only)",
+                      subtitle="H1 monotone S-curve confirmed; H7 emerged. "
+                      "Cross-model generalization of these headlines lives in "
+                      "M8a/M8d/M8c (later slides).")
     rows = [
         ["Criterion", "Result"],
         ["Monotone S-curve over object_level (FC)", "0.583 < 0.647 < 0.711 < 0.714"],
@@ -720,19 +723,19 @@ def slide_hypotheses(prs):
                       subtitle="Original H1-H7 + named H- hypotheses derived during the work")
     rows = [
         ["ID", "Status", "Key evidence"],
-        ["H1 (S-curve)", "supported, unsaturated-only", "M2, M8a (LLaVA 4/5)"],
-        ["H2 (label prior)", "validated, encoder-anchored", "M4b, M6, encoder-saturation"],
-        ["H4 (open vs FC)", "supported, extended", "M2 +25 pp at every level"],
-        ["H5 (ground)", "mixed", "M2 +21 pp, scene also wins"],
-        ["H6 (cast shadow)", "supported, revised", "Arrow ALSO saturates"],
-        ["H7 (label selects regime)", "validated, cross-category", "M8d LLaVA 3/3"],
-        ["H-boomerang", "Qwen-scoped", "Refuted on LLaVA-1.5"],
-        ["H-encoder-saturation", "architecture-level confirmed (5 model × 3 stim)", "M9 bootstrap"],
-        ["H-LM-modulation", "suggested only", "M9 H7 CI touches 0"],
-        ["H-locus (mid-LM)", "supported (L10)", "M5a flips at L10 only"],
-        ["H-direction-bidirectional", "supported (regime axis)", "M5a-ext Exp 3"],
-        ["H-direction-specificity", "supported (§4.6)", "5/5 vs 0/15 random"],
-        ["H-shortcut", "supported (§4.6)", "Encodable in pixels"],
+        ["H1 (S-curve)", "supported, unsaturated-only", "M2 (Qwen, compressed) + M6 r1 (LLaVA clean) + M8a (LLaVA 4/5)"],
+        ["H2 (label prior)", "validated, encoder-anchored", "M4b (Qwen) + M6 r1 (LLaVA) + M6 r2a (InternVL3)"],
+        ["H4 (open vs FC)", "supported (Qwen-only at M2)", "M2: 22-32 pp gap; cross-model untested"],
+        ["H5 (ground)", "mixed (Qwen-only)", "M2: bg +21 vs obj +9; cross-model untested"],
+        ["H6 (cast shadow)", "supported, revised (Qwen-only)", "M2: arrow alone also saturates"],
+        ["H7 (label selects regime)", "validated, cross-category", "M2 (Qwen GAR) + M5a-ext + M6 r1+r2a (circle) + M8d LLaVA 3/3"],
+        ["H-boomerang", "Qwen-scoped", "M3 (Qwen): AUC 1.0; refuted on LLaVA-1.5"],
+        ["H-encoder-saturation", "architecture-level confirmed", "M9 5-model bootstrap (3 stim)"],
+        ["H-LM-modulation", "suggested only", "M9 Idefics2 M8d H7 CI touches 0"],
+        ["H-locus (mid-LM)", "supported (Qwen-only)", "M5a (Qwen): L10 α=40 only"],
+        ["H-direction-bidirectional", "supported (Qwen-only)", "M5a-ext Exp 3 (Qwen)"],
+        ["H-direction-specificity", "supported (Qwen-only, §4.6)", "5/5 v_L10 vs 0/15 random (Qwen)"],
+        ["H-shortcut", "supported (Qwen-only, §4.6)", "Pixel-encodable on Qwen"],
     ]
     add_table(s, Inches(0.4), y + Inches(0.05), Inches(12.5), Inches(5.8), rows,
               header_color=ACCENT, font_size=11)

@@ -109,12 +109,16 @@ context simplicity.
 ### 1.3 Roadmap
 
 §2 reviews related work. §3 introduces our stimulus design and
-metrics. §4 reports cross-model behavioral PMR with bootstrap CIs
-(M1–M2 + M6 + M9). §5 reports the encoder-vs-LM disambiguation
-(M3 + M6 r2-r6 + §4.5 + M8c). §6 reports the causal localization
-(M5a + M5a-ext). §7 reports the pixel-encodability result (§4.6).
-§8 discusses external validity (M8a/d + multilingual + decision-
-stability). §9 catalogs limitations and remaining open questions.
+metrics. §4 reports the cross-model behavioral PMR ladder with
+bootstrap CIs (M6 + M8a + M9; M1-M2 are Qwen-only single-model
+runs that establish the protocol and surface H7). §5 reports the
+encoder-vs-LM disambiguation (M3 Qwen-only + M6 r2-r6 cross-model
++ §4.5 + M8c). §6 reports the causal localization on Qwen2.5-VL
+(M5a + M5a-ext). §7 reports the pixel-encodability result on
+Qwen2.5-VL (§4.6). §8 discusses external validity (M8a/d cross-
+model + multilingual + decision-stability). §9 catalogs limitations
+and remaining open questions including the un-tested cross-model
+generalization of M5a / §4.6.
 
 ## 2. Related Work
 
@@ -155,24 +159,36 @@ stability). §9 catalogs limitations and remaining open questions.
 
 ### 3.1 Stimulus design
 
-We use three stimulus sources:
+We use four stimulus sources, three of which are cross-model and one
+of which (M2) is single-model:
 
-**M2 synthetic factorial** (480 stim per model run × 5 axes):
+**M2 synthetic factorial — Qwen2.5-VL only** (2880 inferences = 480
+stim × 6 prompt-variants × 1 model). Single-shape (circle), 5 axes:
 - `object_level` ∈ {line, filled, shaded, textured} — abstraction axis
 - `bg_level` ∈ {blank, ground, scene} — context axis
 - `cue_level` ∈ {none, cast_shadow, motion_arrow, both} — physics-cue axis
 - `event` ∈ {fall, rise, horizontal} — direction axis
 - `seed` ∈ {1..N} — randomization
 
-**M8a non-circle shapes** (400 stim per run): replace the disk with
-square / triangle / hexagon / irregular polygon at every level.
+The fine-grained axis decomposition (cast_shadow vs motion_arrow,
+ground vs scene, FC vs open-ended at every cell) is M2-specific and
+Qwen-only. Cross-model generalization of M2's headline findings
+(H1 ramp, H7 label-selects-regime) lives in M8a (5-shape × 5-model)
+and M8d (3-category × 2-model). M2's protocol was partially replicated
+on LLaVA-1.5 in M6 r1 (M2 stim + label-free prompt).
 
-**M8d non-ball categories** (480 stim per run): replace the ball with
-car / person / bird at every level (event-axis doubled to 2 to
-include `horizontal` natural motion).
+**M8a non-circle shapes — cross-model** (5 shapes × 5 models): replace
+the disk with square / triangle / hexagon / irregular polygon at every
+level. Reduced factorial (object_level × bg × cue × seed, fall event
+only) = 80 stim per shape × 5 shapes × 5 models for the canonical run.
 
-**M8c real photographs** (60 stim total): 12 photographs each of
-{ball, car, person, bird, abstract} sourced from COCO 2017 + WikiArt.
+**M8d non-ball categories — Qwen + LLaVA** (3 categories × 2 models):
+replace the ball with car / person / bird (event-axis doubled to 2 to
+include `horizontal` natural motion). 480 stim total per arm.
+
+**M8c real photographs — 5 models on subset** (60 photos total): 12
+photographs each of {ball, car, person, bird, abstract} from COCO
+2017 + WikiArt; covered by all 5 models for the cross-stim check.
 
 ### 3.2 Models
 
@@ -661,19 +677,19 @@ Final state of H1-H7 + named H- hypotheses:
 
 | ID | Status | Key evidence |
 |---|---|---|
-| H1 (S-curve abstraction ramp) | supported, unsaturated-only | M2 + M8a (LLaVA 4/5) |
-| H2 (label-prior independent contribution) | validated, encoder-anchored | M4b + M6 |
-| H4 (open-vs-FC gap signature) | supported, extended | M2 +25 pp at every level |
-| H5 (ground line shift > visual diff) | mixed | M2 +21 pp; scene also wins |
-| H6 (cast shadow drives saturation) | supported, revised | Arrow alone also saturates |
-| H7 (label selects regime) | validated, cross-category | M8d LLaVA 3/3 |
-| H-boomerang (encoder knows / decoder gates) | Qwen-scoped | Refuted on LLaVA-1.5 |
-| H-encoder-saturation | architecture-level confirmed | M9 5-model bootstrap |
-| H-LM-modulation | suggested only | M9 H7 CI just touches 0 |
-| H-locus (mid-LM L10) | supported | M5a flips at L10 only |
-| H-direction-bidirectional | supported (regime axis) | M5a-ext Exp 3 |
-| H-direction-specificity | supported (§4.6) | 5/5 v_L10 vs 0/15 random |
-| H-shortcut (pixel-encodable) | supported (§4.6) | Encodable in pixels |
+| H1 (S-curve abstraction ramp) | supported, unsaturated-only | M2 (Qwen, saturated): monotone 0.74→0.83 but compressed. M6 r1 (LLaVA): clean S-curve 0.51→0.81. M8a: Qwen 3/5 / LLaVA 4/5 strict. |
+| H2 (label-prior independent contribution) | validated, encoder-anchored | M4b (Qwen) + M6 r1 (LLaVA) + M6 r2a (InternVL3); revised by encoder-saturation lens. |
+| H4 (open-vs-FC gap signature) | supported, extended (Qwen-only at M2, untested cross-model) | M2 (Qwen): 22-32 pp gap at every object_level. ST5 cross-model is open. |
+| H5 (ground line shift > visual diff) | mixed (Qwen-only) | M2 (Qwen): bg +21 pp > object +9 pp. Scene also wins. Cross-model untested. |
+| H6 (cast shadow drives saturation) | supported, revised (Qwen-only) | M2 (Qwen): cast_shadow alone +17.5 pp; arrow alone also saturates → "arrow = annotation" sub-claim refuted. Cross-model untested. |
+| H7 (label selects regime) | validated, cross-category | M2 GAR (Qwen): ball 0.79 / circle 0.70 / planet 0.48. M5a-ext Exp 2. M6 r1+r2a circle-only cross-model. M8d cross-category: LLaVA 3/3, Qwen 0/3 binary (regime distribution PASS). |
+| H-boomerang (encoder knows / decoder gates) | Qwen-scoped | M3 (Qwen): encoder AUC ≈ 1.0 vs behavioral 0.28-0.95. Refuted on LLaVA-1.5 (encoder is the bottleneck). |
+| H-encoder-saturation | architecture-level confirmed (5 model × 3 stim) | M9 5-model bootstrap CIs |
+| H-LM-modulation | suggested only | M9 Idefics2 M8d H7 CI just touches 0; no clean LM-only counterfactual |
+| H-locus (mid-LM L10) | supported (Qwen-only) | M5a (Qwen): L10 α=40 flips 10/10 line/blank/none. Cross-model untested. |
+| H-direction-bidirectional | supported (Qwen-only) | M5a-ext Exp 3 (Qwen): −α flips D→B at L10. Cross-model untested. |
+| H-direction-specificity | supported (Qwen-only, §4.6) | §4.6 (Qwen): 5/5 v_L10 flips at ε=0.05 vs 0/15 random. Cross-model untested. |
+| H-shortcut (pixel-encodable) | supported (Qwen-only, §4.6) | §4.6 (Qwen): pixel-space gradient ascent flips PMR. Cross-model untested. |
 
 ## Appendix E — Software stack
 
