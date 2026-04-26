@@ -112,9 +112,16 @@ Idefics2 8, 나머지 0) — 원래 영어-키워드 PMR scorer 가 조용히 0 
 default. Korean physics-verb stems (`떨어` / `이동` / `움직` / `회전` 등)
 와 Korean abstract markers (`그대로` / `움직이지 않` / `변하지 않` 등) 를
 `src/physical_mode/metrics/lexicons.py` 에 추가 + `score_pmr` 에 한국어
-substring fallback 추가. 아래 수치는 fix 후; 5-model finding 은 유지하되
-Idefics2 magnitude 가 더 깔끔 (−0.10 exotic drop 이 −0.05 로 축소,
-abstract +0.08 이 +0.11 로 증가; rank-flip 보존).
+substring fallback 추가. 아래 수치는 fix 후.
+
+Fix 가 주로 Idefics2 의 scorer noise 제거 (행성에서 원래 mis-score 된 4/80
+kinetic 응답, 원에서 3/80). 헤드라인 5-model finding 은 유지: cross-label
+ordering 4/5 보존; LLaVA-1.5 swing 최대 (LLaVA-1.5 는 세 라벨 모두 0/80
+KO-only — 공의 −0.19 는 fix 와 무관하게 유지, Vicuna-LM-bias 스토리가
+scorer artifact 가 아닌 진짜임을 확인); Idefics2 rank-flip 보존. Scorer
+fix 가 주로 원래 Idefics2 exotic deficit 을 *줄임* (−0.10 → −0.05) —
+rank-flip 이 이제 단일 `행성` collapse 가 아닌 `행성` 이 `원` 보다
+underperform 함으로 driven.
 
 ### 모델별 EN vs KO PMR
 
@@ -153,15 +160,17 @@ InternVL3 0.02 < LLaVA-Next 0.04 < Idefics2 0.05 < Qwen 0.06 < LLaVA-1.5 0.11.
    에도 cross-label rank 는 살아남음 (`공` 0.68 > `행성` 0.64 >
    `원` 0.60 이 `ball > planet > circle` 미러).
 
-3. **Idefics2 가 특히 `행성` rank 손실**. Exotic role 의 −0.05 pp
-   감소가 abstract role 의 +0.11 pp 상승과 결합되어 `원` 대비 rank
-   뒤집음: KO `공 > 원 > 행성` vs EN `ball > planet > circle`.
-   Token-frequency story 와 일치: `행성` (compound noun, 학습 데이터
-   frequency 더 낮음) 이 `원` (단일 음절, 매우 흔함) 대비 LM (제한된
-   한국어 SFT 의 Mistral-7B) 가 한국어 prior 더 얇을 때 underperform.
-   Korean-scorer fix 후 Idefics2 exotic drop 이 더 작아짐
-   (−0.10 → −0.05) — 원래 측정이 단일-셀 deficit 을 과대평가했지만
-   rank-flip 스토리는 변하지 않음.
+3. **Idefics2 가 특히 `행성` rank 손실**. KO `공 (0.99) >
+   원 (0.95) > 행성 (0.84)` vs EN `ball (0.99) > planet (0.89) >
+   circle (0.84)`: EN 의 `planet > circle` ordering 이 한국어에서
+   `원 > 행성` 로 뒤집음. Token-frequency story 와 일치: `행성`
+   (compound noun, 학습 데이터 frequency 더 낮음) 이 `원` (단일 음절,
+   매우 흔함) 대비 LM (제한된 한국어 SFT 의 Mistral-7B) 가 한국어
+   prior 더 얇을 때 underperform. 원래 pre-scorer-fix 헤드라인이 이를
+   `행성` collapse (−0.10 exotic drop) 로 framing 했으나, 수정된 수치
+   (−0.05) 가 deficit 이 더 작고 rank-flip 이 *단일 큰 collapse 가 아닌*
+   `행성` 의 작은 underperformance + `원` 이 EN level 에서 거의 그대로
+   유지하는 *조합* 에서 발생함을 보임.
 
 4. **InternVL3 가 양 언어에서 천장** (PMR ≈ 1.0). 거의-제로 swing 이
    (a) saturated 라벨 prior, (b) 강한 InternLM3 한국어 coverage 둘 다

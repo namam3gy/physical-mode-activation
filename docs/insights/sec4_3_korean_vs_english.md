@@ -121,10 +121,16 @@ scorer silently defaulted to 0. We added Korean physics-verb stems
 (`떨어` / `이동` / `움직` / `회전` / etc.) and Korean abstract markers
 (`그대로` / `움직이지 않` / `변하지 않` / etc.) to
 `src/physical_mode/metrics/lexicons.py` and a Korean substring fallback
-to `score_pmr`. The numbers below are post-fix; the original 5-model
-finding stands but with cleaner Idefics2 magnitudes (the −0.10 exotic
-drop shrinks to −0.05; abstract +0.08 grows to +0.11; rank-flip
-preserved).
+to `score_pmr`. The numbers below are post-fix.
+
+The fix removes scorer noise primarily for Idefics2 (4/80 originally-
+mis-scored kinetic responses on 행성, 3/80 on 원). The headline 5-model
+finding survives: cross-label ordering preserved 4/5; LLaVA-1.5 swing
+largest (LLaVA-1.5 had 0/80 KO-only across all three labels — its −0.19
+on 공 is unaffected by the fix and confirmed genuine); Idefics2 rank-
+flip preserved. The scorer fix mostly *narrows* the original Idefics2
+exotic deficit (−0.10 → −0.05) — the rank-flip is now driven by `행성`
+underperforming `원` rather than by a single large `행성` collapse.
 
 ### Per-model EN vs KO PMR
 
@@ -165,16 +171,18 @@ InternVL3 0.02 < LLaVA-Next 0.04 < Idefics2 0.05 < Qwen 0.06 < LLaVA-1.5 0.11.
    survives (`공` 0.68 > `행성` 0.64 > `원` 0.60 mirrors
    `ball` > `planet` > `circle`).
 
-3. **Idefics2 specifically loses `행성` rank.** The −0.05 pp drop on
-   the exotic role combined with a +0.11 pp rise on the abstract role
-   flips the rank against `원`: KO `공 > 원 > 행성` vs EN
-   `ball > planet > circle`. Consistent with a token-frequency story:
+3. **Idefics2 specifically loses `행성` rank.** KO `공 (0.99) >
+   원 (0.95) > 행성 (0.84)` vs EN `ball (0.99) > planet (0.89) >
+   circle (0.84)`: the EN `planet > circle` ordering reverses to
+   `원 > 행성` in Korean. Consistent with a token-frequency story:
    `행성` (compound noun, lower training-data frequency) under-
    performs `원` (single-syllable, very common) when the LM (Mistral-7B
-   with limited Korean SFT) has a thinner Korean prior. Note that the
-   Idefics2 exotic drop is smaller after the Korean-scorer fix
-   (−0.10 → −0.05) — the original measurement over-stated the
-   single-cell deficit but the rank-flip story is unchanged.
+   with limited Korean SFT) has a thinner Korean prior. The original
+   pre-scorer-fix headline framed this as a `행성` collapse (−0.10
+   exotic drop), but the corrected number (−0.05) shows the deficit is
+   smaller and the rank-flip arises from the *combination* of a small
+   `행성` underperformance with `원` performing roughly at its EN
+   level — not from a single large collapse.
 
 4. **InternVL3 is at ceiling** in both languages (PMRs ≈ 1.0). The
    near-zero swing is consistent with both (a) saturated label prior
