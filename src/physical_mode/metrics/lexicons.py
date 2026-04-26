@@ -118,6 +118,15 @@ ABSTRACT_MARKERS: frozenset[str] = frozenset({
     "cannot move",
     "does not move",
     "doesn't move",
+    # §4.6 random-direction control surfaced these explicit negations of
+    # motion that the original scorer false-positived via the "mov" stem
+    # matching "movement" inside "no indication of movement".
+    "remain stationary",
+    "remains stationary",
+    "no indication of mov",   # catches "no indication of movement"
+    "no indication of motion",
+    "no indication of force",
+    "no force acting",
 })
 
 

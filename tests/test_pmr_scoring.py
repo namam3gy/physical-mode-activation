@@ -70,6 +70,11 @@ PMR_NEGATIVE = [
     "ボールはそのままです。",                # そのまま abstract marker
     "円は動かない状態です。",                # 動かない abstract marker
     "惑星は静止しています。",                # 静止 abstract marker
+    # §4.6 random-direction control patterns: scorer was false-positiving
+    # via "mov" stem inside "no indication of movement".
+    "The circle will remain stationary as there is no indication of movement or change in its position.",
+    "The circle will likely remain stationary as there is no indication of motion or force acting upon it in the image.",
+    "The shape remains stationary; nothing causes movement.",
 ]
 
 
