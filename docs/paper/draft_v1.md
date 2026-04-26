@@ -253,7 +253,11 @@ differentiable. Adam, lr=1e-2, n_steps=200. L∞-bounded on
 
 ### 4.1 The PMR(_nolabel) ladder
 
-[Insert m9_summary.png or session_5model_cross_stim_pmr.png]
+![Figure 1: 5-model × 3-stim PMR(_nolabel) ladder with bootstrap CIs](../figures/session_5model_cross_stim_pmr.png)
+
+*Figure 1.* Mean PMR(_nolabel) ± 95% bootstrap CI per
+(model × stim source). Encoder-family split is clean on synthetic
+stim (M8a, M8d) and collapses on real photos (M8c).
 
 Across the 5 models on M8a synthetic shapes:
 
@@ -299,6 +303,13 @@ behavioral saturation, not just encoder representation.
 (Target: 1.5 pages.)
 
 ### 5.1 Vision encoder probes — uniform discriminability
+
+![Figure 2: 5-model encoder probe AUC chain](../figures/encoder_chain_5model.png)
+
+*Figure 2.* Layer-sweep AUC of a logistic regression probe trained
+on per-stim PMR labels at each encoder layer. Non-CLIP encoders
+(SigLIP, SigLIP-SO400M, InternViT) cluster at AUC ≥ 0.88; only
+CLIP-ViT-L falls below.
 
 5-model encoder probe AUC chain (M6 r2-r6 apples-to-apples on M8a
 stim):
@@ -355,6 +366,11 @@ direction over M2's labeled subset (n_pos = 312, n_neg = 168).
 Direction norm grows 5× through the LM (5.9 at L5 to 31 at L25).
 
 ### 6.2 Causal intervention sweep
+
+![Figure 3: The stim being steered](../figures/01_line_blank_none.png)
+
+*Figure 3.* The `line/blank/none` baseline that v_L10 flips at L10
+α=40. PMR(_nolabel) on this stim ≈ 0 across all 5 models.
 
 10 baseline `line/blank/none` stim × 4 layers × 5 α values = 200
 inferences with forced-choice prompt and label = "circle" (baseline
@@ -421,6 +437,13 @@ unconstrained.
 
 ### 7.3 Configurations + result
 
+![Figure 4: §4.6 4-panel canonical seed](../figures/sec4_6_counterfactual_stim_panels.png)
+
+*Figure 4.* baseline → v_L10 ε=0.05 → v_L10 ε=0.1 → v_L10 unconstrained
+on a single seed. The abstract circle gestalt is preserved across all
+bounded conditions; ε=0.05 is a low-amplitude texture visible only on
+close inspection.
+
 5 baseline circle stim × 7 configurations × 200 steps = 35 runs.
 
 | Config | n flipped (PMR 0→1) | Mean final projection |
@@ -430,6 +453,13 @@ unconstrained.
 | bounded ε=0.20 (v_L10) | **5 / 5** | 125.9 |
 | unconstrained (v_L10) | **5 / 5** | 181.1 |
 | control random unit dir × 3 @ ε=0.10 | **0 / 15** | 73-85 |
+
+![Figure 5: §4.6 projection trajectories per config](../figures/sec4_6_counterfactual_stim_trajectory.png)
+
+*Figure 5.* Mean projection trajectory ± std over 5 seeds per
+config. Random directions (dashed) reach final projections ≈ 73-85;
+bounded ε=0.1 v_L10 reaches ≈ 101 — same order of magnitude, but
+behavioral outcome diverges (5 flips vs 0 flips).
 
 5/5 v_L10 flips at the smallest ε; 0/15 random-direction flips at
 matched magnitude. **Directional specificity, not magnitude,
