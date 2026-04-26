@@ -671,9 +671,34 @@ effect viewed from the input side: rich image → image dominates;
 impoverished image → label dominates. Full doc:
 `docs/insights/sec4_2_reverse_prompting.md` (+ ko).
 
-### 4.3 Label language switching
+### 4.3 Label language switching ✅ (2026-04-26, Qwen-only)
 
-Does a Korean `"공"` vs an English `"ball"` on the same stimulus produce different PMR? Qwen2.5-VL is multilingual → measure per-language prior strength. Extends the language-grounding narrative from project doc §3.
+Does a Korean `"공"` vs an English `"ball"` on the same stimulus produce
+different PMR? Qwen2.5-VL is multilingual.
+
+**Done 2026-04-26 on Qwen2.5-VL × M8a circle (n=80 per label per
+language)**:
+
+| Role | EN PMR | KO PMR | Δ |
+|------|-------:|-------:|---:|
+| ball / 공 | 0.81 | 0.85 | +0.04 |
+| circle / 원 | 0.80 | 0.76 | −0.04 |
+| planet / 행성 | 0.96 | 0.88 | −0.09 |
+
+**Headline**: cross-label ordering is preserved (planet > ball > circle
+in both languages). Korean labels match English magnitude on ball/circle
+(±5 pp); only `행성` shows a ~9 pp drop vs `planet` — possibly because
+`행성` is a less common training-data token. **Label-prior mechanism is
+multilingual semantic representation, not English-token shortcut.** Useful
+counterpoint to "labels dominate synthetic stim" — dominance driven by
+what label *means*, not English surface form.
+
+Doc: `docs/insights/sec4_3_korean_vs_english.md` (+ ko).
+Figure: `docs/figures/sec4_3_korean_vs_english.png`.
+
+**Still open**: cross-model (only Qwen tested); other languages
+(Japanese / Chinese / Spanish); fully Korean prompt (not just Korean
+label inserted into English template).
 
 ### 4.4 Video frame pair → Michotte-style causality
 

@@ -673,9 +673,32 @@ phys − abs = 0.000** on 물리 사진: 실 공을 `"circle"` 이라 부르는 
 본 saturation 효과: 풍부한 이미지 → 이미지 지배; 빈약한 이미지 → 라벨
 지배. 전체 문서: `docs/insights/sec4_2_reverse_prompting_ko.md`.
 
-### 4.3 Label 언어 전환
+### 4.3 Label 언어 전환 ✅ (2026-04-26, Qwen-only)
 
-한국어 `"공"` vs 영어 `"ball"` 을 같은 stimulus 에 붙이면 PMR 차이 나는가? Qwen2.5-VL 은 다국어 지원 → 언어별 prior 강도 측정 가능. 연구계획 §3 의 언어-grounding 내러티브 확장.
+한국어 `"공"` vs 영어 `"ball"` 같은 stimulus 에서 PMR 차이? Qwen2.5-VL
+multilingual.
+
+**2026-04-26 Qwen2.5-VL × M8a circle 에서 완료 (언어 × 라벨당 n=80)**:
+
+| Role | EN PMR | KO PMR | Δ |
+|------|-------:|-------:|---:|
+| ball / 공 | 0.81 | 0.85 | +0.04 |
+| circle / 원 | 0.80 | 0.76 | −0.04 |
+| planet / 행성 | 0.96 | 0.88 | −0.09 |
+
+**헤드라인**: 라벨 간 ordering 보존 (두 언어 모두 planet > ball > circle).
+한국어 라벨이 ball/circle 에서 영어 magnitude 와 일치 (±5 pp); `행성` 만
+`planet` 대비 ~9 pp 하락 — `행성` 이 덜 흔한 학습 데이터 토큰일 가능성.
+**Label-prior 메커니즘이 multilingual semantic representation, 영어-토큰
+shortcut 이 아님.** "라벨이 합성 stim 지배" 의 유용한 counterpoint —
+지배가 라벨이 *의미하는 것* 에 의해 driven, 영어 표면 형태가 아님.
+
+문서: `docs/insights/sec4_3_korean_vs_english_ko.md`. Figure:
+`docs/figures/sec4_3_korean_vs_english.png`.
+
+**여전히 열림**: cross-model (Qwen 만 테스트); 다른 언어 (일본어 /
+중국어 / 스페인어); 완전 한국어 프롬프트 (단지 영어 템플릿에 한국어
+라벨 삽입이 아닌).
 
 ### 4.4 Video frame pair → Michotte-style causality
 
