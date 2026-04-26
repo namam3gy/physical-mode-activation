@@ -691,9 +691,26 @@ Use a SAE / VTI steering vector in reverse to gradient-ascent synthesize a stimu
 
 **Status (2026-04-25)**: promoted to next-tier priority. The M5a `v_L10` direction is now well characterized (M5a-ext) — reverse-synthesis is the natural extension. Detailed work plan in §3 above.
 
-### 4.7 Decision-consistency boundary measurement
+### 4.7 Decision-consistency boundary measurement ✅ (2026-04-26)
 
-Pilot couldn't measure RC because T=0 made it degenerate. Reinterpret M2's RC (under T=0.7) as **per-axis decision stability**: which cue stabilizes decisions? Expected: ground + shaded + fall → high RC (uniform answer); line + blank + none → mid RC (consistently stationary); borderline cells have low RC.
+Pilot couldn't measure RC because T=0 made it degenerate. Reinterpret M2's
+RC (under T=0.7) as **per-axis decision stability**. **Done 2026-04-26
+on 5-model M8a label-free**.
+
+**Headline**: `cue_level=both` is the dominant decision stabilizer
+(+9–16 pp RC) for the 3 saturated models (Qwen 0.84→1.00, Idefics2
+0.88→0.99, InternVL3 0.89→0.98). Inverts/vanishes for LLaVA-1.5 +
+LLaVA-Next (CLIP encoders). bg_level=ground is a secondary stabilizer
+(+3–8 pp). object_level is the weakest stabilizer.
+
+**Reading**: saturation is not just a behavioral PMR ceiling but also a
+**decision-stability ceiling** — non-CLIP models converge to the same
+PMR call across all 5 seeds when cues fire. CLIP-based models retain
+seed-level variance even under strong cues. Separate signature of the
+H-encoder-saturation reframe.
+
+Doc: `docs/insights/sec4_7_rc_per_axis.md` (+ ko). Figure:
+`docs/figures/sec4_7_rc_per_axis.png`.
 
 ### 4.8 PMR scaling
 
