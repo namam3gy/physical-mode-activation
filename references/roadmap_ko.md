@@ -724,9 +724,22 @@ per-layer, per-head 의 visual token attention. 논문 appendix figure 용.
 LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3 으로 확장은 follow-up; 디스크
 비용 ~2 GB (5 모델 × 60 record).
 
-### 4.11 H7 follow-up — label-regime 범주 주석
+### 4.11 H7 follow-up — label-regime 범주 주석 ✅ partial (2026-04-26)
 
-M2에서 발견된 "라벨이 물리 regime을 선택한다" (circle → static / ball → rolls / planet → orbits) 의 체계적 검증. Open-ended 응답을 5범주 (gravity-fall / gravity-roll / orbital / inertial / static) 로 hand-annotation 또는 zero-shot classification → axis D × 범주 분포를 confusion-matrix 로. 라벨별 GAR 차이 (ball 0.79 / planet 0.48) 가 실제로 "어떤 물리인가" 의 categorical split 인지 수치 검증.
+"라벨이 물리 regime 을 선택한다" 의 체계적 검증. **2026-04-26 완료
+(4-모델 M8d, classify_regime 으로 kinetic / static / abstract /
+ambiguous)**. **헤드라인**: LLaVA-1.5 가 라벨로 regime 깔끔하게 선택
+(`person × no label` 40% kinetic + 40% static; `person × physical`
+62% kinetic; `car × abs / silhouette` 28% kinetic + 70% ambiguous).
+Qwen + Idefics2 는 saturated kinetic 모든 곳에서. LLaVA-Next 는
+intermediate, `person × exotic` (statue) 에서 주목할 3-way split (30%
+kinetic + 25% static + 25% abstract). 4-모델 gradient 가 M9 H7 finding
+의 granular form. 문서: `docs/insights/sec4_11_regime_distribution_ko.md`.
+Figure: `docs/figures/sec4_11_regime_distribution_4model.png`.
+
+**여전히 열림**: M2 circle-only 데이터의 5-카테고리 fine-grained regime
+(gravity-fall / gravity-roll / orbital / inertial / static); M8a
+5-도형 classify_regime 확장 (도형별 신규 키워드 셋 필요).
 
 ---
 

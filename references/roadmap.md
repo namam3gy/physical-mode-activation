@@ -722,9 +722,22 @@ per-layer, per-head visual-token attention. For the paper appendix figure.
 Extending to LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3 is a follow-up
 that would multiply disk cost (~2 GB total for 5 models × 60 records).
 
-### 4.11 H7 follow-up — label-regime category annotation
+### 4.11 H7 follow-up — label-regime category annotation ✅ partial (2026-04-26)
 
-Systematically validate the M2 finding that "label selects the physics regime" (circle → static / ball → rolls / planet → orbits). Hand-annotate or zero-shot-classify open-ended responses into 5 categories (gravity-fall / gravity-roll / orbital / inertial / static) → axis D × category distribution as a confusion matrix. Verify whether the per-label GAR difference (ball 0.79 / planet 0.48) is really a categorical split of "which physics is invoked".
+Systematically validate "label selects the physics regime". **Done
+2026-04-26 (4-model M8d, kinetic / static / abstract / ambiguous via
+classify_regime)**. **Headline**: LLaVA-1.5 cleanly selects regime by
+label (`person × no label` 40% kinetic + 40% static; `person × physical`
+62% kinetic; `car × abs / silhouette` 28% kinetic + 70% ambiguous).
+Qwen + Idefics2 saturated kinetic everywhere. LLaVA-Next intermediate
+with a notable 3-way split on `person × exotic` (statue: 30% kinetic +
+25% static + 25% abstract). 4-model gradient is the granular form of
+M9 H7 finding. Doc: `docs/insights/sec4_11_regime_distribution.md`
+(+ ko). Figure: `docs/figures/sec4_11_regime_distribution_4model.png`.
+
+**Still open**: 5-category fine-grained regime (gravity-fall / gravity-
+roll / orbital / inertial / static) for M2 circle-only data; M8a 5-shape
+extension to classify_regime (would need new keyword sets per shape).
 
 ---
 
