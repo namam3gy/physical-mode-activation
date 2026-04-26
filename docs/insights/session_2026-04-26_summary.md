@@ -119,7 +119,7 @@ Roadmap §4.11 promoted from "partial" to "complete".
 
 ## Artifacts
 
-### Commits (this session, 6 substantive + bookkeeping)
+### Commits (this session, 9 substantive + bookkeeping)
 
 - `309bdf6` — §4.11 4-model M8d regime distribution
 - `bbf01f9` — §4.7 per-axis RC stability
@@ -128,40 +128,62 @@ Roadmap §4.11 promoted from "partial" to "complete".
 - `df44a19` — §4.3 5-model cross-model extension
 - `c05e170` — Korean PMR scorer (lexicons + fallback)
 - `38ef1c4` — §4.3 framing tweaks per advisor
+- `622468e` — §4.3 Japanese scaffold (configs + script + JA lexicon)
+- `b754fdf` — §4.3 Japanese 5-model + Chinese-fallback scorer
+- `56d65ea` — §4.6 design spec (pending user review)
 
 ### New figures
 
 - `docs/figures/sec4_11_regime_distribution_4model.png`
 - `docs/figures/sec4_11_regime_distribution_5model.png`
 - `docs/figures/sec4_7_rc_per_axis.png`
-- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only)
-- `docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model)
+- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only KO)
+- `docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model KO)
+- `docs/figures/sec4_3_japanese_vs_english_cross_model.png` (5-model JA)
 
-### New insight docs
+### New insight docs + design specs
 
 - `docs/insights/sec4_11_regime_distribution.md` (+ ko)
 - `docs/insights/sec4_7_rc_per_axis.md` (+ ko)
-- `docs/insights/sec4_3_korean_vs_english.md` (+ ko)
+- `docs/insights/sec4_3_korean_vs_english.md` (+ ko, with Japanese ext)
 - `docs/insights/session_2026-04-26_summary.md` (this doc, + ko)
+- `docs/superpowers/specs/2026-04-26-sec4_6-counterfactual-stim-design.md`
+  (design — pending user review)
 
 ### New scripts
 
 - `scripts/sec4_11_regime_distribution.py`
 - `scripts/sec4_7_rc_per_axis.py`
-- `scripts/sec4_3_korean_vs_english.py` (Qwen-only)
-- `scripts/sec4_3_korean_vs_english_cross_model.py` (5-model)
+- `scripts/sec4_3_korean_vs_english.py` (Qwen-only KO)
+- `scripts/sec4_3_korean_vs_english_cross_model.py` (5-model KO)
+- `scripts/sec4_3_japanese_vs_english_cross_model.py` (5-model JA)
 
 ### New configs
 
 - `configs/sec4_3_korean_labels.py` (Qwen)
 - `configs/sec4_3_korean_labels_{llava,llava_next,idefics2,internvl3}.py`
+- `configs/sec4_3_japanese_labels.py` (Qwen)
+- `configs/sec4_3_japanese_labels_{llava,llava_next,idefics2,internvl3}.py`
+
+### Lexicon / scorer changes
+
+- `src/physical_mode/metrics/lexicons.py` — added KOREAN, JAPANESE,
+  CHINESE physics-verb stems + abstract markers.
+- `src/physical_mode/metrics/pmr.py` — `score_pmr` now checks 4
+  language paths (English / Korean / Japanese / Chinese fallback).
+- `tests/test_pmr_scoring.py` — 23 new regression cases (5 KO+, 3
+  KO−, 6 JA+, 3 JA−, 6 CN+, 1 Katakana). Total 51 PMR cases.
+- `docs/scoring_rubric.md` (+ ko) — documents Korean fallback.
 
 ### Roadmap
 
 - §4.11 marked "complete" (5-model with InternVL3 M8d added late session)
 - §4.7 marked "complete"
-- §4.3 promoted from "Qwen-only" to "5-model"
+- §4.3 promoted from "Qwen-only" to "5-model × 2 languages
+  (Korean, Japanese)"
 - §4.10 milestone-table row updated to ✅ (was still tagged PRIORITY 6)
+- §4.6 design spec written (autonomous defaults), pending user review.
+  Implementation not started (HARD-GATE).
 
 ## Late-session addition #2: §4.3 Korean vs English label prior (5-model + scorer fix)
 
@@ -205,15 +227,78 @@ encoder-saturation / label-prior story (M6 r2 / M8a / §4.7).
 Doc: `docs/insights/sec4_3_korean_vs_english.md` (+ ko).
 Figures: `docs/figures/sec4_3_korean_vs_english{,_cross_model}.png`.
 
+## Late-session addition #3: §4.3 Japanese (5-model) + Chinese fallback
+
+After §4.3 Korean closed, the user authorized a Japanese arm in
+autonomous mode to test whether the Korean "language-fluency-bottleneck"
+finding generalizes. Run end-to-end:
+
+1. **Japanese scaffold** (commit `622468e`): 5 configs
+   (`sec4_3_japanese_labels{,_llava,_llava_next,_idefics2,_internvl3}.py`),
+   analysis script, JAPANESE_PHYSICS_VERB_STEMS / JAPANESE_ABSTRACT_MARKERS
+   added to lexicon, Japanese regression tests (44 → 51 cases all pass).
+
+2. **Japanese aggregation + Chinese fallback** (commit `b754fdf`):
+   Inference completed (~50 min, 5 sequential models). Analysis revealed
+   Idefics2 emitted simplified Chinese on `惑星` (19/80 responses) —
+   Mistral-7B has limited Japanese SFT but recognizes shared kanji as
+   Chinese 惑星. Added CHINESE_PHYSICS_VERB_STEMS lexicon
+   (下落 / 掉入 / 跌落 / 坠落 / 下降 / 旋转 / 飞行 / ...) to score
+   correctly. Without the fix, Idefics2 exotic Δ would have been a
+   misleading **−0.15** (scorer artifact); corrected to +0.05.
+
+**Cross-language mechanism finding**:
+- **Korean tests language-fluency-bottleneck**: Hangul isolation forces
+  engagement; 4/5 ordering preserved; LLaVA-1.5 swing 0.11 measures
+  Vicuna-Korean weakness genuinely.
+- **Japanese tests kanji-as-bridge**: 5/5 ordering preserved within
+  bootstrap noise but via *different paths*:
+  - Qwen2.5-VL keeps Japanese labels 85-91% (genuine engagement)
+  - LLaVA-1.5 / LLaVA-Next / InternVL3 mostly translate kanji to English
+  - Idefics2 falls back to simplified Chinese on `惑星`
+- LLaVA-1.5 ↓Korean / ≈Japanese asymmetry (0.11 vs 0.05) is **NOT**
+  evidence Vicuna-Japanese is stronger; it reflects script
+  translatability, not LM SFT depth.
+
+This is a richer finding than the Korean-only result and reframes
+§4.3 as testing two distinct mechanisms.
+
+Doc: `docs/insights/sec4_3_korean_vs_english.md` (+ ko, with new
+Japanese cross-model section).
+Figure: `docs/figures/sec4_3_japanese_vs_english_cross_model.png`.
+Roadmap §4.3 updated with Japanese ext details.
+
+## Late-session addition #4: §4.6 design spec drafted (autonomous)
+
+User authorized §4.6 (SAE/VTI reverse counterfactual stim generation)
+as the next priority. brainstorming skill invoked → autonomous
+defaults applied → spec drafted at
+`docs/superpowers/specs/2026-04-26-sec4_6-counterfactual-stim-design.md`
+(commit `56d65ea`).
+
+Approach (recommended): pixel-space gradient ascent on Qwen2.5-VL's
+post-processor `pixel_values` tensor. Loss = `−⟨mean(h_L10[visual_tokens]),
+v_L10_unit⟩` (M5a steering direction). Bounded ε ∈ {0.05, 0.1, 0.2}
+sweep + unconstrained ablation. Random-direction control (n=3) to
+confirm v_L10-specificity. Causal sanity check: round-trip through
+PIL reconstruction + fresh PMR inference.
+
+**Pending user review** before invoking writing-plans skill (HARD-GATE
+in brainstorming skill). Implementation has NOT started.
+
 ## Combined backlog after this session
 
 Open §4 items:
 - ~~§4.3 — Korean vs English label prior~~ — *closed* (commits
-  `73a9bf9` + `df44a19` + `c05e170` + `38ef1c4`). Scorer extended to
-  Korean. Other languages (Japanese / Chinese / Spanish) and
-  fully-Korean prompt remain open as future extensions.
+  `73a9bf9` + `df44a19` + `c05e170` + `38ef1c4` + `622468e` +
+  `b754fdf`). Scorer extended to Korean + Japanese + Chinese (3
+  languages). Spanish and fully-target-language prompt remain open as
+  future extensions.
 - §4.4 — Michotte 2-frame causality (needs 2-image prompt support)
-- §4.6 — SAE counterfactual stim generation (complex, 4-6 hours)
+- ▶ §4.6 — VTI-reverse counterfactual stim — **design spec drafted
+  (autonomous), pending user review** at `docs/superpowers/specs/
+  2026-04-26-sec4_6-counterfactual-stim-design.md`. Implementation
+  estimate 10-11 hrs across 4-5 iterations.
 - §4.8 — PMR scaling (Qwen 32B/72B — needs new large-model loads)
 
 Major milestones:
@@ -223,19 +308,23 @@ Major milestones:
 
 ## Session running total (2026-04-25 + 2026-04-26)
 
-- Total commits since start of M6 r6: ~22 substantive (+ session/
-  scorer/bookkeeping commits)
+- Total commits since start of M6 r6: ~25 substantive (+ session /
+  scorer / bookkeeping / spec commits)
 - Total insight docs: 17 (English) + 17 (Korean) = 34 paired docs
   (research_overview, session summaries, m6 r1-r6, m8 a/c/d/e, m9,
   encoder_saturation_paper, sec4_2/4_3/4_7/4_10/4_11, m5/m4 series)
-- Total figures: 32+ (project-wide); 7 added across this 2-day run
+- Total figures: 33+ (project-wide); 8 added across this 2-day run
   (session_5model_cross_stim_pmr, session_image_vs_label_h7,
   session_attention_cross_model, sec4_11_regime_distribution_4model,
   sec4_11_regime_distribution_5model, sec4_7_rc_per_axis,
-  sec4_3_korean_vs_english + sec4_3_korean_vs_english_cross_model)
+  sec4_3_korean_vs_english + sec4_3_korean_vs_english_cross_model,
+  sec4_3_japanese_vs_english_cross_model)
 - Total notebooks: 13 (project-wide); 1 new (attention_viz.ipynb) +
   1 extended (encoder_saturation_chain.ipynb). §4 follow-ups don't
   ship reproduction notebooks per project convention.
-- Scorer extended once (English-only → English+Korean) with regression
-  tests; first language extension to the rubric.
-- pytest: 123/123 (no regressions)
+- Scorer extended **3 times**: English-only → English+Korean →
+  English+Korean+Japanese → English+Korean+Japanese+Chinese. 51 PMR
+  regression cases (was 28 at session start), all pass.
+- New design specs: 1 (`docs/superpowers/specs/2026-04-26-sec4_6-
+  counterfactual-stim-design.md` — pending user review).
+- pytest: 51/51 PMR cases (was 28/28). All other tests unchanged.
