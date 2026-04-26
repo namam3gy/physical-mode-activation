@@ -154,11 +154,18 @@ of the 15 random-control responses, **14** do. (One control response
 matches the original "remain unchanged"-pattern, which already gated
 correctly under the pre-fix scorer.)
 
-The headline was confirmed against the pre-fix scorer separately:
-`v_L10` 5/5 flips and random 0/15 flips both replicate, the
-*difference* the scorer fix makes is in how PMR=0 controls are
-labeled, not in any flip count. The 51-test PMR test suite is
-extended to 54 cases that pin this behavior.
+The scorer fix is essential to see the v_L10 vs random separation:
+without it, "no indication of movement" would have scored as PMR=1
+(false-positive on the `mov` stem) and the headline would have been
+**5/5 vs 14/15** instead of 5/5 vs 0/15 — the falsifier would have
+been erased. What the asymmetry check above (0/20 v_L10 hits vs
+14/15 random hits on the new markers) buys is confidence that the
+fix is *honest*: because the new patterns *gate* PMR=1 (abstract
+markers fire before the physics-verb match), the fix can only
+reduce PMR=1 counts, never create them, so the v_L10 vs random
+separation cannot be an artifact of the new markers favoring
+`v_L10`. The 51-test PMR test suite is extended to 54 cases that
+pin this behavior.
 
 ## Mechanism
 

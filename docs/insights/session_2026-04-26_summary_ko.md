@@ -301,11 +301,15 @@ random-control 응답 ("The circle will remain stationary as there
 is no indication of movement…") 이 처음에 PMR=1 로 채점됨 —
 "no indication of movement" 안의 substring "mov" 이 physics-verb
 stem 리스트와 매칭되었기 때문. 이대로면 헤드라인이 5/5 vs 0/15
-대신 5/5 vs 15/15 가 되어 falsifier 가 사라졌을 것.
+대신 **5/5 vs 14/15** 가 되어 falsifier 가 사라졌을 것.
 `lexicons.py:ABSTRACT_MARKERS` 에 비대칭 abstract-marker 패턴 추가:
 `remain stationary`, `no indication of mov`, `no indication of motion`.
-비대칭성 검증: v_L10 0/20 매칭, random 14/15 매칭. 헤드라인은
-수정 전 scorer 에서도 재현. PMR 테스트 스위트 51 → 54 케이스 확장.
+비대칭성 검증: v_L10 응답 0/20 이 새 marker 와 매칭, random 응답
+14/15 매칭. 수정은 cosmetic 이 아니라 필수: PMR=1 을 *gate* 하므로
+(abstract marker 가 physics-verb 매칭 전에 발화) PMR=1 카운트를
+*줄일* 수만 있고 *만들* 수는 없다 — v_L10 vs random 분리는 v_L10
+을 편애하는 fix-induced artifact 일 수 없다. PMR 테스트 스위트 51
+→ 54 케이스 확장.
 
 **Perturbation 의 시각적 특성 (advisor framing)**: ε = 0.05 는
 가까이서 보면 보이는 옅은 점박이 텍스처를 만들지만 abstract 한 원

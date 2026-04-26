@@ -308,13 +308,16 @@ specificity, not magnitude, controls the regime flip.
 random-control responses ("The circle will remain stationary as
 there is no indication of movement…") initially scored PMR=1 because
 the substring "mov" inside "no indication of movement" matched the
-physics-verb stem list — would have made the headline 5/5 vs 15/15
+physics-verb stem list — would have made the headline **5/5 vs 14/15**
 instead of 5/5 vs 0/15 and erased the falsifier. Added asymmetric
 abstract-marker patterns to `lexicons.py:ABSTRACT_MARKERS`:
 `remain stationary`, `no indication of mov`, `no indication of motion`.
-Verified asymmetric: 0/20 v_L10 hits, 14/15 random hits. Headline
-replicates with the pre-fix scorer. PMR test suite extended from 51
-→ 54 cases.
+Verified asymmetric: 0/20 v_L10 hits new markers, 14/15 random hits.
+The fix is essential, not cosmetic: it gates PMR=1 (abstract marker
+fires before physics-verb match) so it can only reduce PMR=1 counts,
+never create them — the v_L10 vs random separation cannot be a
+fix-induced artifact favoring v_L10. PMR test suite extended from
+51 → 54 cases.
 
 **Visual character of the perturbation (advisor framing)**: ε = 0.05
 produces a faint dotted texture visible on close inspection but

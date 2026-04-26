@@ -152,10 +152,17 @@ physics-verb 매칭을 gate 하므로, 변경은 PMR=1 카운트를 *줄일* 수
 개** 매칭. (한 개의 control 응답은 원래 "remain unchanged" 패턴과
 매칭되며, 이는 수정 전 scorer 에서도 이미 정상 gate.)
 
-수정 전 scorer 와도 별도 확인: `v_L10` 5/5 flip 과 random 0/15
-flip 모두 그대로 재현됨. scorer 수정이 만드는 *차이* 는 PMR=0
-control 의 라벨링이지 flip 카운트가 아니다. 51 개였던 PMR 테스트
-스위트는 이 동작을 고정하기 위해 54 케이스로 확장.
+scorer 수정이 v_L10 vs random 분리를 보기 위한 필수 조건이다:
+수정이 없었다면 "no indication of movement" 가 (`mov` stem 위
+false-positive 로) PMR=1 로 채점되었을 것이고, 헤드라인은
+5/5 vs 0/15 가 아닌 **5/5 vs 14/15** 가 되어 falsifier 가
+사라졌을 것이다. 위 비대칭성 검증 (v_L10 0/20 매칭 vs random
+14/15 매칭) 이 사주는 것은 수정이 *정직* 하다는 확신이다:
+새 패턴이 PMR=1 을 *gate* 하므로 (abstract marker 가 physics-verb
+매칭 전에 발화), 수정은 PMR=1 카운트를 *줄일* 수만 있고 *만들* 수는
+없다 — 따라서 v_L10 vs random 분리는 새 marker 가 `v_L10` 을
+편애하는 artifact 일 수 없다. 51 개였던 PMR 테스트 스위트는 이
+동작을 고정하기 위해 54 케이스로 확장.
 
 ## Mechanism
 
