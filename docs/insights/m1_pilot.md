@@ -1,5 +1,12 @@
 # M1 Pilot Insights
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H1** — PMR rises in an S-shape along the abstraction axis (line → filled → shaded → textured); ground introduction adds the largest single jump.
+> - **H2** — The label (ball / circle / planet) independently raises PMR even on minimal stim — a language-prior contribution beyond the visual evidence.
+> - **H3** — Scene inconsistency degrades response consistency (RC) — untested.
+> - **M1** — ST1 pilot — Qwen2.5-VL-7B on 480 stim; established H1 partial / H2 strong / H4 / H5 / H6 candidates.
+
 Observations and implications from the Sub-task 1 pilot experiment
 (Qwen2.5-VL-7B-Instruct, 480 inferences, H200, 2026-04-24). Raw numbers in
 `docs/experiments/m1_pilot.md` and

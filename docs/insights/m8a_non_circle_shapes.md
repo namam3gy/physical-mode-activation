@@ -1,5 +1,19 @@
 # M8a — Non-circle synthetic shapes (external-validity round 1)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H1** — PMR rises in an S-shape along the abstraction axis (line → filled → shaded → textured); ground introduction adds the largest single jump.
+> - **H2** — The label (ball / circle / planet) independently raises PMR even on minimal stim — a language-prior contribution beyond the visual evidence.
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M2** — ST1 MVP-full — 5-axis factorial (2880 stim); H1 monotone S-curve, H7 emerged.
+> - **M4b** — M4 + label-free prompt as H2 null test; revealed H2 is asymmetric on Qwen (circle override, not ball enhancement).
+> - **M8** — Stim diversification family — see M8a (synthetic shapes), M8c (real photos), M8d (non-ball categories), M8e (cross-source).
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim diversification — real photographs (60 photos × 5 categories from COCO + WikiArt). Photos REDUCE Qwen PMR(_nolabel) 18-48 pp.
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
+
 **Status**: Pre-registered (criteria locked before measurement). Results
 section appended after the run.
 
@@ -30,8 +44,10 @@ level was redesigned per shape:
 - `shaded`   — directional 3D shading (cube / wedge / hex prism / faceted polygon)
 - `textured` — material cue (wooden block / stone / metal nut / rocky polygon)
 
-A 5×4 visual grid (`docs/figures/m8a_shape_grid.png`) confirms each cell
-is visually distinct and the abstraction progression is preserved.
+A 5×4 visual grid confirms each cell is visually distinct and the
+abstraction progression is preserved:
+
+![M8a 5×4 shape grid (5 shapes × 4 abstraction levels)](../figures/m8a_shape_grid.png)
 
 Per-shape label triplets (physical / abstract / exotic) are dispatched at
 prompt time:
@@ -158,8 +174,7 @@ Qwen sits at PMR ≈ 0.7–0.93 across all (shape × abstraction) cells —
 a ceiling that compresses any abstraction-axis effect. LLaVA spans
 PMR 0.12–0.78, with clear monotonic ramps on circle, square, triangle.
 
-See `docs/figures/m8a_pmr_ramp.png`.
-
+![m8a_pmr_ramp](../figures/m8a_pmr_ramp.png)
 ### PMR by (shape × label_role) — H7
 
 ```
@@ -193,8 +208,7 @@ exotic. The exotic label seems to amplify physics-mode when the noun
 itself names a heavy, ground-attached object (coin, boulder, planet)
 and to weaken it otherwise (tile, sign).
 
-See `docs/figures/m8a_pmr_by_role.png`.
-
+![m8a_pmr_by_role](../figures/m8a_pmr_by_role.png)
 ### GAR by (shape × label_role) at bg ∈ {ground, scene}, event=fall — H7-GAR
 
 ```
@@ -260,8 +274,7 @@ The strict ±0.05 criterion was a coarse proxy for the actual prediction
 Qwen `square` at -0.20 is signal, not noise — and it points to label
 suppression, the exact effect M4b documented for circle.
 
-See `docs/figures/m8a_paired_delta.png`.
-
+![m8a_paired_delta](../figures/m8a_paired_delta.png)
 ## Caveats — known label-design issues
 
 1. **Triangle's physical label "wedge" is weak.** PMR(physical=wedge)

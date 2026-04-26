@@ -1,5 +1,15 @@
 # M4 (ST3) Insights — LM Logit Lens + Per-Layer Probes
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-boomerang** — Vision encoder linearly separates physics-mode classes even where behavior fails — encoder knows, decoder gates. (Qwen-scoped: refuted on LLaVA-1.5 because its CLIP encoder is the bottleneck.)
+> - **H-locus** — The bottleneck is at the LM mid layers (L10 specifically), not earlier or in the decoding head.
+> - **M2** — ST1 MVP-full — 5-axis factorial (2880 stim); H1 monotone S-curve, H7 emerged.
+> - **M3** — ST2 vision-encoder probing — encoder AUC ≈ 1.0 trivially separates factorial axes ("boomerang").
+> - **M4** — ST3 LM logit lens / per-layer probes — LM AUC plateaus at ~0.95 at visual-token positions from L5.
+> - **M5** — ST4 causal localization (VTI steering / activation patching / SAE) — see M5a, M5a-ext, M5b.
+
 Sub-task 3 is the **internal extension** of the M3 boomerang: if the vision
 encoder transmits information perfectly (M3), then **how far** through the
 LM does that information survive, and **where** does it leak out before

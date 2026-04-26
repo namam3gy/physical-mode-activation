@@ -7,6 +7,42 @@ audience: 논문 reviewer / 신규 협업자 / 미래 자신
 
 # VLM 의 Physical-mode activation — 연구 종합
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H1** — PMR 이 abstraction 축을 따라 S 모양으로 상승 (line → filled → shaded → textured); ground 도입이 가장 큰 단일 jump.
+> - **H2** — label (ball / circle / planet) 자체가 PMR 을 독립적으로 끌어올림 — 시각 증거를 넘는 language-prior 기여.
+> - **H4** — Open-ended vs. forced-choice PMR 간격은 language-prior ↔ visual-evidence 충돌의 안정적 signature.
+> - **H5** — 지면 한 줄이 추상적인 원 ↔ 텍스처 공의 시각 차이보다 PMR 을 더 많이 이동시킴.
+> - **H6** — Cast-shadow 단독이 cue saturation 을 만듦; arrow 는 annotation 에 가깝다는 sub-claim 은 부분 반박 (arrow 단독도 saturation).
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **H-boomerang** — Vision encoder 가 행동이 실패하는 곳에서도 physics-mode class 를 선형 분리 — encoder 는 알고 decoder 가 gate. (Qwen 한정: LLaVA-1.5 에서는 CLIP encoder 자체가 bottleneck 이라 반박.)
+> - **H-direction-bidirectional** — v_L10 은 physics-mode 안의 regime 축 (+α → 동적, −α → 정적); 초기 "one-way activator" framing 에서 수정됨.
+> - **H-encoder-saturation** — 합성 stim 위 behavioral PMR(_nolabel) saturation 은 architecture 수준 (encoder + LM 결합) 에서 결정 — encoder 표현 능력만으로는 부족.
+> - **M0** — 인프라 스캐폴드 (package layout, scripts, configs, tests).
+> - **M1** — ST1 pilot — Qwen2.5-VL-7B 480 stim; H1 부분 / H2 강 / H4 / H5 / H6 후보 확립.
+> - **M2** — ST1 MVP-full — 5축 factorial (2880 stim); H1 monotone S-curve, H7 등장.
+> - **M3** — ST2 vision-encoder probing — encoder AUC ≈ 1.0 으로 factorial 축 자명 분리 ("boomerang").
+> - **M4** — ST3 LM logit lens / per-layer probes — LM AUC 가 시각-토큰 위치에서 L5 부터 ~0.95 plateau.
+> - **M4b** — M4 + label-free 프롬프트로 H2 null test; Qwen 에서 H2 가 비대칭 (circle 억제, ball 증강 아님).
+> - **M4c** — Forced-choice label-free 변형 — FC 하에 M4b 재현; LLaVA "A" greedy bias 노출.
+> - **M5a** — ST4 VTI steering — LM L10 시각 토큰에 +α·v_L10 더하면 line/blank/none 이 "정지" → physics-mode 로 뒤집힘.
+> - **M5b** — ST4 Phase 3 (SIP + activation patching + SAE 특징 분해) — 보류 / optional.
+> - **M6** — ST5 cross-model sweep — M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next) 참조.
+> - **M7** — Human Prolific baseline (20 평가자 × 50 stim) + 논문 작성 — 보류 / optional.
+> - **M8** — Stim 다양화 family — M8a (합성 shape), M8c (실사진), M8d (비-공 카테고리), M8e (cross-source) 참조.
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim 다양화 — 실사진 (COCO + WikiArt 에서 60 photo × 5 카테고리). Qwen PMR(_nolabel) 을 18-48 pp 감소.
+> - **M8d** — Stim 다양화 — 비-공 물리 객체 카테고리 (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M8e** — Cross-source 페어 분석 (M8a + M8d + M8c 통합). Model × category × source_type heatmap 이 논문 Table 1 후보.
+> - **M9** — Generalization audit — 논문 Table 1 (3 model × 3 stim 소스 × bootstrap CIs, 5000 iter); PASS/FAIL 이진화를 CI 분리로 대체.
+> - **M6 r1** — ST5 cross-model — LLaVA-1.5-7B 가 H2 깔끔하게 재현 (포화되지 않은 CLIP encoder 가 label-prior 의 PMR 이동을 허용).
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA 캡처가 CLIP encoder bottleneck 노출, FC logit ratio 가 LLaVA "A" bias 의 logit-수준 성격 확인.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder AUC 0.93 으로 encoder-AUC ↔ PMR chain 마감 (3-point).
+> - **M6 r4** — InternVL3 InternViT probe — AUC 0.89 / PMR 0.92, chain 을 4 model 점으로 확장; H-encoder-saturation 이 "non-CLIP-일반".
+> - **M6 r5** — M8c 사진 encoder probe (4 model, cross-stim) — behavioral-y AUC 는 역전, stim-y AUC 는 1.0 유지 → encoder 식별력은 균일; architecture-수준으로 재구성.
+> - **M6 r6** — LLaVA-Next-Mistral 5번째 model 점 (2번째 CLIP) — PMR 0.700 [0.65, 0.74] 이 LLaVA-1.5 바닥과 saturated cluster 사이; vision-encoder 계열 단독 결정 배제.
+> - **v_L10** — M5a class-mean diff (physics − abstract) 에서 유도된 layer 10 LM hidden space (dim 3584) steering 방향. Unit norm.
+
 이 프로젝트가 무엇을 발견했고, 어떻게 발견했고, 무엇이 아직 열려있는지의
 단일 문서 synthesis. 세션별 작업을 따라오지 않은 독자 대상.
 

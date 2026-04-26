@@ -1,5 +1,16 @@
 # M4c — Forced-Choice Label-Free Prompt
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H2** — The label (ball / circle / planet) independently raises PMR even on minimal stim — a language-prior contribution beyond the visual evidence.
+> - **H4** — The open-ended vs. forced-choice PMR gap is a stable signature of the language-prior ↔ visual-evidence conflict.
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **M2** — ST1 MVP-full — 5-axis factorial (2880 stim); H1 monotone S-curve, H7 emerged.
+> - **M4b** — M4 + label-free prompt as H2 null test; revealed H2 is asymmetric on Qwen (circle override, not ball enhancement).
+> - **M4c** — Forced-choice label-free variant — confirms M4b under FC; surfaces LLaVA "A" greedy bias.
+> - **M6** — ST5 cross-model sweep — see M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next).
+> - **M6 r1** — ST5 cross-model — LLaVA-1.5-7B replicates H2 cleanly (unsaturated CLIP encoder lets the label-prior shift PMR).
+
 Companion to M4b. Tests whether the H2 reframing (`ball ≈ no-label`,
 `circle = suppressor`) survives moving from open-ended to forced-choice
 prompts; also tests whether re-templating the FC options without a

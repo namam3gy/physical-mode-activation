@@ -1,5 +1,16 @@
 # §4.5 — Cross-encoder swap (Idefics2 SigLIP+Mistral as third point)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H1** — PMR rises in an S-shape along the abstraction axis (line → filled → shaded → textured); ground introduction adds the largest single jump.
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim diversification — real photographs (60 photos × 5 categories from COCO + WikiArt). Photos REDUCE Qwen PMR(_nolabel) 18-48 pp.
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder probe AUC 0.93 closes the encoder-AUC ↔ PMR chain (3-point).
+
 **Status**: Complete 2026-04-25.
 
 ## Motivation
@@ -129,6 +140,8 @@ encoder/LM combination.
 
 ## Headline figure
 
+![encoder_swap_heatmap](../figures/encoder_swap_heatmap.png)
+
 `docs/figures/encoder_swap_heatmap.png` — three panels:
 1. PMR(_nolabel) heatmap (model × shape).
 2. H7 (physical − abstract) heatmap (model × shape).
@@ -188,5 +201,5 @@ LLaVA row is the outlier.
 - `scripts/encoder_swap_analyze.py` — driver.
 - `outputs/encoder_swap_idefics2_*/predictions.{jsonl,parquet,csv}`.
 - `outputs/encoder_swap_summary/encoder_swap_{pmr_nolabel,h7}.csv`.
-- `docs/figures/encoder_swap_heatmap.png` — paper-ready 3-panel.
+![paper-ready 3-panel](../figures/encoder_swap_heatmap.png)
 - `docs/insights/encoder_swap_idefics2.md` (+ `_ko.md`).

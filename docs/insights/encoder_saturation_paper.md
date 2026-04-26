@@ -1,5 +1,17 @@
 # H-encoder-saturation — paper-ready synthesis (5-model)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M5b** — ST4 Phase 3 (SIP + activation patching + SAE feature decomposition) — deferred / optional.
+> - **M7** — Human Prolific baseline (20 raters × 50 stim) + paper writing — deferred / optional.
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim diversification — real photographs (60 photos × 5 categories from COCO + WikiArt). Photos REDUCE Qwen PMR(_nolabel) 18-48 pp.
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder probe AUC 0.93 closes the encoder-AUC ↔ PMR chain (3-point).
+
 **Status**: 5-model M8a chain complete (Qwen, LLaVA-1.5, LLaVA-Next, Idefics2,
 InternVL3) as of 2026-04-25. Section 4 of the paper is locked at 5 model points.
 
@@ -186,7 +198,7 @@ discriminability per se.
 - `docs/insights/m6_r5_m8c_photo_probe.md` (cross-stim probe)
 - `docs/insights/m6_r6_llava_next.md` (5th model, 2nd CLIP — LLaVA-Next, multi-axis confound)
 - `notebooks/encoder_saturation_chain.ipynb` (reproduction)
-- `docs/figures/encoder_chain_5model.png` (paper headline figure — supersedes 4model)
-- `docs/figures/encoder_chain_4model.png` (frozen 4-model snapshot, kept for r3/r4/r5 docs)
+![encoder_chain_5model](../figures/encoder_chain_5model.png) (paper headline figure — supersedes 4model)
+![encoder_chain_4model](../figures/encoder_chain_4model.png) (frozen 4-model snapshot, kept for r3/r4/r5 docs)
 - `outputs/encoder_swap_probe_summary/encoder_chain_table.csv`
 - `outputs/m9_audit/m9_table1.csv` and `m9_summary.csv`

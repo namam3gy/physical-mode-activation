@@ -1,5 +1,14 @@
 # M3 (ST2) Insights — Encoder-Decoder Boomerang
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H4** — The open-ended vs. forced-choice PMR gap is a stable signature of the language-prior ↔ visual-evidence conflict.
+> - **M2** — ST1 MVP-full — 5-axis factorial (2880 stim); H1 monotone S-curve, H7 emerged.
+> - **M3** — ST2 vision-encoder probing — encoder AUC ≈ 1.0 trivially separates factorial axes ("boomerang").
+> - **M4** — ST3 LM logit lens / per-layer probes — LM AUC plateaus at ~0.95 at visual-token positions from L5.
+> - **M5** — ST4 causal localization (VTI steering / activation patching / SAE) — see M5a, M5a-ext, M5b.
+> - **M6** — ST5 cross-model sweep — see M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next).
+
 A deep look at the Sub-task 2 (vision-encoder probing) results. The pilot
 showed a behavior-level gap (open vs forced-choice etc.); M3 answers
 **where this gap originates** at the mechanism level.

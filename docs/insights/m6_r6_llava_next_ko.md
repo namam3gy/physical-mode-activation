@@ -7,6 +7,17 @@ hypothesis: H-encoder-saturation (architecture-level reframe)
 
 # M6 r6 — LLaVA-Next-Mistral 5번째 모델 점 (2번째 CLIP 점)
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **H-encoder-saturation** — 합성 stim 위 behavioral PMR(_nolabel) saturation 은 architecture 수준 (encoder + LM 결합) 에서 결정 — encoder 표현 능력만으로는 부족.
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim 다양화 — 실사진 (COCO + WikiArt 에서 60 photo × 5 카테고리). Qwen PMR(_nolabel) 을 18-48 pp 감소.
+> - **M8d** — Stim 다양화 — 비-공 물리 객체 카테고리 (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M9** — Generalization audit — 논문 Table 1 (3 model × 3 stim 소스 × bootstrap CIs, 5000 iter); PASS/FAIL 이진화를 CI 분리로 대체.
+> - **M6 r5** — M8c 사진 encoder probe (4 model, cross-stim) — behavioral-y AUC 는 역전, stim-y AUC 는 1.0 유지 → encoder 식별력은 균일; architecture-수준으로 재구성.
+> - **M6 r6** — LLaVA-Next-Mistral 5번째 model 점 (2번째 CLIP) — PMR 0.700 [0.65, 0.74] 이 LLaVA-1.5 바닥과 saturated cluster 사이; vision-encoder 계열 단독 결정 배제.
+
 ## 요약
 
 LLaVA-v1.6-Mistral-7b가 encoder-saturation chain의 **5번째 모델 점**을
@@ -279,5 +290,5 @@ uv run python scripts/m9_generalization_audit.py --out-dir outputs/m9_audit
 - `outputs/encoder_swap_llava_next_m8a_probe_stim_y/layer_sweep_stim_y_*.csv`
 - `outputs/encoder_swap_probe_summary/encoder_chain_table.csv`
 - `outputs/m9_audit/m9_table1.csv`, `m9_summary.csv` (5-모델 × 3-stim, 부트스트랩 CI)
-- `docs/figures/encoder_chain_5model.png`
-- `docs/figures/m9_summary.png`, `m9_table1_heatmap.png` (5-모델 부트스트랩 막대 + 히트맵)
+![encoder_chain_5model](../figures/encoder_chain_5model.png)
+![m9_summary](../figures/m9_summary.png), `m9_table1_heatmap.png` (5-모델 부트스트랩 막대 + 히트맵)

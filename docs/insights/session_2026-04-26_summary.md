@@ -8,6 +8,23 @@ commits: 309bdf6 → 9ec147e
 
 # Session 2026-04-26 — §4.7 + §4.11 + §4.3 + §4.6
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-direction-specificity** — Pixel-space gradient ascent along v_L10 flips PMR on Qwen2.5-VL; matched-magnitude random directions do not (§4.6).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **H-shortcut** — Shortcut interpretation is encodable in the image itself (§4.6) — pixel-driven, not just at runtime hidden-state injection.
+> - **M2** — ST1 MVP-full — 5-axis factorial (2880 stim); H1 monotone S-curve, H7 emerged.
+> - **M5a** — ST4 VTI steering — adding +α·v_L10 at LM L10 over visual tokens flips line/blank/none from "stays still" → physics-mode.
+> - **M5b** — ST4 Phase 3 (SIP + activation patching + SAE feature decomposition) — deferred / optional.
+> - **M7** — Human Prolific baseline (20 raters × 50 stim) + paper writing — deferred / optional.
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
+> - **M6 r6** — LLaVA-Next-Mistral 5th model point (2nd CLIP) — PMR 0.700 [0.65, 0.74] sits between LLaVA-1.5 floor and saturated cluster; rules out vision-encoder-family as sole determinant.
+> - **v_L10** — Steering direction in LM hidden space (dim 3584) at layer 10, derived from M5a class-mean diff (physics − abstract). Unit norm.
+
 ## What this session delivered
 
 Two §4 add-ons that re-use existing M8d / M8a label-free data with no
@@ -134,12 +151,12 @@ Roadmap §4.11 promoted from "partial" to "complete".
 
 ### New figures
 
-- `docs/figures/sec4_11_regime_distribution_4model.png`
-- `docs/figures/sec4_11_regime_distribution_5model.png`
-- `docs/figures/sec4_7_rc_per_axis.png`
-- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only KO)
-- `docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model KO)
-- `docs/figures/sec4_3_japanese_vs_english_cross_model.png` (5-model JA)
+![sec4_11_regime_distribution_4model](../figures/sec4_11_regime_distribution_4model.png)
+![sec4_11_regime_distribution_5model](../figures/sec4_11_regime_distribution_5model.png)
+![sec4_7_rc_per_axis](../figures/sec4_7_rc_per_axis.png)
+![sec4_3_korean_vs_english](../figures/sec4_3_korean_vs_english.png) (Qwen-only KO)
+![sec4_3_korean_vs_english_cross_model](../figures/sec4_3_korean_vs_english_cross_model.png) (5-model KO)
+![sec4_3_japanese_vs_english_cross_model](../figures/sec4_3_japanese_vs_english_cross_model.png) (5-model JA)
 
 ### New insight docs + design specs
 

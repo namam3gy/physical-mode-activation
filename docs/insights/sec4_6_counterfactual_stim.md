@@ -7,6 +7,15 @@ hypothesis: a small, directional pixel-space perturbation along v_L10 flips Qwen
 
 # §4.6 — VTI-reverse counterfactual stim (pixel-space gradient ascent on v_L10)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-direction-specificity** — Pixel-space gradient ascent along v_L10 flips PMR on Qwen2.5-VL; matched-magnitude random directions do not (§4.6).
+> - **H-shortcut** — Shortcut interpretation is encodable in the image itself (§4.6) — pixel-driven, not just at runtime hidden-state injection.
+> - **M5a** — ST4 VTI steering — adding +α·v_L10 at LM L10 over visual tokens flips line/blank/none from "stays still" → physics-mode.
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+> - **v_L10** — Steering direction in LM hidden space (dim 3584) at layer 10, derived from M5a class-mean diff (physics − abstract). Unit norm.
+
 ## Question
 
 M5a established that adding `+α · v_L10` at LM layer 10 over visual
@@ -259,5 +268,5 @@ tests/test_pmr_scoring.py -v`.
 - `tests/test_counterfactual.py` — 3 round-trip + correctness tests
 - `tests/test_pmr_scoring.py` — extended for the abstract-marker fix
 - `outputs/sec4_6_counterfactual_20260426-050343/` — sweep run
-- `docs/figures/sec4_6_counterfactual_stim_panels.png`
-- `docs/figures/sec4_6_counterfactual_stim_trajectory.png`
+![sec4_6_counterfactual_stim_panels](../figures/sec4_6_counterfactual_stim_panels.png)
+![sec4_6_counterfactual_stim_trajectory](../figures/sec4_6_counterfactual_stim_trajectory.png)

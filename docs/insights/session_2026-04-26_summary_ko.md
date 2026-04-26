@@ -8,6 +8,23 @@ commits: 309bdf6 → 9ec147e
 
 # 세션 2026-04-26 — §4.7 + §4.11 + §4.3 + §4.6
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **H-direction-specificity** — Qwen2.5-VL 위 v_L10 방향 픽셀-공간 gradient ascent 는 PMR 을 뒤집음; 동일 magnitude random direction 은 그러지 못함 (§4.6).
+> - **H-encoder-saturation** — 합성 stim 위 behavioral PMR(_nolabel) saturation 은 architecture 수준 (encoder + LM 결합) 에서 결정 — encoder 표현 능력만으로는 부족.
+> - **H-shortcut** — Shortcut 해석은 이미지 자체에 인코드 가능 (§4.6) — 픽셀 기반, runtime hidden-state injection 만의 속성이 아님.
+> - **M2** — ST1 MVP-full — 5축 factorial (2880 stim); H1 monotone S-curve, H7 등장.
+> - **M5a** — ST4 VTI steering — LM L10 시각 토큰에 +α·v_L10 더하면 line/blank/none 이 "정지" → physics-mode 로 뒤집힘.
+> - **M5b** — ST4 Phase 3 (SIP + activation patching + SAE 특징 분해) — 보류 / optional.
+> - **M7** — Human Prolific baseline (20 평가자 × 50 stim) + 논문 작성 — 보류 / optional.
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8d** — Stim 다양화 — 비-공 물리 객체 카테고리 (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M9** — Generalization audit — 논문 Table 1 (3 model × 3 stim 소스 × bootstrap CIs, 5000 iter); PASS/FAIL 이진화를 CI 분리로 대체.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA 캡처가 CLIP encoder bottleneck 노출, FC logit ratio 가 LLaVA "A" bias 의 logit-수준 성격 확인.
+> - **M6 r6** — LLaVA-Next-Mistral 5번째 model 점 (2번째 CLIP) — PMR 0.700 [0.65, 0.74] 이 LLaVA-1.5 바닥과 saturated cluster 사이; vision-encoder 계열 단독 결정 배제.
+> - **v_L10** — M5a class-mean diff (physics − abstract) 에서 유도된 layer 10 LM hidden space (dim 3584) steering 방향. Unit norm.
+
 ## 이 세션의 산출물
 
 기존 M8d / M8a label-free 데이터를 재사용하는 §4 add-on 2 개, 새 추론
@@ -129,12 +146,12 @@ Roadmap §4.11 가 "partial" 에서 "complete" 로 승격.
 
 ### 신규 figure
 
-- `docs/figures/sec4_11_regime_distribution_4model.png`
-- `docs/figures/sec4_11_regime_distribution_5model.png`
-- `docs/figures/sec4_7_rc_per_axis.png`
-- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only KO)
-- `docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model KO)
-- `docs/figures/sec4_3_japanese_vs_english_cross_model.png` (5-model JA)
+![sec4_11_regime_distribution_4model](../figures/sec4_11_regime_distribution_4model.png)
+![sec4_11_regime_distribution_5model](../figures/sec4_11_regime_distribution_5model.png)
+![sec4_7_rc_per_axis](../figures/sec4_7_rc_per_axis.png)
+![sec4_3_korean_vs_english](../figures/sec4_3_korean_vs_english.png) (Qwen-only KO)
+![sec4_3_korean_vs_english_cross_model](../figures/sec4_3_korean_vs_english_cross_model.png) (5-model KO)
+![sec4_3_japanese_vs_english_cross_model](../figures/sec4_3_japanese_vs_english_cross_model.png) (5-model JA)
 
 ### 신규 insight 문서 + design spec
 

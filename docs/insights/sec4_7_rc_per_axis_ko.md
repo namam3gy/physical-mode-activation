@@ -7,6 +7,12 @@ hypothesis: T=0.7 샘플링에서 어떤 입력 축 (object_level / bg_level / c
 
 # §4.7 — M8a 의 per-axis 결정 안정성 (RC)
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H1** — PMR 이 abstraction 축을 따라 S 모양으로 상승 (line → filled → shaded → textured); ground 도입이 가장 큰 단일 jump.
+> - **H-encoder-saturation** — 합성 stim 위 behavioral PMR(_nolabel) saturation 은 architecture 수준 (encoder + LM 결합) 에서 결정 — encoder 표현 능력만으로는 부족.
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+
 ## 재구성
 
 Pilot 가 T=0 에서 RC 측정 불가 (모든 응답 동일, RC=1). T=0.7 (M8a 설정)
@@ -106,11 +112,11 @@ uv run python scripts/sec4_7_rc_per_axis.py
 
 출력:
 - `outputs/sec4_7_rc_per_axis.csv` — (모델 × 축 × level) 평균/std RC
-- `docs/figures/sec4_7_rc_per_axis.png` — 3-패널 bar chart
+![3-패널 bar chart](../figures/sec4_7_rc_per_axis.png)
 
 ## 산출물
 
 - `scripts/sec4_7_rc_per_axis.py` — 드라이버
-- `docs/figures/sec4_7_rc_per_axis.png` — 5-모델 × 3-축 figure
+![5-모델 × 3-축 figure](../figures/sec4_7_rc_per_axis.png)
 - `outputs/sec4_7_rc_per_axis.csv` — 기반 수치
 - `docs/insights/sec4_7_rc_per_axis_ko.md` (이 문서)

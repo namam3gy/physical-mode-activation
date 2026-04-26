@@ -1,5 +1,21 @@
 # M8c — Real photographs (external-validity round 3)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H1** — PMR rises in an S-shape along the abstraction axis (line → filled → shaded → textured); ground introduction adds the largest single jump.
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M2** — ST1 MVP-full — 5-axis factorial (2880 stim); H1 monotone S-curve, H7 emerged.
+> - **M3** — ST2 vision-encoder probing — encoder AUC ≈ 1.0 trivially separates factorial axes ("boomerang").
+> - **M5a** — ST4 VTI steering — adding +α·v_L10 at LM L10 over visual tokens flips line/blank/none from "stays still" → physics-mode.
+> - **M6** — ST5 cross-model sweep — see M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next).
+> - **M8** — Stim diversification family — see M8a (synthetic shapes), M8c (real photos), M8d (non-ball categories), M8e (cross-source).
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim diversification — real photographs (60 photos × 5 categories from COCO + WikiArt). Photos REDUCE Qwen PMR(_nolabel) 18-48 pp.
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M8e** — Cross-source paired analysis (M8a + M8d + M8c consolidated). Model × category × source_type heatmap is the paper Table 1 candidate.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
+
 **Status**: Complete 2026-04-25.
 
 ## Motivation
@@ -246,11 +262,9 @@ CSV for car / person / bird only.
 
 ## Artifacts
 
-- `docs/figures/m8c_photo_grid.png` — sample grid (5 cat × 4 photo).
-- `docs/figures/m8c_pmr_by_category.png` — PMR by (category × label_role).
-- `docs/figures/m8c_paired_synthetic_vs_photo.png` — paired bar of
-  synthetic-textured PMR(_nolabel) vs photo PMR(_nolabel) per
-  (category × model).
+![sample grid (5 cat × 4 photo)](../figures/m8c_photo_grid.png)
+![PMR by (category × label_role)](../figures/m8c_pmr_by_category.png)
+![paired bar of synthetic-textured PMR(_nolabel) vs photo PMR(_nolabel) per (category × model)](../figures/m8c_paired_synthetic_vs_photo.png)
 - `outputs/m8c_summary/m8c_{qwen,llava}_{pmr_by_role,paired_delta,
   nolabel_pmr,regime_distribution}.csv` — per-model rollups.
 - `outputs/m8c_summary/m8c_synthetic_baseline.csv` — synthetic

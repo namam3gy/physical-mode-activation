@@ -7,6 +7,14 @@ hypothesis: 라벨 언어가 PMR 강도에 영향, 그러나 라벨-prior orderi
 
 # §4.3 — Korean / Japanese vs English label prior (5-model × 2 languages)
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H2** — label (ball / circle / planet) 자체가 PMR 을 독립적으로 끌어올림 — 시각 증거를 넘는 language-prior 기여.
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M9** — Generalization audit — 논문 Table 1 (3 model × 3 stim 소스 × bootstrap CIs, 5000 iter); PASS/FAIL 이진화를 CI 분리로 대체.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA 캡처가 CLIP encoder bottleneck 노출, FC logit ratio 가 LLaVA "A" bias 의 logit-수준 성격 확인.
+
 ## 질문
 
 Qwen2.5-VL 가 multilingual. 프롬프트의 나머지를 영어로 유지할 때 라벨 언어
@@ -370,7 +378,7 @@ uv run python scripts/sec4_3_japanese_vs_english_cross_model.py
 - `outputs/sec4_3_{korean,japanese}_labels_<model>_<ts>/predictions.{jsonl,parquet,csv}`
 - `outputs/sec4_3_{korean,japanese}_vs_english_cross_model.csv` — long-form
 - `outputs/sec4_3_{korean,japanese}_vs_english_cross_model_deltas.csv` — 모델별 Δ
-- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only KO)
+![sec4_3_korean_vs_english](../figures/sec4_3_korean_vs_english.png) (Qwen-only KO)
 - `docs/figures/sec4_3_{korean,japanese}_vs_english_cross_model.png` (5-model panels)
 
 ## 산출물
@@ -387,7 +395,7 @@ uv run python scripts/sec4_3_japanese_vs_english_cross_model.py
 - `outputs/sec4_3_korean_vs_english.csv` — Qwen-only KO 요약
 - `outputs/sec4_3_{korean,japanese}_vs_english_cross_model.csv` — 5-model 요약
 - `outputs/sec4_3_{korean,japanese}_vs_english_cross_model_deltas.csv` — 모델별 Δ
-- `docs/figures/sec4_3_korean_vs_english.png` — Qwen-only paired bars
-- `docs/figures/sec4_3_korean_vs_english_cross_model.png` — 5-model KO panels
-- `docs/figures/sec4_3_japanese_vs_english_cross_model.png` — 5-model JA panels
+![Qwen-only paired bars](../figures/sec4_3_korean_vs_english.png)
+![5-model KO panels](../figures/sec4_3_korean_vs_english_cross_model.png)
+![5-model JA panels](../figures/sec4_3_japanese_vs_english_cross_model.png)
 - `docs/insights/sec4_3_korean_vs_english_ko.md` (이 문서)

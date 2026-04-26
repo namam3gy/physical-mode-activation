@@ -1,5 +1,18 @@
 # M5 (ST4) Insights — VTI Causal Steering: "Physical Object-ness" Direction Found
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-boomerang** — Vision encoder linearly separates physics-mode classes even where behavior fails — encoder knows, decoder gates. (Qwen-scoped: refuted on LLaVA-1.5 because its CLIP encoder is the bottleneck.)
+> - **H-locus** — The bottleneck is at the LM mid layers (L10 specifically), not earlier or in the decoding head.
+> - **H-regime** — The steering direction is binary "object-ness" — refuted; replaced by H-direction-bidirectional.
+> - **M2** — ST1 MVP-full — 5-axis factorial (2880 stim); H1 monotone S-curve, H7 emerged.
+> - **M3** — ST2 vision-encoder probing — encoder AUC ≈ 1.0 trivially separates factorial axes ("boomerang").
+> - **M4** — ST3 LM logit lens / per-layer probes — LM AUC plateaus at ~0.95 at visual-token positions from L5.
+> - **M5** — ST4 causal localization (VTI steering / activation patching / SAE) — see M5a, M5a-ext, M5b.
+> - **M6** — ST5 cross-model sweep — see M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next).
+> - **v_L10** — Steering direction in LM hidden space (dim 3584) at layer 10, derived from M5a class-mean diff (physics − abstract). Unit norm.
+
 The first deliverable of Sub-task 4. We extract a VTI-style **physics-mode
 direction** from M2-captured LM activations and inject it (α · v) into the
 LM residual stream at test time, to verify whether

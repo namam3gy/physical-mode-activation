@@ -7,6 +7,42 @@ audience: paper reviewer / new collaborator / future self
 
 # Physical-mode activation in VLMs — research overview
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H1** — PMR rises in an S-shape along the abstraction axis (line → filled → shaded → textured); ground introduction adds the largest single jump.
+> - **H2** — The label (ball / circle / planet) independently raises PMR even on minimal stim — a language-prior contribution beyond the visual evidence.
+> - **H4** — The open-ended vs. forced-choice PMR gap is a stable signature of the language-prior ↔ visual-evidence conflict.
+> - **H5** — A single ground line shifts PMR more than the visual difference between an abstract circle and a textured ball.
+> - **H6** — Cast-shadow alone drives the cue saturation; the arrow is closer to annotation than physics signal — partially refuted (arrow alone also saturates).
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-boomerang** — Vision encoder linearly separates physics-mode classes even where behavior fails — encoder knows, decoder gates. (Qwen-scoped: refuted on LLaVA-1.5 because its CLIP encoder is the bottleneck.)
+> - **H-direction-bidirectional** — v_L10 is a regime axis within physics-mode (+α → kinetic, −α → static); revised from the initial "one-way activator" framing.
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M0** — Infrastructure scaffold (package layout, scripts, configs, tests).
+> - **M1** — ST1 pilot — Qwen2.5-VL-7B on 480 stim; established H1 partial / H2 strong / H4 / H5 / H6 candidates.
+> - **M2** — ST1 MVP-full — 5-axis factorial (2880 stim); H1 monotone S-curve, H7 emerged.
+> - **M3** — ST2 vision-encoder probing — encoder AUC ≈ 1.0 trivially separates factorial axes ("boomerang").
+> - **M4** — ST3 LM logit lens / per-layer probes — LM AUC plateaus at ~0.95 at visual-token positions from L5.
+> - **M4b** — M4 + label-free prompt as H2 null test; revealed H2 is asymmetric on Qwen (circle override, not ball enhancement).
+> - **M4c** — Forced-choice label-free variant — confirms M4b under FC; surfaces LLaVA "A" greedy bias.
+> - **M5a** — ST4 VTI steering — adding +α·v_L10 at LM L10 over visual tokens flips line/blank/none from "stays still" → physics-mode.
+> - **M5b** — ST4 Phase 3 (SIP + activation patching + SAE feature decomposition) — deferred / optional.
+> - **M6** — ST5 cross-model sweep — see M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next).
+> - **M7** — Human Prolific baseline (20 raters × 50 stim) + paper writing — deferred / optional.
+> - **M8** — Stim diversification family — see M8a (synthetic shapes), M8c (real photos), M8d (non-ball categories), M8e (cross-source).
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim diversification — real photographs (60 photos × 5 categories from COCO + WikiArt). Photos REDUCE Qwen PMR(_nolabel) 18-48 pp.
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M8e** — Cross-source paired analysis (M8a + M8d + M8c consolidated). Model × category × source_type heatmap is the paper Table 1 candidate.
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+> - **M6 r1** — ST5 cross-model — LLaVA-1.5-7B replicates H2 cleanly (unsaturated CLIP encoder lets the label-prior shift PMR).
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder probe AUC 0.93 closes the encoder-AUC ↔ PMR chain (3-point).
+> - **M6 r4** — InternVL3 InternViT probe — AUC 0.89 / PMR 0.92, extends the chain to 4 model points; H-encoder-saturation "non-CLIP-general".
+> - **M6 r5** — M8c photo encoder probe (4 models, cross-stim) — behavioral-y AUC inverts but stim-y AUC stays at 1.0 → encoder discriminability is uniform; architecture-level reframe.
+> - **M6 r6** — LLaVA-Next-Mistral 5th model point (2nd CLIP) — PMR 0.700 [0.65, 0.74] sits between LLaVA-1.5 floor and saturated cluster; rules out vision-encoder-family as sole determinant.
+> - **v_L10** — Steering direction in LM hidden space (dim 3584) at layer 10, derived from M5a class-mean diff (physics − abstract). Unit norm.
+
 A single-doc synthesis of what this project found, how it found it, and
 what is still open. Intended for readers who haven't followed the
 session-by-session work.

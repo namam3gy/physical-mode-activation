@@ -1,5 +1,16 @@
 # M6 r3 — Idefics2 vision-encoder probe (closes the AUC ↔ PMR chain)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M3** — ST2 vision-encoder probing — encoder AUC ≈ 1.0 trivially separates factorial axes ("boomerang").
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder probe AUC 0.93 closes the encoder-AUC ↔ PMR chain (3-point).
+> - **M6 r4** — InternVL3 InternViT probe — AUC 0.89 / PMR 0.92, extends the chain to 4 model points; H-encoder-saturation "non-CLIP-general".
+
 **Status**: Complete 2026-04-25.
 
 ## Motivation
@@ -172,6 +183,8 @@ physics-vs-abstract → behavior reads physics-mode regardless of label.
 
 ## Headline figure
 
+![encoder_swap_idefics2_probe](../figures/encoder_swap_idefics2_probe.png)
+
 `docs/figures/encoder_swap_idefics2_probe.png` — 2 panels:
 1. Idefics2 layer-sweep AUC + Qwen + LLaVA M6 r2 baselines (horizontal
    reference lines).
@@ -184,5 +197,5 @@ physics-vs-abstract → behavior reads physics-mode regardless of label.
 - `outputs/encoder_swap_idefics2_vision_activations/*.safetensors`
   (~31 GB; 400 stim × 4 layers, gitignored).
 - `outputs/encoder_swap_idefics2_probe/{layer_sweep,by_object_level,by_shape}.csv`.
-- `docs/figures/encoder_swap_idefics2_probe.png`.
+![encoder_swap_idefics2_probe](../figures/encoder_swap_idefics2_probe.png).
 - `docs/insights/m6_r3_idefics2_probe.md` (+ `_ko.md`).

@@ -1,5 +1,17 @@
 # M6 r4 — InternVL3 비전-인코더 프로브 (4-모델 인코더 사슬)
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **H-encoder-saturation** — 합성 stim 위 behavioral PMR(_nolabel) saturation 은 architecture 수준 (encoder + LM 결합) 에서 결정 — encoder 표현 능력만으로는 부족.
+> - **M2** — ST1 MVP-full — 5축 factorial (2880 stim); H1 monotone S-curve, H7 등장.
+> - **M3** — ST2 vision-encoder probing — encoder AUC ≈ 1.0 으로 factorial 축 자명 분리 ("boomerang").
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M9** — Generalization audit — 논문 Table 1 (3 model × 3 stim 소스 × bootstrap CIs, 5000 iter); PASS/FAIL 이진화를 CI 분리로 대체.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA 캡처가 CLIP encoder bottleneck 노출, FC logit ratio 가 LLaVA "A" bias 의 logit-수준 성격 확인.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder AUC 0.93 으로 encoder-AUC ↔ PMR chain 마감 (3-point).
+> - **M6 r4** — InternVL3 InternViT probe — AUC 0.89 / PMR 0.92, chain 을 4 model 점으로 확장; H-encoder-saturation 이 "non-CLIP-일반".
+
 **상태**: 2026-04-25 완료.
 
 ## 동기
@@ -178,11 +190,15 @@ family 횡단* (Qwen2-7B, Mistral-7B, InternLM2-7B, Vicuna-7B), *인코더
 
 ## 헤드라인 그림
 
+![encoder_chain_4model](../figures/encoder_chain_4model.png)
+
 `docs/figures/encoder_chain_4model.png` — 2-패널 논문 그림:
 - (a) 캡처된 2 모델 (Idefics2 + InternVL3) 의 layer sweep AUC + M6 r2
   베이스라인 수평선 (Qwen 0.99, LLaVA 0.73).
 - (b) 산점도 (인코더 AUC, 행동 PMR) — 4 모델 점의 H-encoder-saturation
   사슬 시각화.
+
+![encoder_swap_internvl3_probe](../figures/encoder_swap_internvl3_probe.png)
 
 `docs/figures/encoder_swap_internvl3_probe.png` — InternVL3-only 2-패널
 그림 (encoder_swap_idefics2_probe.png 와 유사).
@@ -210,6 +226,6 @@ family 횡단* (Qwen2-7B, Mistral-7B, InternLM2-7B, Vicuna-7B), *인코더
   (~3 GB, gitignored).
 - `outputs/encoder_swap_internvl3_probe/{layer_sweep,by_object_level,by_shape}.csv`.
 - `outputs/encoder_swap_probe_summary/encoder_chain_table.csv`.
-- `docs/figures/encoder_swap_internvl3_probe.png` (per-model 2-panel).
-- `docs/figures/encoder_chain_4model.png` (4-모델 통합 — 논문 헤드라인).
+![encoder_swap_internvl3_probe](../figures/encoder_swap_internvl3_probe.png) (per-model 2-panel).
+![encoder_chain_4model](../figures/encoder_chain_4model.png) (4-모델 통합 — 논문 헤드라인).
 - `docs/insights/m6_r4_internvl3_probe.md` (+ `_ko.md`).

@@ -7,6 +7,14 @@ hypothesis: H7 categorical follow-up — labels select physics regime, not just 
 
 # §4.11 — Categorical H7 follow-up: 5-model M8d regime distribution
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **M2** — ST1 MVP-full — 5-axis factorial (2880 stim); H1 monotone S-curve, H7 emerged.
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+
 ## Question
 
 The M9 audit measures H7 as **PMR_phys − PMR_abs** — a binary "did the
@@ -140,14 +148,13 @@ uv run python scripts/sec4_11_regime_distribution.py
 ```
 
 Outputs:
-- `docs/figures/sec4_11_regime_distribution_4model.png`
+![sec4_11_regime_distribution_4model](../figures/sec4_11_regime_distribution_4model.png)
 - `outputs/sec4_11_regime_distribution.csv` (long-form regime fractions)
 
 ## Artifacts
 
 - `scripts/sec4_11_regime_distribution.py` — driver
-- `docs/figures/sec4_11_regime_distribution_5model.png` — 5×3×4 stacked
-  bar matrix (supersedes 4model)
+![5×3×4 stacked bar matrix (supersedes 4model)](../figures/sec4_11_regime_distribution_5model.png)
 - `outputs/sec4_11_regime_distribution.csv` — underlying numbers
 - `configs/encoder_swap_internvl3_m8d{,_label_free}.py` — InternVL3 M8d
   configs (added 2026-04-26 to close 5-model gap)

@@ -8,6 +8,21 @@ commits: b2434d4 → e301c61 → d35cf28 → 524e32b → dcc1d17 → cae24a9 →
 
 # Session 2026-04-25 — M6 r6 + §4.2 consolidation
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M4** — ST3 LM logit lens / per-layer probes — LM AUC plateaus at ~0.95 at visual-token positions from L5.
+> - **M5b** — ST4 Phase 3 (SIP + activation patching + SAE feature decomposition) — deferred / optional.
+> - **M7** — Human Prolific baseline (20 raters × 50 stim) + paper writing — deferred / optional.
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim diversification — real photographs (60 photos × 5 categories from COCO + WikiArt). Photos REDUCE Qwen PMR(_nolabel) 18-48 pp.
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder probe AUC 0.93 closes the encoder-AUC ↔ PMR chain (3-point).
+> - **M6 r5** — M8c photo encoder probe (4 models, cross-stim) — behavioral-y AUC inverts but stim-y AUC stays at 1.0 → encoder discriminability is uniform; architecture-level reframe.
+> - **M6 r6** — LLaVA-Next-Mistral 5th model point (2nd CLIP) — PMR 0.700 [0.65, 0.74] sits between LLaVA-1.5 floor and saturated cluster; rules out vision-encoder-family as sole determinant.
+
 ## What this session delivered
 
 Two paper-relevant additions to the encoder-saturation chain, plus a
@@ -167,10 +182,10 @@ same-architecture LM-only swap, which no released model provides.
 
 ### Figures (regenerated)
 
-- `docs/figures/encoder_chain_5model.png` — paper headline figure (supersedes 4model)
-- `docs/figures/encoder_chain_4model.png` — frozen 4-model snapshot (kept for r3/r4/r5 docs)
-- `docs/figures/encoder_swap_llava_next_probe.png`
-- `docs/figures/m9_summary.png`, `m9_table1_heatmap.png` (5-model M8c row added via §4.2 PREFIXES update)
+![paper headline figure (supersedes 4model)](../figures/encoder_chain_5model.png)
+![frozen 4-model snapshot (kept for r3/r4/r5 docs)](../figures/encoder_chain_4model.png)
+![encoder_swap_llava_next_probe](../figures/encoder_swap_llava_next_probe.png)
+![m9_summary](../figures/m9_summary.png), `m9_table1_heatmap.png` (5-model M8c row added via §4.2 PREFIXES update)
 
 ### Notebook
 

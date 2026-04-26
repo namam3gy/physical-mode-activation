@@ -7,6 +7,17 @@ hypothesis: H-encoder-saturation (architecture-level reframe)
 
 # M6 r6 — LLaVA-Next-Mistral 5th model point (2nd CLIP)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim diversification — real photographs (60 photos × 5 categories from COCO + WikiArt). Photos REDUCE Qwen PMR(_nolabel) 18-48 pp.
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+> - **M6 r5** — M8c photo encoder probe (4 models, cross-stim) — behavioral-y AUC inverts but stim-y AUC stays at 1.0 → encoder discriminability is uniform; architecture-level reframe.
+> - **M6 r6** — LLaVA-Next-Mistral 5th model point (2nd CLIP) — PMR 0.700 [0.65, 0.74] sits between LLaVA-1.5 floor and saturated cluster; rules out vision-encoder-family as sole determinant.
+
 ## Summary
 
 LLaVA-v1.6-Mistral-7b adds a **5th model point** to the encoder-saturation
@@ -288,4 +299,4 @@ uv run python scripts/m9_generalization_audit.py --out-dir outputs/m9_audit
 - `outputs/encoder_swap_llava_next_m8a_probe/{layer_sweep,by_object_level}.csv`
 - `outputs/encoder_swap_llava_next_m8a_probe_stim_y/layer_sweep_stim_y_*.csv`
 - `outputs/encoder_swap_probe_summary/encoder_chain_table.csv`
-- `docs/figures/encoder_chain_5model.png`
+![encoder_chain_5model](../figures/encoder_chain_5model.png)

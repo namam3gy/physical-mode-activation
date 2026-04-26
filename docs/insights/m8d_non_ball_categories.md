@@ -1,5 +1,18 @@
 # M8d — Non-ball physical-object categories (external-validity round 2)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H1** — PMR rises in an S-shape along the abstraction axis (line → filled → shaded → textured); ground introduction adds the largest single jump.
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M2** — ST1 MVP-full — 5-axis factorial (2880 stim); H1 monotone S-curve, H7 emerged.
+> - **M5a** — ST4 VTI steering — adding +α·v_L10 at LM L10 over visual tokens flips line/blank/none from "stays still" → physics-mode.
+> - **M8** — Stim diversification family — see M8a (synthetic shapes), M8c (real photos), M8d (non-ball categories), M8e (cross-source).
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim diversification — real photographs (60 photos × 5 categories from COCO + WikiArt). Photos REDUCE Qwen PMR(_nolabel) 18-48 pp.
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
+
 **Status**: Pre-registered (criteria locked before measurement). Results
 section appended after the run.
 
@@ -64,13 +77,19 @@ exotic shift is "swims/waddles" but flying is still in the regime
 distribution. A flightless bird (penguin / ostrich) would give a
 cleaner signal but is harder to render recognizably at low resolution.
 
-A 3×4 visual grid (`docs/figures/m8d_shape_grid.png`) confirms each
-category-level cell is visually distinct; the M8a-style full-scene
-grid (`docs/figures/m8d_full_scene_samples.png`) shows category × event
-combinations. For `horizontal` events with car / person, the object is
-positioned **on** the ground line so the natural-motion reading
-(drives / walks) is geometrically consistent with the cast shadow;
-birds remain in midair (the natural-flight reading is airborne).
+A 3×4 visual grid confirms each category-level cell is visually
+distinct:
+
+![M8d 3×4 shape grid (category × abstraction)](../figures/m8d_shape_grid.png)
+
+The M8a-style full-scene grid shows category × event combinations:
+
+![M8d full-scene samples (category × event)](../figures/m8d_full_scene_samples.png)
+
+For `horizontal` events with car / person, the object is positioned
+**on** the ground line so the natural-motion reading (drives / walks)
+is geometrically consistent with the cast shadow; birds remain in
+midair (the natural-flight reading is airborne).
 
 ## Regime classifier
 

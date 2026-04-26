@@ -1,5 +1,17 @@
 # M8e — 교차 소스 paired 분석 (합성 vs 사진)
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H1** — PMR 이 abstraction 축을 따라 S 모양으로 상승 (line → filled → shaded → textured); ground 도입이 가장 큰 단일 jump.
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **H-encoder-saturation** — 합성 stim 위 behavioral PMR(_nolabel) saturation 은 architecture 수준 (encoder + LM 결합) 에서 결정 — encoder 표현 능력만으로는 부족.
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim 다양화 — 실사진 (COCO + WikiArt 에서 60 photo × 5 카테고리). Qwen PMR(_nolabel) 을 18-48 pp 감소.
+> - **M8d** — Stim 다양화 — 비-공 물리 객체 카테고리 (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M8e** — Cross-source 페어 분석 (M8a + M8d + M8c 통합). Model × category × source_type heatmap 이 논문 Table 1 후보.
+> - **M9** — Generalization audit — 논문 Table 1 (3 model × 3 stim 소스 × bootstrap CIs, 5000 iter); PASS/FAIL 이진화를 CI 분리로 대체.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA 캡처가 CLIP encoder bottleneck 노출, FC logit ratio 가 LLaVA "A" bias 의 logit-수준 성격 확인.
+
 **상태**: 완료 2026-04-25.
 
 ## 동기
@@ -114,6 +126,8 @@ figure 그림이다, 동작 없음" (abstract-leaning).
 
 ## 헤드라인 그림
 
+![m8e_cross_source_heatmap](../figures/m8e_cross_source_heatmap.png)
+
 `docs/figures/m8e_cross_source_heatmap.png` — 3 패널:
 1. Synthetic-textured PMR(_nolabel) per (model × category).
 2. Photo PMR(_nolabel) per (model × category).
@@ -150,5 +164,5 @@ figure 그림이다, 동작 없음" (abstract-leaning).
 
 - `outputs/m8e_summary/` — CSV별: synth_pmr_nolabel, photo_pmr_nolabel,
   paired_delta, h7_cross_source.
-- `docs/figures/m8e_cross_source_heatmap.png` — 3-패널 heatmap.
+![3-패널 heatmap](../figures/m8e_cross_source_heatmap.png)
 - `notebooks/m8e_cross_source.ipynb` — 셀별 재현.

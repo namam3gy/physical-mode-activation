@@ -1,5 +1,18 @@
 # M9 — Generalization audit (paper Table 1)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H1** — PMR rises in an S-shape along the abstraction axis (line → filled → shaded → textured); ground introduction adds the largest single jump.
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim diversification — real photographs (60 photos × 5 categories from COCO + WikiArt). Photos REDUCE Qwen PMR(_nolabel) 18-48 pp.
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder probe AUC 0.93 closes the encoder-AUC ↔ PMR chain (3-point).
+> - **M6 r6** — LLaVA-Next-Mistral 5th model point (2nd CLIP) — PMR 0.700 [0.65, 0.74] sits between LLaVA-1.5 floor and saturated cluster; rules out vision-encoder-family as sole determinant.
+
 **Status**: Complete 2026-04-25. **Extended same day** with M6 r6
 LLaVA-Next as a 4th model on M8a/M8d/M8c — see addendum at the bottom
 or `docs/insights/m6_r6_llava_next.md` for full details. The original
@@ -190,11 +203,8 @@ more shapes or a same-encoder LM swap.
 
 ## Headline figures
 
-- `docs/figures/m9_summary.png` — two-panel bar chart with bootstrap
-  CIs: mean PMR(_nolabel) and mean H7 delta, per (model × stim).
-- `docs/figures/m9_table1_heatmap.png` — 2×3 heatmap grid: rows ∈
-  {PMR(_nolabel), H7}, columns ∈ {M8a, M8d, M8c}, cells = per-shape
-  values. The full grain.
+![two-panel bar chart with bootstrap CIs: mean PMR(_nolabel) and mean H7 delta, per (model × stim)](../figures/m9_summary.png)
+![2×3 heatmap grid: rows ∈ {PMR(_nolabel), H7}, columns ∈ {M8a, M8d, M8c}, cells = per-shape values. The full grain](../figures/m9_table1_heatmap.png)
 - `outputs/m9_audit/m9_table1.csv` — per-(model × stim × shape) row.
 - `outputs/m9_audit/m9_summary.csv` — per-(model × stim) row with CIs.
 

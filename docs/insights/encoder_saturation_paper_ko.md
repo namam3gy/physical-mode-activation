@@ -1,5 +1,17 @@
 # H-encoder-saturation — 논문용 통합본 (5-model)
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **H-encoder-saturation** — 합성 stim 위 behavioral PMR(_nolabel) saturation 은 architecture 수준 (encoder + LM 결합) 에서 결정 — encoder 표현 능력만으로는 부족.
+> - **M5b** — ST4 Phase 3 (SIP + activation patching + SAE 특징 분해) — 보류 / optional.
+> - **M7** — Human Prolific baseline (20 평가자 × 50 stim) + 논문 작성 — 보류 / optional.
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim 다양화 — 실사진 (COCO + WikiArt 에서 60 photo × 5 카테고리). Qwen PMR(_nolabel) 을 18-48 pp 감소.
+> - **M8d** — Stim 다양화 — 비-공 물리 객체 카테고리 (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M9** — Generalization audit — 논문 Table 1 (3 model × 3 stim 소스 × bootstrap CIs, 5000 iter); PASS/FAIL 이진화를 CI 분리로 대체.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder AUC 0.93 으로 encoder-AUC ↔ PMR chain 마감 (3-point).
+
 **상태**: 2026-04-25 기준 5-model M8a chain 완료 (Qwen, LLaVA-1.5,
 LLaVA-Next, Idefics2, InternVL3). 논문 Section 4는 5개 모델 점에서 lock.
 
@@ -177,7 +189,7 @@ Encoder representational capacity는 균일; behavioral PMR은 joint encoder+LM
 - `docs/insights/m6_r5_m8c_photo_probe.md` (cross-stim probe)
 - `docs/insights/m6_r6_llava_next.md` (5번째 모델, 2번째 CLIP — LLaVA-Next, multi-axis confound)
 - `notebooks/encoder_saturation_chain.ipynb` (재현)
-- `docs/figures/encoder_chain_5model.png` (논문 headline figure — 4model 대체)
-- `docs/figures/encoder_chain_4model.png` (frozen 4-model 스냅샷, r3/r4/r5 doc 용)
+![encoder_chain_5model](../figures/encoder_chain_5model.png) (논문 headline figure — 4model 대체)
+![encoder_chain_4model](../figures/encoder_chain_4model.png) (frozen 4-model 스냅샷, r3/r4/r5 doc 용)
 - `outputs/encoder_swap_probe_summary/encoder_chain_table.csv`
 - `outputs/m9_audit/m9_table1.csv` 와 `m9_summary.csv`

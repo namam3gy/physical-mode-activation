@@ -7,6 +7,14 @@ hypothesis: H7 카테고리 follow-up — 라벨이 PMR (binary) 가 아닌 phys
 
 # §4.11 — 카테고리 H7 follow-up: 5-모델 M8d regime 분포
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **M2** — ST1 MVP-full — 5축 factorial (2880 stim); H1 monotone S-curve, H7 등장.
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8d** — Stim 다양화 — 비-공 물리 객체 카테고리 (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M9** — Generalization audit — 논문 Table 1 (3 model × 3 stim 소스 × bootstrap CIs, 5000 iter); PASS/FAIL 이진화를 CI 분리로 대체.
+
 ## 질문
 
 M9 audit 가 H7 을 **PMR_phys − PMR_abs** 로 측정 — binary "모델이 physics-
@@ -131,14 +139,13 @@ uv run python scripts/sec4_11_regime_distribution.py
 ```
 
 출력:
-- `docs/figures/sec4_11_regime_distribution_4model.png`
+![sec4_11_regime_distribution_4model](../figures/sec4_11_regime_distribution_4model.png)
 - `outputs/sec4_11_regime_distribution.csv` (long-form regime 비율)
 
 ## 산출물
 
 - `scripts/sec4_11_regime_distribution.py` — 드라이버
-- `docs/figures/sec4_11_regime_distribution_5model.png` — 5×3×4 stacked
-  bar matrix (4model 대체)
+![5×3×4 stacked bar matrix (4model 대체)](../figures/sec4_11_regime_distribution_5model.png)
 - `outputs/sec4_11_regime_distribution.csv` — 기반 수치
 - `configs/encoder_swap_internvl3_m8d{,_label_free}.py` — InternVL3 M8d
   config (2026-04-26 추가, 5-모델 갭 닫음)

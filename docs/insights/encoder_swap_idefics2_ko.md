@@ -1,5 +1,16 @@
 # §4.5 — 교차 인코더 swap (Idefics2 SigLIP+Mistral 을 세 번째 점으로)
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H1** — PMR 이 abstraction 축을 따라 S 모양으로 상승 (line → filled → shaded → textured); ground 도입이 가장 큰 단일 jump.
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **H-encoder-saturation** — 합성 stim 위 behavioral PMR(_nolabel) saturation 은 architecture 수준 (encoder + LM 결합) 에서 결정 — encoder 표현 능력만으로는 부족.
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim 다양화 — 실사진 (COCO + WikiArt 에서 60 photo × 5 카테고리). Qwen PMR(_nolabel) 을 18-48 pp 감소.
+> - **M8d** — Stim 다양화 — 비-공 물리 객체 카테고리 (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA 캡처가 CLIP encoder bottleneck 노출, FC logit ratio 가 LLaVA "A" bias 의 logit-수준 성격 확인.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder AUC 0.93 으로 encoder-AUC ↔ PMR chain 마감 (3-point).
+
 **상태**: 완료 2026-04-25.
 
 ## 동기
@@ -122,6 +133,8 @@ H7 측정 가능성이 PMR(_nolabel) 천장을 추적:
 
 ## 헤드라인 그림
 
+![encoder_swap_heatmap](../figures/encoder_swap_heatmap.png)
+
 `docs/figures/encoder_swap_heatmap.png` — 3 패널:
 1. PMR(_nolabel) heatmap (model × shape).
 2. H7 (physical − abstract) heatmap (model × shape).
@@ -176,5 +189,5 @@ H7 측정 가능성이 PMR(_nolabel) 천장을 추적:
 - `scripts/encoder_swap_analyze.py` — driver.
 - `outputs/encoder_swap_idefics2_*/predictions.{jsonl,parquet,csv}`.
 - `outputs/encoder_swap_summary/encoder_swap_{pmr_nolabel,h7}.csv`.
-- `docs/figures/encoder_swap_heatmap.png` — paper-ready 3-panel.
+![paper-ready 3-panel](../figures/encoder_swap_heatmap.png)
 - `docs/insights/encoder_swap_idefics2.md` (+ `_ko.md`).

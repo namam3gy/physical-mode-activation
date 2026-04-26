@@ -1,5 +1,17 @@
 # M6 r4 — InternVL3 vision-encoder probe (4-model encoder chain)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M2** — ST1 MVP-full — 5-axis factorial (2880 stim); H1 monotone S-curve, H7 emerged.
+> - **M3** — ST2 vision-encoder probing — encoder AUC ≈ 1.0 trivially separates factorial axes ("boomerang").
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder probe AUC 0.93 closes the encoder-AUC ↔ PMR chain (3-point).
+> - **M6 r4** — InternVL3 InternViT probe — AUC 0.89 / PMR 0.92, extends the chain to 4 model points; H-encoder-saturation "non-CLIP-general".
+
 **Status**: Complete 2026-04-25.
 
 ## Motivation
@@ -202,11 +214,15 @@ saturating.**
 
 ## Headline figure
 
+![encoder_chain_4model](../figures/encoder_chain_4model.png)
+
 `docs/figures/encoder_chain_4model.png` — 2-panel paper figure:
 - (a) Layer sweep AUC for the 2 captured models (Idefics2 + InternVL3)
   + horizontal lines for M6 r2 baselines (Qwen 0.99, LLaVA 0.73).
 - (b) Scatter (encoder AUC, behavioral PMR) for all 4 model points —
   the H-encoder-saturation chain visualized.
+
+![encoder_swap_internvl3_probe](../figures/encoder_swap_internvl3_probe.png)
 
 `docs/figures/encoder_swap_internvl3_probe.png` — InternVL3-only
 2-panel figure (analogous to encoder_swap_idefics2_probe.png).
@@ -235,6 +251,6 @@ saturating.**
   (~3 GB, gitignored).
 - `outputs/encoder_swap_internvl3_probe/{layer_sweep,by_object_level,by_shape}.csv`.
 - `outputs/encoder_swap_probe_summary/encoder_chain_table.csv`.
-- `docs/figures/encoder_swap_internvl3_probe.png` (per-model 2-panel).
-- `docs/figures/encoder_chain_4model.png` (4-model unified — paper headline).
+![encoder_swap_internvl3_probe](../figures/encoder_swap_internvl3_probe.png) (per-model 2-panel).
+![encoder_chain_4model](../figures/encoder_chain_4model.png) (4-model unified — paper headline).
 - `docs/insights/m6_r4_internvl3_probe.md` (+ `_ko.md`).

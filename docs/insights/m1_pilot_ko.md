@@ -1,5 +1,11 @@
 # Pilot 인사이트 정리
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H1** — PMR 이 abstraction 축을 따라 S 모양으로 상승 (line → filled → shaded → textured); ground 도입이 가장 큰 단일 jump.
+> - **H2** — label (ball / circle / planet) 자체가 PMR 을 독립적으로 끌어올림 — 시각 증거를 넘는 language-prior 기여.
+> - **H3** — Scene 불일치가 응답 일관성 (RC) 을 떨어뜨림 — 미검증.
+
 Sub-task 1 pilot 실험(Qwen2.5-VL-7B-Instruct, 480 inferences, H200, 2026-04-24)에서 발굴한 관찰과 그 함의를 정리한다. 원본 수치는 `docs/03_run_log.md`와 `outputs/pilot_20260424-072418_2c16efb6/`에 있다.
 
 요약하면 — **behavioral S-curve를 부분적으로 확인**했고, **언어 prior가 예상보다 훨씬 지배적**이며, **stimulus의 일부 cue가 VLM에 읽히지 않는 구조적 문제**를 발견했다.

@@ -1,5 +1,18 @@
 # M9 — 일반화 감사 (논문 Table 1)
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H1** — PMR 이 abstraction 축을 따라 S 모양으로 상승 (line → filled → shaded → textured); ground 도입이 가장 큰 단일 jump.
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **H-encoder-saturation** — 합성 stim 위 behavioral PMR(_nolabel) saturation 은 architecture 수준 (encoder + LM 결합) 에서 결정 — encoder 표현 능력만으로는 부족.
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim 다양화 — 실사진 (COCO + WikiArt 에서 60 photo × 5 카테고리). Qwen PMR(_nolabel) 을 18-48 pp 감소.
+> - **M8d** — Stim 다양화 — 비-공 물리 객체 카테고리 (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M9** — Generalization audit — 논문 Table 1 (3 model × 3 stim 소스 × bootstrap CIs, 5000 iter); PASS/FAIL 이진화를 CI 분리로 대체.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA 캡처가 CLIP encoder bottleneck 노출, FC logit ratio 가 LLaVA "A" bias 의 logit-수준 성격 확인.
+> - **M6 r3** — Idefics2 SigLIP-SO400M probe — vision encoder AUC 0.93 으로 encoder-AUC ↔ PMR chain 마감 (3-point).
+> - **M6 r6** — LLaVA-Next-Mistral 5번째 model 점 (2번째 CLIP) — PMR 0.700 [0.65, 0.74] 이 LLaVA-1.5 바닥과 saturated cluster 사이; vision-encoder 계열 단독 결정 배제.
+
 **상태**: 2026-04-25 완료. **같은 날 확장**: M6 r6 LLaVA-Next 가
 M8a/M8d/M8c 에서 4번째 모델로 추가 — 하단 부록 또는 `docs/insights/
 m6_r6_llava_next_ko.md` 참조. 원래 3-모델 감사는 아래에 보존; 5-모델
@@ -169,11 +182,8 @@ Idefics2 +0.094 PASS) 가 strict +0.05 임계 가로지른 결과. 평균 H7 차
 
 ## 헤드라인 그림
 
-- `docs/figures/m9_summary.png` — 부트스트랩 CI 포함 2-패널 막대
-  차트: 평균 PMR(_nolabel) + 평균 H7 차이, (모델 × stim) 별.
-- `docs/figures/m9_table1_heatmap.png` — 2×3 히트맵 그리드: 행 ∈
-  {PMR(_nolabel), H7}, 열 ∈ {M8a, M8d, M8c}, 셀 = per-shape 값.
-  전체 결.
+![부트스트랩 CI 포함 2-패널 막대 차트: 평균 PMR(_nolabel) + 평균 H7 차이, (모델 × stim) 별](../figures/m9_summary.png)
+![2×3 히트맵 그리드: 행 ∈ {PMR(_nolabel), H7}, 열 ∈ {M8a, M8d, M8c}, 셀 = per-shape 값. 전체 결](../figures/m9_table1_heatmap.png)
 - `outputs/m9_audit/m9_table1.csv` — (모델 × stim × shape) 별 행.
 - `outputs/m9_audit/m9_summary.csv` — (모델 × stim) 별 CI 포함 행.
 

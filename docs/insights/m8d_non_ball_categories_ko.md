@@ -1,5 +1,18 @@
 # M8d — 비공(非球) 물리 객체 카테고리 (외적 타당성 라운드 2)
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H1** — PMR 이 abstraction 축을 따라 S 모양으로 상승 (line → filled → shaded → textured); ground 도입이 가장 큰 단일 jump.
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **H-encoder-saturation** — 합성 stim 위 behavioral PMR(_nolabel) saturation 은 architecture 수준 (encoder + LM 결합) 에서 결정 — encoder 표현 능력만으로는 부족.
+> - **M2** — ST1 MVP-full — 5축 factorial (2880 stim); H1 monotone S-curve, H7 등장.
+> - **M5a** — ST4 VTI steering — LM L10 시각 토큰에 +α·v_L10 더하면 line/blank/none 이 "정지" → physics-mode 로 뒤집힘.
+> - **M8** — Stim 다양화 family — M8a (합성 shape), M8c (실사진), M8d (비-공 카테고리), M8e (cross-source) 참조.
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim 다양화 — 실사진 (COCO + WikiArt 에서 60 photo × 5 카테고리). Qwen PMR(_nolabel) 을 18-48 pp 감소.
+> - **M8d** — Stim 다양화 — 비-공 물리 객체 카테고리 (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA 캡처가 CLIP encoder bottleneck 노출, FC logit ratio 가 LLaVA "A" bias 의 logit-수준 성격 확인.
+
 **상태**: 사전 등록 완료 (측정 전 기준 잠금). 결과 섹션은 실행 후 추가.
 
 ## 동기
@@ -59,13 +72,18 @@ exotic shift는 "수영/뒤뚱"이지만 비행도 regime 분포에 남음). 비
 않는 새 (펭귄 / 타조) 가 더 깨끗한 신호를 주지만 저해상도에서
 인식 가능하게 그리기 어렵다.
 
-3×4 시각 그리드 (`docs/figures/m8d_shape_grid.png`) 는 각
-카테고리-레벨 셀이 시각적으로 구분 가능함을 확인한다; M8a 스타일의
-풀 신 그리드 (`docs/figures/m8d_full_scene_samples.png`) 는
-카테고리 × 이벤트 조합을 보여준다. `horizontal` 이벤트의 자동차 /
-사람은 자연 운동 의미 (drives / walks) 가 cast shadow와 기하학적으로
-일치하도록 ground line **위에** 배치된다; 새는 공중 (자연 비행 의미)
-배치를 유지한다.
+3×4 시각 그리드는 각 카테고리-레벨 셀이 시각적으로 구분 가능함을
+확인한다:
+
+![M8d 3×4 shape 그리드 (카테고리 × 추상화)](../figures/m8d_shape_grid.png)
+
+M8a 스타일의 풀 신 그리드는 카테고리 × 이벤트 조합을 보여준다:
+
+![M8d 풀-신 샘플 (카테고리 × 이벤트)](../figures/m8d_full_scene_samples.png)
+
+`horizontal` 이벤트의 자동차 / 사람은 자연 운동 의미 (drives /
+walks) 가 cast shadow와 기하학적으로 일치하도록 ground line **위에**
+배치된다; 새는 공중 (자연 비행 의미) 배치를 유지한다.
 
 ## Regime 분류기
 

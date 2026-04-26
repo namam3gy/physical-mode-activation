@@ -7,6 +7,14 @@ hypothesis: language of the label affects PMR strength but not the label-prior o
 
 # §4.3 — Korean / Japanese vs English label prior (5-model × 2 languages)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H2** — The label (ball / circle / planet) independently raises PMR even on minimal stim — a language-prior contribution beyond the visual evidence.
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
+
 ## Question
 
 Qwen2.5-VL is multilingual. Does the language of the label change PMR
@@ -396,7 +404,7 @@ Outputs:
 - `outputs/sec4_3_{korean,japanese}_labels_<model>_<ts>/predictions.{jsonl,parquet,csv}`
 - `outputs/sec4_3_{korean,japanese}_vs_english_cross_model.csv` — long-form
 - `outputs/sec4_3_{korean,japanese}_vs_english_cross_model_deltas.csv` — per-model Δ
-- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only KO)
+![sec4_3_korean_vs_english](../figures/sec4_3_korean_vs_english.png) (Qwen-only KO)
 - `docs/figures/sec4_3_{korean,japanese}_vs_english_cross_model.png` (5-model panels)
 
 ## Artifacts
@@ -413,7 +421,7 @@ Outputs:
 - `outputs/sec4_3_korean_vs_english.csv` — Qwen-only KO summary
 - `outputs/sec4_3_{korean,japanese}_vs_english_cross_model.csv` — 5-model summaries
 - `outputs/sec4_3_{korean,japanese}_vs_english_cross_model_deltas.csv` — per-model Δ
-- `docs/figures/sec4_3_korean_vs_english.png` — Qwen-only paired bars
-- `docs/figures/sec4_3_korean_vs_english_cross_model.png` — 5-model KO panels
-- `docs/figures/sec4_3_japanese_vs_english_cross_model.png` — 5-model JA panels
+![Qwen-only paired bars](../figures/sec4_3_korean_vs_english.png)
+![5-model KO panels](../figures/sec4_3_korean_vs_english_cross_model.png)
+![5-model JA panels](../figures/sec4_3_japanese_vs_english_cross_model.png)
 - `docs/insights/sec4_3_korean_vs_english.md` (this doc, + ko)

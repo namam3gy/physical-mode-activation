@@ -7,6 +7,12 @@ hypothesis: which input axis (object_level / bg_level / cue_level) stabilizes th
 
 # §4.7 — Per-axis decision stability (RC) on M8a
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H1** — PMR rises in an S-shape along the abstraction axis (line → filled → shaded → textured); ground introduction adds the largest single jump.
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+
 ## Reframe
 
 The pilot couldn't measure RC at T=0 (all responses identical, RC=1).
@@ -111,11 +117,11 @@ uv run python scripts/sec4_7_rc_per_axis.py
 
 Outputs:
 - `outputs/sec4_7_rc_per_axis.csv` — per-(model × axis × level) mean/std RC
-- `docs/figures/sec4_7_rc_per_axis.png` — 3-panel bar chart
+![3-panel bar chart](../figures/sec4_7_rc_per_axis.png)
 
 ## Artifacts
 
 - `scripts/sec4_7_rc_per_axis.py` — driver
-- `docs/figures/sec4_7_rc_per_axis.png` — 5-model × 3-axis figure
+![5-model × 3-axis figure](../figures/sec4_7_rc_per_axis.png)
 - `outputs/sec4_7_rc_per_axis.csv` — underlying numbers
 - `docs/insights/sec4_7_rc_per_axis.md` (this doc, + ko)

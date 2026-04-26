@@ -1,5 +1,20 @@
 # M8c — 실사진 (외적 타당성 라운드 3)
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H1** — PMR 이 abstraction 축을 따라 S 모양으로 상승 (line → filled → shaded → textured); ground 도입이 가장 큰 단일 jump.
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **H-encoder-saturation** — 합성 stim 위 behavioral PMR(_nolabel) saturation 은 architecture 수준 (encoder + LM 결합) 에서 결정 — encoder 표현 능력만으로는 부족.
+> - **M2** — ST1 MVP-full — 5축 factorial (2880 stim); H1 monotone S-curve, H7 등장.
+> - **M3** — ST2 vision-encoder probing — encoder AUC ≈ 1.0 으로 factorial 축 자명 분리 ("boomerang").
+> - **M5a** — ST4 VTI steering — LM L10 시각 토큰에 +α·v_L10 더하면 line/blank/none 이 "정지" → physics-mode 로 뒤집힘.
+> - **M6** — ST5 cross-model sweep — M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next) 참조.
+> - **M8a** — Stim 다양화 — 비-원 합성 shape (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim 다양화 — 실사진 (COCO + WikiArt 에서 60 photo × 5 카테고리). Qwen PMR(_nolabel) 을 18-48 pp 감소.
+> - **M8d** — Stim 다양화 — 비-공 물리 객체 카테고리 (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M8e** — Cross-source 페어 분석 (M8a + M8d + M8c 통합). Model × category × source_type heatmap 이 논문 Table 1 후보.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA 캡처가 CLIP encoder bottleneck 노출, FC logit ratio 가 LLaVA "A" bias 의 logit-수준 성격 확인.
+
 **상태**: 완료 2026-04-25.
 
 ## 동기
@@ -202,10 +217,9 @@ analyzer CSV 에 보고.
 
 ## 아티팩트
 
-- `docs/figures/m8c_photo_grid.png` — 샘플 grid (5 cat × 4 photo).
-- `docs/figures/m8c_pmr_by_category.png` — PMR by (category × label_role).
-- `docs/figures/m8c_paired_synthetic_vs_photo.png` — synthetic-textured
-  PMR(_nolabel) vs photo PMR(_nolabel) per (category × model).
+![샘플 grid (5 cat × 4 photo)](../figures/m8c_photo_grid.png)
+![PMR by (category × label_role)](../figures/m8c_pmr_by_category.png)
+![synthetic-textured PMR(_nolabel) vs photo PMR(_nolabel) per (category × model)](../figures/m8c_paired_synthetic_vs_photo.png)
 - `outputs/m8c_summary/` — 모델별 rollup CSV.
 - `notebooks/m8c_real_photos.ipynb` — 셀별 재현.
 - `inputs/m8c_photos_<ts>/photo_metadata.csv` — 라이선스 + URL

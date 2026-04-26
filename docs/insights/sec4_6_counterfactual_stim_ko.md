@@ -7,6 +7,15 @@ hypothesis: v_L10 방향으로의 작은 픽셀-공간 perturbation 은 Qwen2.5-
 
 # §4.6 — VTI-역방향 counterfactual 자극 (v_L10 픽셀-공간 gradient ascent)
 
+> **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
+>
+> - **H7** — Label 은 PMR 을 toggle 하지 않음 — 어느 물리 regime 이 적용되는지 선택 (ball → 동적 / circle → 정적 / planet → 궤도).
+> - **H-direction-specificity** — Qwen2.5-VL 위 v_L10 방향 픽셀-공간 gradient ascent 는 PMR 을 뒤집음; 동일 magnitude random direction 은 그러지 못함 (§4.6).
+> - **H-shortcut** — Shortcut 해석은 이미지 자체에 인코드 가능 (§4.6) — 픽셀 기반, runtime hidden-state injection 만의 속성이 아님.
+> - **M5a** — ST4 VTI steering — LM L10 시각 토큰에 +α·v_L10 더하면 line/blank/none 이 "정지" → physics-mode 로 뒤집힘.
+> - **M9** — Generalization audit — 논문 Table 1 (3 model × 3 stim 소스 × bootstrap CIs, 5000 iter); PASS/FAIL 이진화를 CI 분리로 대체.
+> - **v_L10** — M5a class-mean diff (physics − abstract) 에서 유도된 layer 10 LM hidden space (dim 3584) steering 방향. Unit norm.
+
 ## 질문
 
 M5a 에서는 LM layer 10 의 시각 토큰 hidden state 에 `+α · v_L10` 를
@@ -254,5 +263,5 @@ tests/test_pmr_scoring.py -v`.
 - `tests/test_counterfactual.py` — 3 round-trip + correctness 테스트
 - `tests/test_pmr_scoring.py` — abstract-marker 수정용 확장
 - `outputs/sec4_6_counterfactual_20260426-050343/` — sweep run
-- `docs/figures/sec4_6_counterfactual_stim_panels.png`
-- `docs/figures/sec4_6_counterfactual_stim_trajectory.png`
+![sec4_6_counterfactual_stim_panels](../figures/sec4_6_counterfactual_stim_panels.png)
+![sec4_6_counterfactual_stim_trajectory](../figures/sec4_6_counterfactual_stim_trajectory.png)

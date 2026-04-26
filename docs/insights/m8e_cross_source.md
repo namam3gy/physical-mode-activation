@@ -1,5 +1,17 @@
 # M8e — Cross-source paired analysis (synthetic vs photo)
 
+> **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
+>
+> - **H1** — PMR rises in an S-shape along the abstraction axis (line → filled → shaded → textured); ground introduction adds the largest single jump.
+> - **H7** — The label does not toggle PMR — it selects which physics regime applies (ball → kinetic / circle → static / planet → orbital).
+> - **H-encoder-saturation** — Behavioral PMR(_nolabel) saturation on synthetic stim is determined at the architecture level (joint encoder + LM), not encoder representational capacity alone.
+> - **M8a** — Stim diversification — non-circle synthetic shapes (square / triangle / hexagon / polygon / wedge × Qwen + LLaVA, labeled + label-free).
+> - **M8c** — Stim diversification — real photographs (60 photos × 5 categories from COCO + WikiArt). Photos REDUCE Qwen PMR(_nolabel) 18-48 pp.
+> - **M8d** — Stim diversification — non-ball physical-object categories (car / person / bird × abstraction × bg × cue × {fall, horizontal} × seeds).
+> - **M8e** — Cross-source paired analysis (M8a + M8d + M8c consolidated). Model × category × source_type heatmap is the paper Table 1 candidate.
+> - **M9** — Generalization audit — paper Table 1 (3 models × 3 stim sources × bootstrap CIs, 5000 iters); replaces PASS/FAIL binarization with CI separation.
+> - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
+
 **Status**: Complete 2026-04-25.
 
 ## Motivation
@@ -122,6 +134,8 @@ Both quantities are valid; they measure different things.
 
 ## Headline figure
 
+![m8e_cross_source_heatmap](../figures/m8e_cross_source_heatmap.png)
+
 `docs/figures/m8e_cross_source_heatmap.png` — three panels:
 1. Synthetic-textured PMR(_nolabel) per (model × category).
 2. Photo PMR(_nolabel) per (model × category).
@@ -165,5 +179,5 @@ section of the paper.
 
 - `outputs/m8e_summary/` — per-CSV: synth_pmr_nolabel,
   photo_pmr_nolabel, paired_delta, h7_cross_source.
-- `docs/figures/m8e_cross_source_heatmap.png` — 3-panel heatmap.
+![3-panel heatmap](../figures/m8e_cross_source_heatmap.png)
 - `notebooks/m8e_cross_source.ipynb` — cell-by-cell reproduction.
