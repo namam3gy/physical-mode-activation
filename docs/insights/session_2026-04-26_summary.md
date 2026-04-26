@@ -2,11 +2,11 @@
 session: 2026-04-26 autonomous (continuation)
 date: 2026-04-26
 status: complete
-scope: §4.7 (RC per-axis stability) + §4.11 (categorical H7 regime distribution)
-commits: 309bdf6 → bbf01f9
+scope: §4.7 (RC per-axis stability) + §4.11 (categorical H7 regime distribution) + §4.3 (Korean / Japanese / Chinese cross-model) + §4.6 (VTI-reverse counterfactual stim)
+commits: 309bdf6 → 9ec147e
 ---
 
-# Session 2026-04-26 — §4.7 + §4.11
+# Session 2026-04-26 — §4.7 + §4.11 + §4.3 + §4.6
 
 ## What this session delivered
 
@@ -268,23 +268,77 @@ Japanese cross-model section).
 Figure: `docs/figures/sec4_3_japanese_vs_english_cross_model.png`.
 Roadmap §4.3 updated with Japanese ext details.
 
-## Late-session addition #4: §4.6 design spec drafted (autonomous)
+## Late-session addition #4: §4.6 complete (VTI-reverse counterfactual stim)
 
-User authorized §4.6 (SAE/VTI reverse counterfactual stim generation)
-as the next priority. brainstorming skill invoked → autonomous
-defaults applied → spec drafted at
-`docs/superpowers/specs/2026-04-26-sec4_6-counterfactual-stim-design.md`
-(commit `56d65ea`).
+User approved the §4.6 spec ("좋아 그대로 진행해") → writing-plans →
+inline executing-plans across 5 phases. End-to-end implementation +
+sweep + figures + docs took ~5 hrs (vs spec's 10–11 hr estimate).
 
-Approach (recommended): pixel-space gradient ascent on Qwen2.5-VL's
-post-processor `pixel_values` tensor. Loss = `−⟨mean(h_L10[visual_tokens]),
-v_L10_unit⟩` (M5a steering direction). Bounded ε ∈ {0.05, 0.1, 0.2}
-sweep + unconstrained ablation. Random-direction control (n=3) to
-confirm v_L10-specificity. Causal sanity check: round-trip through
-PIL reconstruction + fresh PMR inference.
+**Approach (as approved)**: pixel-space gradient ascent on Qwen2.5-
+VL's post-processor `pixel_values` tensor (T_patches × 1176, the
+patch-flattened normalized representation). Loss =
+`−⟨mean(h_L10[visual_tokens]), v_L10_unit⟩` (M5a steering direction).
+Bounded ε ∈ {0.05, 0.1, 0.2} + unconstrained + random-direction
+controls (n=3). Phase 1 differentiability gate confirmed gradient
+max_abs = 13.75, no NaNs, 324 visual tokens, baseline projection
+−2.36. Phase 2 module: `src/physical_mode/synthesis/counterfactual.py`
+with `gradient_ascent`, `pixel_values_from_pil`, `reconstruct_pil`
+(inverse permute matching Qwen2VLImageProcessor's forward
+`(0, 1, 4, 7, 5, 8, 3, 2, 6, 9)`); 3 round-trip tests pass. Phase 3
+sweep: 35 runs × 200 Adam steps, lr=1e-2, ~30 min on GPU 0
+(`outputs/sec4_6_counterfactual_20260426-050343/`). Phase 4 PMR
+re-inference + 2 figures.
 
-**Pending user review** before invoking writing-plans skill (HARD-GATE
-in brainstorming skill). Implementation has NOT started.
+**Result**:
+
+| Config              | n flipped (PMR 0→1) | Mean final projection |
+|---------------------|--------------------:|----------------------:|
+| `bounded_eps0.05`   |               5 / 5 |                  43.7 |
+| `bounded_eps0.1`    |               5 / 5 |                 100.6 |
+| `bounded_eps0.2`    |               5 / 5 |                 125.9 |
+| `unconstrained`     |               5 / 5 |                 181.1 |
+| `control_v_random_*`|              0 / 15 |                 73–85 |
+
+Pre-registered success criterion was ≥ 3/5 flips at ε = 0.05 — actual
+result is unambiguous 5/5. Random-direction projection magnitudes
+(73–85) are comparable to bounded ε=0.1 v_L10 (101) — directional
+specificity, not magnitude, controls the regime flip.
+
+**Scorer-fix note (caught reactively from random controls)**: The
+random-control responses ("The circle will remain stationary as
+there is no indication of movement…") initially scored PMR=1 because
+the substring "mov" inside "no indication of movement" matched the
+physics-verb stem list — would have made the headline 5/5 vs 15/15
+instead of 5/5 vs 0/15 and erased the falsifier. Added asymmetric
+abstract-marker patterns to `lexicons.py:ABSTRACT_MARKERS`:
+`remain stationary`, `no indication of mov`, `no indication of motion`.
+Verified asymmetric: 0/20 v_L10 hits, 14/15 random hits. Headline
+replicates with the pre-fix scorer. PMR test suite extended from 51
+→ 54 cases.
+
+**Visual character of the perturbation (advisor framing)**: ε = 0.05
+produces a faint dotted texture visible on close inspection but
+preserves the abstract circle gestalt; introduces no human-readable
+physical features (no gravity cues, ground lines, shadows). The
+claim is explicitly *not* "imperceptible" — the framing is "the
+model can be flipped by a perturbation that does not introduce
+human-readable physical content."
+
+**Mechanism**: `v_L10` is on the **shortcut path** — the vision
+encoder + projector can write into it from pixels alone, the LM
+reads out from it, and the behavioral consequence (PMR) follows
+from the projection magnitude *along this specific axis*. Combined
+with §4.10's "label dominates pixel" finding, §4.6 shows the pixel
+route can win when the perturbation is targeted along `v_L10`.
+
+H-shortcut strengthened. New H-direction-specificity (random
+controls falsify "any perturbation flips PMR"). H7 orthogonal —
+§4.6 produces a regime flip with the label held constant.
+
+Commits: `9ec147e` (Phase 4: scorer fix + figures). Earlier phases
+folded into the Phase 4 commit per the inline-execution checkpoint
+plan. Insight docs: `docs/insights/sec4_6_counterfactual_stim.md`
+(+ ko). Notebook: `notebooks/sec4_6_counterfactual_stim.ipynb`.
 
 ## Combined backlog after this session
 
@@ -295,10 +349,10 @@ Open §4 items:
   languages). Spanish and fully-target-language prompt remain open as
   future extensions.
 - §4.4 — Michotte 2-frame causality (needs 2-image prompt support)
-- ▶ §4.6 — VTI-reverse counterfactual stim — **design spec drafted
-  (autonomous), pending user review** at `docs/superpowers/specs/
-  2026-04-26-sec4_6-counterfactual-stim-design.md`. Implementation
-  estimate 10-11 hrs across 4-5 iterations.
+- ~~§4.6 — VTI-reverse counterfactual stim~~ — *closed* (commit
+  `9ec147e`). 5/5 v_L10 flips at ε = 0.05; 0/15 random-direction
+  flips at matched ε = 0.1. v_L10 is encodable in the image. Deep
+  dive: `docs/insights/sec4_6_counterfactual_stim.md`.
 - §4.8 — PMR scaling (Qwen 32B/72B — needs new large-model loads)
 
 Major milestones:

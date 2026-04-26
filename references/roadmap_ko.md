@@ -83,7 +83,7 @@
 | **M8d** | **자극 다양화 — 비-공 물리 객체 카테고리** | car / person / bird × line/filled/shaded/textured × bg/cue × `(fall, horizontal)` × 5 seeds. **사전 등록 엄격 채점: Qwen 0/3 H7 (binary, ceiling), LLaVA 3/3 H7 ✓ — 본 프로젝트 가장 강력한 카테고리 횡단 H7 증거.** Qwen 천장 아래에서 regime 분포는 17.5 % static (figurine) / 22.5 % static (statue). H1 양 모델 모두 실패 (도형-축 특정). H-encoder-saturation 카테고리 횡단 검증. 새 `classify_regime` keyword 분류기 (5.6 % 손 라벨링 오차). | ✅ | 2026-04-25 |
 | **M8c** | **자극 다양화 — 실사진** | 60 사진 (12 × {ball, car, person, bird, abstract}) from COCO 2017 + WikiArt. **핵심 결과**: 사진이 Qwen PMR(_nolabel) 을 카테고리에 걸쳐 18-48 pp 낮춤 — 시각-포화 가설 정제: 행동 PMR 포화는 인코더 표현 신뢰 AND 입력-맥락 단순성의 결합. LLaVA H7 부분적 성립 (2/4 binary). LLaVA person 사진 PMR 합성 대비 +39 pp 상승 (인코더가 마침내 사람 인식). | ✅ | 2026-04-25 |
 | **4.5** | **Cross-encoder swap (CLIP / SigLIP / DINOv2)** | H-encoder-saturation 의 인과적 counterfactual: LLaVA 의 CLIP-ViT-L 을 SigLIP 으로 교체 (Qwen 의 경우 그 반대). Encoder probe AUC 가 saturation 수준의 *원인* 인지 가장 깔끔한 검증. **§4.5 에서 promotion**. | ▶ **PRIORITY 4 (다음)** | — |
-| **4.6** | **SAE / VTI 역방향 counterfactual 자극 생성** | 학습된 방향 (M5a v_L10 또는 SAE feature) 을 사용하여 모델 시각으로 physics-mode 를 maximize 하는 자극을 gradient-ascent 로 합성. M5a 의 adversarial / shortcut-revealing 확장. **§4.6 에서 promotion**. | ▶ **PRIORITY 5 (다음)** | — |
+| **4.6** | **VTI 역방향 counterfactual 자극 생성** | Qwen2.5-VL post-processor `pixel_values` 위 픽셀-공간 gradient ascent 로 `<h_L10[visual], v_L10>` 를 최대화. **ε = 0.05 에서 5/5 v_L10 flip; 매칭 ε = 0.1 의 random direction 0/15 flip** — 방향 특이성이 "어떤 perturbation 이든" 대안을 falsify. Random-control 응답이 과도하게 허용적인 scorer 를 노출 (비대칭 수정 검증: v_L10 응답 0/20 이 새 abstract marker 와 매칭). v_L10 은 이미지에 인코드 가능; M5a shortcut 은 픽셀 기반 경로 위에 존재. | ✅ | 2026-04-26 |
 | **4.10** | **Attention visualization UI** | Qwen2.5-VL 초기 릴리스 (notebook + heatmap overlay) + 5 VLMs 전체로 cross-model 확장 (동일 M8a stim). Visual token 에 대한 last-token attention 이 architecture-level 차이 표시 (Qwen ~17%, LLaVA-1.5 ~7%, Idefics2 ~30%, ...). | ✅ | 2026-04-25 |
 | M5b | ST4 Phase 3 — SIP + patching + SAE | Semantic Image Pairs + activation patching (attention 필요 → re-capture) + SAE feature decomposition. | optional | — |
 | M6 r3+ | ST5 round 3+ — encoder counterfactuals + LLaVA-Next | LLaVA-Next, InternVL3 captures, scale 변종 (Qwen 32B/72B), 다른 VLM family (Pixtral / Phi-V). | optional | — |
@@ -570,16 +570,30 @@ CLIP-ViT-L (LLaVA)        0.73     0.18
 
 **예상 소요**: 4-7 시간 (기존 swap variant 사용; +다수 시간 if fresh swap 학습).
 
-### 4.6 SAE / VTI 역방향 counterfactual 자극 생성 — 작업 상세 ▶ priority 5 (promoted)
+### 4.6 VTI 역방향 counterfactual 자극 생성 ✅ (2026-04-26)
 
-**동기**: "Adversarial physics-mode" 자극이 모델이 무엇을 physical 로 보는지 드러냄. 합성된 자극이 사람에게는 추상으로 보이지만 모델에는 physical 로 읽히면, 깔끔한 shortcut-interpretation 발견.
+**접근**: Qwen2.5-VL post-processor `pixel_values` (T_patches × 1176, patch-flattened normalized 표현) 위 픽셀-공간 gradient ascent 로 `<mean(h_L10[visual]), v_L10>` 최대화. 미분 불가능한 PIL → patch 전처리를 우회하면서, inverse permute + de-norm 으로 이미지 복원 가능. 신규 모듈: `src/physical_mode/synthesis/counterfactual.py`.
 
-**Sub-tasks**:
-1. M5a steering direction `v_L10` 또는 학습된 SAE feature 를 가져옴.
-2. Image space 에서 gradient-ascent (PIL / torch differentiable) 로 활성화의 `v_L10` 사영 maximize.
-3. 결과 자극 시각 검사 + PMR 측정.
+**결과 (5 baseline 원 자극 × 7 config × 200 Adam step, lr=1e-2)**:
 
-**예상 소요**: 6-10 시간 (Qwen 파이프라인 통한 image differentiability 가 non-trivial).
+| Config              | n flipped (PMR 0→1) | 평균 final projection |
+|---------------------|--------------------:|----------------------:|
+| `bounded_eps0.05`   |               5 / 5 |                  43.7 |
+| `bounded_eps0.1`    |               5 / 5 |                 100.6 |
+| `bounded_eps0.2`    |               5 / 5 |                 125.9 |
+| `unconstrained`     |               5 / 5 |                 181.1 |
+| `control_v_random_*`|              0 / 15 |                 73–85 |
+
+**Headlines**:
+1. **ε = 0.05 에서 5/5 v_L10 flip** (사전 등록 ≥ 3/5).
+2. **매칭 ε = 0.1 random-direction 0/15 flip** — 방향 특이성이 "어떤 픽셀 perturbation 이든 PMR 을 뒤집는다" 를 기각. Random direction 이 도달하는 projection magnitude (73–85) 는 bounded ε=0.1 (101) 과 동일 자릿수; 행동 결과는 *축* 위에서 갈리지 magnitude 위에서 갈리지 않음.
+3. **`v_L10` 은 이미지에 인코드 가능** — runtime steering 없는 픽셀 변화만으로 충분.
+
+**Scorer 수정 노트**: random control 이 과도하게 허용적인 PMR scorer 를 노출 ("no indication of movement" 이 "mov" stem 과 매칭). 비대칭 abstract-marker 패턴 추가 (`remain stationary`, `no indication of mov`, `no indication of motion`). 비대칭성 검증: v_L10 응답 0/20 매칭, random 응답 14/15 매칭. 헤드라인은 수정 전 scorer 에서도 그대로 재현.
+
+**시각적 특성**: ε = 0.05 는 가까이서 보면 보이는 옅은 점박이 텍스처를 만듦; abstract 한 원 형태는 보존; 인간이 읽을 수 있는 물리적 feature 는 도입하지 않음. 깊이 분석: `docs/insights/sec4_6_counterfactual_stim.md` (+ ko).
+
+**Artifacts**: `outputs/sec4_6_counterfactual_20260426-050343/`, `docs/figures/sec4_6_counterfactual_stim_panels.png`, `docs/figures/sec4_6_counterfactual_stim_trajectory.png`.
 
 ### 4.10 Attention visualization UI — 작업 상세 ▶ priority 6 (promoted)
 
@@ -649,7 +663,7 @@ CLIP-ViT-L (LLaVA)        0.73     0.18
 
 **다음-tier priority 로 promotion** (작업 상세는 §3 의 해당 섹션 참조):
 - **4.5** Cross-encoder swap — M8a/c/d 후 priority 4 (H-encoder-saturation 의 인과 검증).
-- **4.6** SAE/VTI 역방향 counterfactual 자극 생성 — priority 5.
+- **4.6** VTI 역방향 counterfactual 자극 생성 — ✅ 2026-04-26 (ε=0.05 에서 v_L10 5/5 flip; random 0/15; v_L10 픽셀에 인코드).
 - **4.10** Attention visualization UI — priority 6.
 
 나머지는 여전히 optional / 열린 아이디어.
@@ -760,11 +774,9 @@ Cross-language 요약:
 
 **상태 (2026-04-25)**: 다음-tier priority 로 promotion — H-encoder-saturation (M6 r2) 이 현재 3-model correlational; 이건 인과 counterfactual. 작업 상세 §3 위 참조.
 
-### 4.6 Activation 기반 counterfactual 자극 생성 ⭐ promoted
+### 4.6 Activation 기반 counterfactual 자극 생성 ✅ (2026-04-26)
 
-SAE 또는 VTI 로 찾은 steering vector 를 반대로 써서 "VLM 이 보기엔 '물리 모드' 를 최대화하는 자극" 을 gradient ascent 로 합성. **adversarial physics-mode prompt** → 오픈소스 VLM 의 shortcut 해석 증거.
-
-**상태 (2026-04-25)**: 다음-tier priority 로 promotion. M5a `v_L10` 방향이 잘 특성화됨 (M5a-ext) — 역방향 합성이 자연스러운 확장. 작업 상세 §3 위 참조.
+Qwen2.5-VL post-processor `pixel_values` (T_patches × 1176, patch-flattened normalized 표현) 위 픽셀-공간 gradient ascent 로 `<mean(h_L10[visual]), v_L10>` 최대화. 미분 불가능한 PIL → patch 전처리를 우회하면서, inverse permute + de-norm 으로 이미지 복원 가능. **ε = 0.05 에서 5/5 v_L10 flip** (사전 등록 ≥ 3/5); **매칭 ε = 0.1 의 random-direction 0/15 flip** — 방향 특이성이 "어떤 perturbation 이든 PMR 을 뒤집는다" 를 falsify. `v_L10` 은 이미지에 인코드 가능 — M5a shortcut 은 픽셀 기반 경로 위에 존재하지, runtime hidden-state injection 만의 속성이 아님. 깊이 분석: `docs/insights/sec4_6_counterfactual_stim.md` (+ ko).
 
 ### 4.7 결정 consistency 의 경계 측정 ✅ (2026-04-26)
 
@@ -900,3 +912,4 @@ Figure: `docs/figures/sec4_11_regime_distribution_5model.png`.
 | 2026-04-25 | **M6 r5 완료 (M8c 사진 인코더 프로브 — 4-모델 cross-stim)**: InternVL3 M8c 추론 (180+60 2분) + 4 모델 × 60 사진 캡처 (~3분) + 행동-y + stim-y 프로브. 행동-y AUC 가 cross-stim 역전 (Qwen 0.88→0.44, LLaVA 0.77→0.86, Idefics2 0.93→0.77, InternVL3 0.89→0.59), 그러나 stim-y AUC 는 4 모델 모두 사진에서 1.0 유지. 인코더 식별 능력 균일을 cross-stim 에서 확인 — architecture-level reframe 의 cross-stim 최종 확인. | `166c053` |
 | 2026-04-25 | **M6 r6 완료 (LLaVA-Next-Mistral 5번째 모델 점, 2번째 CLIP)**: LLaVA-v1.6-Mistral-7b on M8a (400 라벨 + 400 라벨-free + 400 stim × 4 레이어 × 5 타일 캡처). 평균 PMR(_nolabel) **0.700, 95% CI [0.65, 0.74]**, LLaVA-1.5 바닥 [0.14, 0.21]과 saturated cluster [0.80, 0.92] 사이. 행동-y AUC 0.81; stim-y AUC = 1.0 4개 target 모두. **5-모델 M8a chain lock** (Qwen / LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3). 2번째 CLIP 점이 vision-encoder 계열을 PMR 단독 결정자로 배제. LM-controlled counterfactual 아닌 5번째 관측치로 보고: 4개 architecture 축이 동시 변경 (AnyRes tiling, fusion projector, 학습, LM 계열). H-encoder-saturation **5 모델 점 + 2 CLIP 점에서 architecture-level 확인**. | `b2434d4` |
 | 2026-04-25 | **M6 r6 cross-stim 부록**: LLaVA-Next 를 M8d + M8c (1620 추론, GPU 0 ~16분). M8d PMR 0.625 [0.58, 0.67] mid-band 유지; M8c PMR 0.417 가 Idefics2 0.417 과 통계적 동일 (photo-collapse 가 5번째 모델에 일반화). **H7 cross-stim**: M8a +0.26 (5/5 PASS, mid-strong), M8d −0.05 (CI [−0.10, −0.01], noise floor), M8c +0.02. M8d H7 collapse 는 saturation 효과가 **아님** (PMR 0.625 천장 한참 아래); 동일 encoder family architecture 스위치가 PMR 헤드룸 있어도 H7 약화. H-encoder-saturation reframe 5 모델 × 3 stim 에서 유지. H-LM-modulation 여전히 suggested-only (두-Mistral M8d H7 ≈ 0 클러스터링은 advisor 지적대로 multi-axis-confounded). | `524e32b` |
+| 2026-04-26 | **§4.6 완료 (VTI 역방향 counterfactual 자극, Qwen2.5-VL)**: post-processor `pixel_values` (T_patches × 1176, patch-flattened normalized 표현; 미분 불가능한 PIL → patch 전처리 우회) 위 픽셀-공간 gradient ascent 로 `<mean(h_L10[visual]), v_L10>` 최대화. Sweep: 5 baseline 원 자극 × {bounded ε ∈ {0.05, 0.1, 0.2}, unconstrained, ε = 0.1 random unit dir × 3} × 200 Adam step lr=1e-2 = 35 run × ~30분. **결과: ε = 0.05 에서 v_L10 5/5 PMR 0→1 flip** (사전 등록 ≥ 3/5); **매칭 ε = 0.1 random-direction 0/15 flip**. Random direction 의 final projection (73–85) 은 bounded ε = 0.1 v_L10 (101) 과 동일 자릿수 — 방향 특이성이 regime flip 을 결정, magnitude 가 아님. Random-control 응답 ("no indication of movement") 이 abstract 문장 안의 "mov" stem 에 매칭되는 과도하게 허용적인 PMR scorer 를 노출; 비대칭 abstract-marker 패턴 추가 (`remain stationary`, `no indication of mov`, `no indication of motion`) — 비대칭성 검증: v_L10 0/20 매칭, random 14/15 매칭; 헤드라인은 수정 전 scorer 에서도 재현. 신규 모듈 `src/physical_mode/synthesis/counterfactual.py` (gradient_ascent + Qwen2VLImageProcessor 의 forward `(0, 1, 4, 7, 5, 8, 3, 2, 6, 9)` 와 매칭되는 inverse permute 의 reconstruct_pil). PMR 테스트 스위트 51 → 54 케이스 확장. **`v_L10` 은 이미지에 인코드 가능** — M5a shortcut 은 픽셀 기반 경로 위에 존재. 깊이 분석: `docs/insights/sec4_6_counterfactual_stim.md` (+ ko). | `9ec147e` |

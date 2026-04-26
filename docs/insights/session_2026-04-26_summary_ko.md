@@ -2,11 +2,11 @@
 session: 2026-04-26 자율 (이어짐)
 date: 2026-04-26
 status: complete
-scope: §4.7 (RC per-axis 안정성) + §4.11 (categorical H7 regime 분포)
-commits: 309bdf6 → bbf01f9
+scope: §4.7 (RC per-axis 안정성) + §4.11 (categorical H7 regime 분포) + §4.3 (한국어 / 일본어 / 중국어 cross-model) + §4.6 (VTI-역방향 counterfactual stim)
+commits: 309bdf6 → 9ec147e
 ---
 
-# 세션 2026-04-26 — §4.7 + §4.11
+# 세션 2026-04-26 — §4.7 + §4.11 + §4.3 + §4.6
 
 ## 이 세션의 산출물
 
@@ -260,22 +260,75 @@ cross-model 섹션 추가됨).
 Figure: `docs/figures/sec4_3_japanese_vs_english_cross_model.png`.
 Roadmap §4.3 Japanese ext 세부 사항 업데이트.
 
-## Late-session addition #4: §4.6 design spec 작성 (autonomous)
+## Late-session addition #4: §4.6 완료 (VTI-reverse counterfactual stim)
 
-사용자가 §4.6 (SAE/VTI reverse counterfactual stim 생성) 을 다음 우선
-순위로 승인. brainstorming skill 호출 → autonomous defaults 적용 →
-spec 작성 `docs/superpowers/specs/2026-04-26-sec4_6-counterfactual-
-stim-design.md` (commit `56d65ea`).
+사용자가 §4.6 spec 을 승인 ("좋아 그대로 진행해") → writing-plans →
+inline executing-plans 로 5 phase 진행. End-to-end 구현 + sweep +
+figure + 문서 ~5 hr 소요 (spec 의 10–11 hr 추정 대비).
 
-Approach (recommended): pixel-space gradient ascent on Qwen2.5-VL 의
-post-processor `pixel_values` tensor. Loss = `−⟨mean(h_L10[visual_tokens]),
-v_L10_unit⟩` (M5a steering direction). Bounded ε ∈ {0.05, 0.1, 0.2}
-sweep + unconstrained ablation. Random-direction control (n=3) 으로
-v_L10-specificity 확인. Causal sanity check: PIL reconstruction
-round-trip + 새 PMR 추론.
+**Approach (승인된 대로)**: Qwen2.5-VL post-processor `pixel_values`
+tensor (T_patches × 1176, patch-flattened normalized 표현) 위 픽셀-
+공간 gradient ascent. Loss =
+`−⟨mean(h_L10[visual_tokens]), v_L10_unit⟩` (M5a steering 방향).
+Bounded ε ∈ {0.05, 0.1, 0.2} + unconstrained + random-direction
+control (n=3). Phase 1 미분 가능성 게이트에서 gradient max_abs =
+13.75, NaN 없음, 시각 토큰 324 개, baseline projection −2.36 확인.
+Phase 2 모듈: `src/physical_mode/synthesis/counterfactual.py` (
+`gradient_ascent`, `pixel_values_from_pil`,
+Qwen2VLImageProcessor 의 forward `(0, 1, 4, 7, 5, 8, 3, 2, 6, 9)` 와
+매칭되는 inverse permute 의 `reconstruct_pil`); 3 round-trip 테스트
+통과. Phase 3 sweep: GPU 0 에서 35 run × 200 Adam step, lr=1e-2,
+~30분 (`outputs/sec4_6_counterfactual_20260426-050343/`). Phase 4 PMR
+재-추론 + 2 figure.
 
-**writing-plans skill 호출 전 사용자 review 대기** (brainstorming
-skill 의 HARD-GATE). 구현 시작 안 함.
+**결과**:
+
+| Config              | n flipped (PMR 0→1) | 평균 final projection |
+|---------------------|--------------------:|----------------------:|
+| `bounded_eps0.05`   |               5 / 5 |                  43.7 |
+| `bounded_eps0.1`    |               5 / 5 |                 100.6 |
+| `bounded_eps0.2`    |               5 / 5 |                 125.9 |
+| `unconstrained`     |               5 / 5 |                 181.1 |
+| `control_v_random_*`|              0 / 15 |                 73–85 |
+
+사전 등록 성공 기준은 ε = 0.05 에서 ≥ 3/5 — 결과는 명확한 5/5.
+Random-direction projection magnitude (73–85) 가 bounded ε=0.1
+v_L10 (101) 과 동일 자릿수 — 방향 특이성이 regime flip 을 결정,
+magnitude 가 아님.
+
+**Scorer 수정 노트 (random control 에서 반응적으로 발견)**:
+random-control 응답 ("The circle will remain stationary as there
+is no indication of movement…") 이 처음에 PMR=1 로 채점됨 —
+"no indication of movement" 안의 substring "mov" 이 physics-verb
+stem 리스트와 매칭되었기 때문. 이대로면 헤드라인이 5/5 vs 0/15
+대신 5/5 vs 15/15 가 되어 falsifier 가 사라졌을 것.
+`lexicons.py:ABSTRACT_MARKERS` 에 비대칭 abstract-marker 패턴 추가:
+`remain stationary`, `no indication of mov`, `no indication of motion`.
+비대칭성 검증: v_L10 0/20 매칭, random 14/15 매칭. 헤드라인은
+수정 전 scorer 에서도 재현. PMR 테스트 스위트 51 → 54 케이스 확장.
+
+**Perturbation 의 시각적 특성 (advisor framing)**: ε = 0.05 는
+가까이서 보면 보이는 옅은 점박이 텍스처를 만들지만 abstract 한 원
+형태는 보존; 인간이 읽을 수 있는 물리적 feature (중력 단서, 지면
+라인, 그림자) 는 도입하지 않음. 주장은 명시적으로 "비가시적" 이
+*아님* — framing 은 "인간이 읽을 수 있는 물리적 콘텐츠를 도입하지
+않는 perturbation 으로 모델을 뒤집을 수 있다."
+
+**Mechanism**: `v_L10` 은 **shortcut 경로 위에** 있음 — vision
+encoder + projector 가 픽셀에서만으로 그 곳으로 쓸 수 있고, LM 이
+그곳에서 읽어내며, 행동 결과 (PMR) 는 *바로 그 특정 축* 위 projection
+magnitude 에서 따라온다. §4.10 의 "label dominates pixel" 결과와
+함께 보면, §4.6 은 perturbation 이 `v_L10` 을 따라 표적화된 경우
+픽셀 경로가 이길 수 있음을 보임.
+
+H-shortcut 강화. 신규 H-direction-specificity (random control 이
+"어떤 perturbation 이든 PMR 을 뒤집는다" 를 falsify). H7 직교 —
+§4.6 은 label 을 고정한 채로 regime flip 을 만든다.
+
+Commit: `9ec147e` (Phase 4: scorer 수정 + figure). 이전 phase 들은
+inline-execution 체크포인트 계획에 따라 Phase 4 commit 으로 통합.
+Insight docs: `docs/insights/sec4_6_counterfactual_stim.md` (+ ko).
+Notebook: `notebooks/sec4_6_counterfactual_stim.ipynb`.
 
 ## 이 세션 후 통합 backlog
 
@@ -285,10 +338,10 @@ skill 의 HARD-GATE). 구현 시작 안 함.
   `b754fdf`). Scorer 가 Korean + Japanese + Chinese (3 언어) 로 확장.
   스페인어 와 완전 target-language 프롬프트는 미래 확장으로 열림.
 - §4.4 — Michotte 2-frame causality (2-이미지 prompt 지원 필요)
-- ▶ §4.6 — VTI-reverse counterfactual stim — **design spec 작성됨
-  (autonomous), 사용자 review 대기** at `docs/superpowers/specs/
-  2026-04-26-sec4_6-counterfactual-stim-design.md`. 구현 estimate
-  10-11 hrs across 4-5 iterations.
+- ~~§4.6 — VTI-reverse counterfactual stim~~ — *닫힘* (commit
+  `9ec147e`). ε = 0.05 에서 v_L10 5/5 flip; 매칭 ε = 0.1 의
+  random-direction 0/15 flip. v_L10 은 이미지에 인코드 가능. 깊이
+  분석: `docs/insights/sec4_6_counterfactual_stim.md`.
 - §4.8 — PMR scaling (Qwen 32B/72B — 새 대형 모델 로드 필요)
 
 주요 milestone:

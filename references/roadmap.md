@@ -83,7 +83,7 @@ Original H1-H3 from `references/project.md` §2.2 plus H4-H7 derived during the 
 | **M8d** | **Stimulus diversification — non-ball physical object categories** | car / person / bird × line/filled/shaded/textured × bg/cue × `(fall, horizontal)` × 5 seeds. **Strict pre-registration scoring: Qwen 0/3 H7 (binary, ceiling), LLaVA 3/3 H7 ✓ — strongest cross-category H7 evidence in the project.** Underneath Qwen ceiling, regime distribution shows 17.5 % static (figurine) / 22.5 % static (statue), validating H7 at the kinetic-vs-static split. H1 fails on both (shape-specific axis). H-encoder-saturation cross-validated cross-category. New `classify_regime` keyword classifier (5.6 % hand-annotation error). | ✅ | 2026-04-25 |
 | **M8c** | **Stimulus diversification — real photographs** | 60 photos (12 × {ball, car, person, bird, abstract}) from COCO 2017 + WikiArt. **Key result**: photos REDUCE Qwen PMR(_nolabel) by 18-48 pp across categories — visual-saturation hypothesis refined: behavioral PMR saturation requires both encoder representational confidence AND input-context simplicity. LLaVA H7 partially holds (2/4 binary). LLaVA person photo PMR rises +39 pp vs synthetic (encoder finally recognizes humans). | ✅ | 2026-04-25 |
 | **4.5** | **Cross-encoder swap (CLIP / SigLIP / DINOv2)** | Idefics2-8b (SigLIP-SO400M + Mistral-7B) added as third point: PMR(_nolabel) = **0.882** (ceiling, matches Qwen 0.838). LLaVA (CLIP) = 0.175. **H-encoder-saturation causally confirmed at the encoder-family level** — encoder type (SigLIP vs CLIP) drives the PMR ceiling regime regardless of LM (Qwen2-7B / Mistral-7B). | ✅ | 2026-04-25 |
-| **4.6** | **Counterfactual stimulus generation via SAE / VTI reverse** | Use a learned direction (M5a v_L10 or SAE feature) to gradient-ascent-synthesize a stimulus that maximizes physics-mode in the model's eyes. Adversarial / shortcut-revealing extension to M5a. **PROMOTED from §4.6** to ▶ priority. | ▶ **PRIORITY 5 (next)** | — |
+| **4.6** | **Counterfactual stimulus generation via VTI reverse** | Pixel-space gradient ascent on Qwen2.5-VL post-processor `pixel_values` maximizing `<h_L10[visual], v_L10>`. **5/5 v_L10 flips at ε = 0.05; 0/15 random-direction flips** at matched ε = 0.1 — directional specificity falsifies "any perturbation" alternative. Random-control responses surfaced an over-permissive scorer (asymmetric fix verified: 0/20 v_L10 hits new abstract markers). v_L10 is encodable in the image; the M5a shortcut is on the pixel-driven path. | ✅ | 2026-04-26 |
 | **4.10** | **Attention visualization UI** | Initial Qwen2.5-VL release (notebook + heatmap overlay) + cross-model extension to all 5 VLMs on the same M8a stim. Last-token attention to visual tokens shows architecture-level differences (Qwen ~17%, LLaVA-1.5 ~7%, Idefics2 ~30%, ...). | ✅ | 2026-04-25 |
 | M5b | ST4 Phase 3 — SIP + patching + SAE | Semantic Image Pairs + activation patching (needs attention re-capture) + SAE feature decomposition. | optional | — |
 | M6 r3+ | ST5 round 3+ — encoder counterfactuals + LLaVA-Next | LLaVA-Next, InternVL3 captures, scale variants (Qwen 32B/72B), other VLM families (Pixtral / Phi-V). | optional | — |
@@ -586,16 +586,30 @@ Deep dive: `docs/insights/m9_generalization_audit.md`.
 
 **Estimated effort**: 4-7 hours (using existing swapped variants; +many hours if training a fresh swap).
 
-### 4.6 Counterfactual stimulus generation via SAE / VTI reverse — work plan ▶ priority 5 (promoted)
+### 4.6 Counterfactual stimulus generation via VTI reverse ✅ (2026-04-26)
 
-**Motivation**: "Adversarial physics-mode" stimulus reveals what the model considers physical. If the synthesized stimulus looks abstract to humans but reads as physical to the model, that is a clean shortcut-interpretation finding.
+**Approach**: pixel-space gradient ascent on Qwen2.5-VL post-processor `pixel_values` (T_patches × 1176), maximizing `<mean(h_L10[visual]), v_L10>`. Bypasses the non-differentiable PIL → patch preprocessing while still recovering a viewable RGB via inverse permute + de-norm. New module: `src/physical_mode/synthesis/counterfactual.py`.
 
-**Sub-tasks**:
-1. Take the M5a steering direction `v_L10` or a learned SAE feature.
-2. Gradient-ascent in image space (PIL / torch differentiable) to maximize the projection of the activation onto `v_L10`.
-3. Inspect the resulting stimulus visually + measure PMR.
+**Result (5 baseline circle stim × 7 configs × 200 Adam steps, lr=1e-2)**:
 
-**Estimated effort**: 6-10 hours (image differentiability through Qwen pipeline is non-trivial).
+| Config              | n flipped (PMR 0→1) | Mean final projection |
+|---------------------|--------------------:|----------------------:|
+| `bounded_eps0.05`   |               5 / 5 |                  43.7 |
+| `bounded_eps0.1`    |               5 / 5 |                 100.6 |
+| `bounded_eps0.2`    |               5 / 5 |                 125.9 |
+| `unconstrained`     |               5 / 5 |                 181.1 |
+| `control_v_random_*`|              0 / 15 |                 73–85 |
+
+**Headlines**:
+1. **5/5 v_L10 flips at ε = 0.05** (pre-registered ≥ 3/5).
+2. **0/15 random-direction flips at matched ε = 0.1** — directional specificity falsifies "any pixel perturbation flips PMR." Random directions reach projection magnitudes (73–85) comparable to bounded ε=0.1 (101); behavioral outcome diverges along the *axis*, not the magnitude.
+3. **`v_L10` is encodable in the image** — pixel-space change without runtime steering suffices.
+
+**Scorer-fix note**: random controls exposed an over-permissive PMR scorer ("no indication of movement" matched the "mov" stem). Added asymmetric abstract-marker patterns (`remain stationary`, `no indication of mov`, `no indication of motion`). Verified asymmetric: 0/20 v_L10 hits; 14/15 random hits. Headline replicates with the pre-fix scorer.
+
+**Visual character**: ε = 0.05 produces a faint dotted texture visible on close inspection; preserves the abstract circle gestalt; introduces no human-readable physical features. Deep dive: `docs/insights/sec4_6_counterfactual_stim.md` (+ ko).
+
+**Artifacts**: `outputs/sec4_6_counterfactual_20260426-050343/`, `docs/figures/sec4_6_counterfactual_stim_panels.png`, `docs/figures/sec4_6_counterfactual_stim_trajectory.png`.
 
 ### 4.10 Attention visualization UI — work plan ▶ priority 6 (promoted)
 
@@ -647,7 +661,7 @@ Extensions that came up during the pilot, or that aren't in `references/project.
 
 **Promoted to next-tier priority** (work plans now in §3, see corresponding sections):
 - **4.5** Cross-encoder swap — priority 4 after M8a/c/d (causal test of H-encoder-saturation).
-- **4.6** Counterfactual stimulus generation via SAE/VTI reverse — priority 5.
+- **4.6** Counterfactual stimulus generation via VTI reverse — ✅ 2026-04-26 (5/5 v_L10 flips at ε=0.05; 0/15 random; v_L10 encodable in pixels).
 - **4.10** Attention visualization UI — priority 6.
 
 The remainder are still optional / open ideas.
@@ -761,11 +775,9 @@ Hypothesis: "cues that are invisible when the encoder is CLIP can be seen by a D
 
 **Status (2026-04-25)**: promoted to next-tier priority — H-encoder-saturation (M6 r2) is currently 3-model correlational; this is the causal counterfactual. Detailed work plan in §3 above.
 
-### 4.6 Activation-based counterfactual stimulus generation ⭐ promoted
+### 4.6 Activation-based counterfactual stimulus generation ✅ (2026-04-26)
 
-Use a SAE / VTI steering vector in reverse to gradient-ascent synthesize a stimulus that "maximizes physics-mode in the VLM's eyes". An **adversarial physics-mode prompt** → evidence for shortcut interpretation in open-source VLMs.
-
-**Status (2026-04-25)**: promoted to next-tier priority. The M5a `v_L10` direction is now well characterized (M5a-ext) — reverse-synthesis is the natural extension. Detailed work plan in §3 above.
+Pixel-space gradient ascent on the Qwen2.5-VL post-processor `pixel_values` (T_patches × 1176, the patch-flattened normalized representation) maximizing `<mean(h_L10[visual]), v_L10>`. Bypasses the non-differentiable PIL → patch preprocessing while still recovering a viewable image via inverse permute + de-norm. **5/5 v_L10 flips at ε = 0.05** (pre-registered ≥ 3/5); **0/15 random-direction flips** at matched ε = 0.1 — directional specificity falsifies "any perturbation flips PMR." `v_L10` is encodable in the image — the M5a shortcut lives on the pixel-driven path, not just at runtime hidden-state injection. Deep dive: `docs/insights/sec4_6_counterfactual_stim.md` (+ ko).
 
 ### 4.7 Decision-consistency boundary measurement ✅ (2026-04-26)
 
@@ -912,3 +924,4 @@ extension to classify_regime (would need new keyword sets per shape).
 | 2026-04-25 | **M6 r5 complete (M8c photo encoder probe — 4-model cross-stim)**: InternVL3 M8c inference (180+60 in 2 min) + 4 model × 60 photo captures (~3 min) + behavioral-y + stim-y probes. Behavioral-y AUC inverts cross-stim (Qwen 0.88→0.44, LLaVA 0.77→0.86, Idefics2 0.93→0.77, InternVL3 0.89→0.59), but stim-y AUC stays at 1.0 across all 4 models on photos. Confirms cross-stim that encoder discriminability is uniform — final cross-stim confirmation of architecture-level reframe. | `166c053` |
 | 2026-04-25 | **M6 r6 complete (LLaVA-Next-Mistral 5th model point, 2nd CLIP)**: LLaVA-v1.6-Mistral-7b on M8a (400 labeled + 400 label-free + 400 stim × 4 layers × 5 tile capture). Mean PMR(_nolabel) **0.700, 95% CI [0.65, 0.74]**, between LLaVA-1.5 floor [0.14, 0.21] and saturated cluster [0.80, 0.92]. Behavioral-y AUC 0.81; stim-y AUC = 1.0 across all 4 targets. **5-model M8a chain locked** (Qwen / LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3). The 2nd CLIP point rules out vision-encoder-family as sole determinant of PMR. Reported as 5th observation, not LM-controlled counterfactual: 4 architectural axes change simultaneously (AnyRes tiling, fusion projector, training, LM family). H-encoder-saturation **architecture-level confirmed at 5 model points + 2 CLIP points**. | `b2434d4` |
 | 2026-04-25 | **M6 r6 cross-stim addendum**: LLaVA-Next on M8d + M8c (1620 inferences, ~16 min on GPU 0). M8d PMR 0.625 [0.58, 0.67] preserves mid-band; M8c PMR 0.417 statistically equal to Idefics2 0.417 (photo-collapse generalizes to 5th model). **H7 cross-stim**: M8a +0.26 (5/5 PASS, mid-strong), M8d −0.05 (CI [−0.10, −0.01], noise floor), M8c +0.02. M8d H7 collapse is **not** a saturation effect (PMR 0.625 well below ceiling); same-encoder-family architecture switch attenuates H7 with PMR headroom remaining. H-encoder-saturation reframe holds at 5 models × 3 stim. H-LM-modulation still suggested-only (two-Mistral M8d H7 clustering at ≈0 is multi-axis-confounded per advisor). | `524e32b` |
+| 2026-04-26 | **§4.6 complete (VTI-reverse counterfactual stim, Qwen2.5-VL)**: pixel-space gradient ascent on the post-processor `pixel_values` (T_patches × 1176, the patch-flattened normalized representation; bypasses non-differentiable PIL → patch preprocessing) maximizing `<mean(h_L10[visual]), v_L10>`. Sweep: 5 baseline circle stim × {bounded ε ∈ {0.05, 0.1, 0.2}, unconstrained, random unit dir × 3 at ε = 0.1} × 200 Adam steps lr=1e-2 = 35 runs × ~30 min. **Result: 5/5 v_L10 flips PMR 0→1 at ε = 0.05** (pre-registered ≥ 3/5); **0/15 random-direction flips at matched ε = 0.1**. Random-direction final projections (73–85) are comparable in magnitude to bounded ε = 0.1 v_L10 (101) — directional specificity, not magnitude, controls the regime flip. Random-control responses ("no indication of movement") exposed an over-permissive PMR scorer that matched the "mov" stem inside an abstract sentence; added asymmetric abstract-marker patterns (`remain stationary`, `no indication of mov`, `no indication of motion`) — verified asymmetric: 0/20 v_L10 hits, 14/15 random hits; headline replicates with the pre-fix scorer. New module `src/physical_mode/synthesis/counterfactual.py` (gradient_ascent + reconstruct_pil with inverse permute matching Qwen2VLImageProcessor's forward `(0, 1, 4, 7, 5, 8, 3, 2, 6, 9)`). PMR test suite extended from 51 → 54 cases. **`v_L10` is encodable in the image** — the M5a shortcut lives on the pixel-driven path. Deep dive: `docs/insights/sec4_6_counterfactual_stim.md` (+ ko). | `9ec147e` |
