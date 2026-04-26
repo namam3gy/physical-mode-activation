@@ -105,6 +105,17 @@ OPEN_TEMPLATE, 같은 한국어 라벨 (공/원/행성).
 
 ![§4.3 cross-model Korean vs English](../figures/sec4_3_korean_vs_english_cross_model.png)
 
+### Scorer 수정 (2026-04-26)
+
+Cross-model run 에서 1200 응답 중 12개 한국어-only 응답 발견 (LLaVA-Next 4,
+Idefics2 8, 나머지 0) — 원래 영어-키워드 PMR scorer 가 조용히 0 으로
+default. Korean physics-verb stems (`떨어` / `이동` / `움직` / `회전` 등)
+와 Korean abstract markers (`그대로` / `움직이지 않` / `변하지 않` 등) 를
+`src/physical_mode/metrics/lexicons.py` 에 추가 + `score_pmr` 에 한국어
+substring fallback 추가. 아래 수치는 fix 후; 5-model finding 은 유지하되
+Idefics2 magnitude 가 더 깔끔 (−0.10 exotic drop 이 −0.05 로 축소,
+abstract +0.08 이 +0.11 로 증가; rank-flip 보존).
+
 ### 모델별 EN vs KO PMR
 
 | Model | Role | EN PMR | KO PMR | Δ (KO−EN) |
@@ -115,18 +126,18 @@ OPEN_TEMPLATE, 같은 한국어 라벨 (공/원/행성).
 | LLaVA-1.5  | physical             | 0.862 | 0.675 | **−0.19** |
 | LLaVA-1.5  | abstract             | 0.475 | 0.600 | **+0.13** |
 | LLaVA-1.5  | exotic               | 0.625 | 0.638 |  +0.01 |
-| LLaVA-Next | physical             | 0.988 | 0.925 |  −0.06 |
-| LLaVA-Next | abstract             | 0.825 | 0.850 |  +0.03 |
+| LLaVA-Next | physical             | 0.988 | 0.938 |  −0.05 |
+| LLaVA-Next | abstract             | 0.825 | 0.862 |  +0.04 |
 | LLaVA-Next | exotic               | 0.950 | 0.912 |  −0.04 |
 | Idefics2   | physical             | 0.988 | 0.988 |   0.00 |
-| Idefics2   | abstract             | 0.838 | 0.912 |  +0.08 |
-| Idefics2   | exotic               | 0.888 | 0.788 | **−0.10** |
+| Idefics2   | abstract             | 0.838 | 0.950 | **+0.11** |
+| Idefics2   | exotic               | 0.888 | 0.838 |  −0.05 |
 | InternVL3  | physical             | 1.000 | 1.000 |   0.00 |
 | InternVL3  | abstract             | 0.988 | 0.962 |  −0.03 |
 | InternVL3  | exotic               | 1.000 | 0.975 |  −0.03 |
 
 모델별 평균 |Δ| (rank-preservation magnitude):
-InternVL3 0.02 < LLaVA-Next 0.04 < Qwen 0.06 ≈ Idefics2 0.06 < LLaVA-1.5 0.11.
+InternVL3 0.02 < LLaVA-Next 0.04 < Idefics2 0.05 < Qwen 0.06 < LLaVA-1.5 0.11.
 
 ### Cross-model 헤드라인
 
@@ -142,11 +153,15 @@ InternVL3 0.02 < LLaVA-Next 0.04 < Qwen 0.06 ≈ Idefics2 0.06 < LLaVA-1.5 0.11.
    에도 cross-label rank 는 살아남음 (`공` 0.68 > `행성` 0.64 >
    `원` 0.60 이 `ball > planet > circle` 미러).
 
-3. **Idefics2 가 특히 `행성` 손실**. Exotic role 의 −0.10 pp 감소가
-   `원` 대비 rank 뒤집음. Token-frequency story 와 일치: `행성`
-   (compound noun, 학습 데이터 frequency 더 낮음) 이 LM (제한된 한국어
-   SFT 의 Mistral-7B) 가 한국어 prior 더 얇을 때 손실. 더 단순한
-   명사 공 과 원 은 안정.
+3. **Idefics2 가 특히 `행성` rank 손실**. Exotic role 의 −0.05 pp
+   감소가 abstract role 의 +0.11 pp 상승과 결합되어 `원` 대비 rank
+   뒤집음: KO `공 > 원 > 행성` vs EN `ball > planet > circle`.
+   Token-frequency story 와 일치: `행성` (compound noun, 학습 데이터
+   frequency 더 낮음) 이 `원` (단일 음절, 매우 흔함) 대비 LM (제한된
+   한국어 SFT 의 Mistral-7B) 가 한국어 prior 더 얇을 때 underperform.
+   Korean-scorer fix 후 Idefics2 exotic drop 이 더 작아짐
+   (−0.10 → −0.05) — 원래 측정이 단일-셀 deficit 을 과대평가했지만
+   rank-flip 스토리는 변하지 않음.
 
 4. **InternVL3 가 양 언어에서 천장** (PMR ≈ 1.0). 거의-제로 swing 이
    (a) saturated 라벨 prior, (b) 강한 InternLM3 한국어 coverage 둘 다

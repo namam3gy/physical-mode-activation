@@ -7,14 +7,24 @@
 
 응답당 binary. **PMR = 1 iff**:
 
-1. lowercased 응답에 `ABSTRACT_MARKERS` 의 phrase 가 *전혀* 없음
-   (예: "this is just a circle", "won't move", "abstract shape"); **AND**
-2. 응답의 whitespace-separated word 중 최소 하나가 `PHYSICS_VERB_STEMS` 의 stem
-   으로 시작 (예: "falls" 가 `fall` 매치, "rolling" 이 `roll` 매치, "accelerates"
-   가 `accelerat` 매치).
+1. lowercased 응답에 `ABSTRACT_MARKERS` 또는 `KOREAN_ABSTRACT_MARKERS` 의
+   phrase 가 *전혀* 없음 (예: "this is just a circle", "won't move",
+   "abstract shape", `그대로`, `움직이지 않`); **AND**
+2. *둘 중 하나*: 영어 path — 응답의 whitespace-separated word 중 최소 하나가
+   `PHYSICS_VERB_STEMS` 의 stem 으로 시작 (예: "falls" 가 `fall` 매치,
+   "rolling" 이 `roll` 매치); *또는* 한국어 path — `KOREAN_PHYSICS_VERB_STEMS`
+   의 stem 이 응답의 substring 으로 등장 (예: `떨어` 가 떨어진다 / 떨어지는 /
+   떨어졌다 의 모든 활용 캐치).
 
 abstract-reject gate 가 **먼저** 적용되어 "this is an abstract shape — it won't
 move" 같은 응답은 "move" 가 `mov` stem 에 매치되어도 PMR = 0 으로 점수.
+
+한국어 substring fallback 은 §4.3 cross-model run 에서 추가 (2026-04-26):
+한국어-only 응답 (드물게, cross-model §4.3 예측의 ~1%, LLaVA-Next +
+Idefics2 에서 관찰) 에서 영어 regex `[A-Za-z]+` 가 token 0개 반환하여 PMR =
+0 으로 조용히 점수. 한국어가 agglutinative + space-segmented 가 아니므로
+`떨어` 같은 stem 의 substring matching 이 떨어지다 의 모든 inflection 을
+신뢰성 있게 캐치.
 
 ### Lexicon 확장
 

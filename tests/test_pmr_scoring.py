@@ -29,6 +29,12 @@ PMR_POSITIVE = [
     "The ball is rotating as it descends.",
     "It is gliding across the floor.",
     "The ball plunges into the ground.",
+    # Korean fallback (§4.3 cross-model: Idefics2 / LLaVA-Next emit Hangul).
+    "행성이 땅으로 떨어지는 중.",
+    "행성이 지면으로 떨어지고 있습니다.",
+    "지면으로 떨어 지기 시작.",
+    "위로 이동.",
+    "공이 움직이기 시작될 것입니다.",
 ]
 
 PMR_NEGATIVE = [
@@ -42,6 +48,10 @@ PMR_NEGATIVE = [
     "It is suspended in the air indefinitely.",
     "It is a diagram; there is no motion.",
     "The image shows a circle. No change occurs.",
+    # Korean negatives.
+    "원이 더 작아지기 시작될 것",     # abstract change, no physics verb
+    "행성이 그대로 있을 것입니다.",      # 그대로 abstract marker
+    "공이 움직이지 않을 것입니다.",     # 움직이지 않 abstract marker
 ]
 
 

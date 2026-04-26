@@ -8,14 +8,24 @@ Implementation: `src/physical_mode/metrics/pmr.py`.
 Binary per response. **PMR = 1 iff**:
 
 1. The lowercased response contains *no* phrase in `ABSTRACT_MARKERS`
-   (e.g., "this is just a circle", "won't move", "abstract shape"); **AND**
-2. At least one whitespace-separated word in the response starts with a stem
-   in `PHYSICS_VERB_STEMS` (e.g., "falls" matches `fall`, "rolling" matches
-   `roll`, "accelerates" matches `accelerat`).
+   or `KOREAN_ABSTRACT_MARKERS` (e.g., "this is just a circle", "won't
+   move", "abstract shape", `그대로`, `움직이지 않`); **AND**
+2. *Either* an English path: at least one whitespace-separated word in
+   the response starts with a stem in `PHYSICS_VERB_STEMS` (e.g.,
+   "falls" matches `fall`, "rolling" matches `roll`); *or* a Korean
+   path: a stem in `KOREAN_PHYSICS_VERB_STEMS` appears as a substring
+   of the response (e.g., `떨어` catches 떨어진다 / 떨어지는 / 떨어졌다).
 
 The abstract-reject gate comes **first** so that a response like "this is an
 abstract shape — it won't move" scores PMR = 0 despite the word "move"
 matching the `mov` stem.
+
+The Korean substring fallback was added in the §4.3 cross-model run
+(2026-04-26): on Hangul-only responses (rare, ~1% of cross-model §4.3
+predictions, observed in LLaVA-Next + Idefics2), the English regex
+`[A-Za-z]+` returns no tokens, silently scoring PMR = 0. Korean is
+agglutinative and not space-segmented, so substring matching on a stem
+like `떨어` reliably catches all inflections of 떨어지다.
 
 ### Expanding the lexicon
 

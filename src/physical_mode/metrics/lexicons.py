@@ -121,6 +121,59 @@ ABSTRACT_MARKERS: frozenset[str] = frozenset({
 })
 
 
+# Korean physics-verb stems for §4.3-style runs where the model occasionally
+# emits Hangul-only responses. These are matched as substrings against the
+# raw text (Korean is agglutinative and not space-segmented like English, so
+# substring matching on a stem like "떨어" reliably catches all inflections
+# of 떨어지다 — 떨어진다 / 떨어지는 / 떨어졌다 / 떨어지고 / 떨어지기).
+#
+# IMPORTANT: same overlap-with-label rule as ABSTRACT_MARKERS — do NOT add
+# Korean tokens that overlap with §4.3 labels (공 / 원 / 행성). The OPEN_TEMPLATE
+# echoes the label, so any added overlapping token would force PMR=1 on every
+# response.
+KOREAN_PHYSICS_VERB_STEMS: frozenset[str] = frozenset({
+    "떨어",     # 떨어지다 fall/drop (떨어진다, 떨어졌다, 떨어지는, 떨어지고)
+    "낙하",     # 낙하 falling (Sino-Korean noun)
+    "추락",     # 추락 crash/plummet
+    "굴러",     # 굴러가다 roll
+    "구르",     # 구르다 roll (alt form)
+    "움직",     # 움직이다 move (움직이고, 움직이기, 움직였다)
+    "이동",     # 이동 movement (Sino-Korean)
+    "튀어",     # 튀어오르다 bounce up
+    "튀기",     # 튀기다 bounce
+    "미끄러",   # 미끄러지다 slide/slip
+    "흔들",     # 흔들리다 sway/shake
+    "쓰러",     # 쓰러지다 fall over/topple
+    "기울",     # 기울다 tilt/lean
+    "회전",     # 회전 rotation
+    "돌아",     # 돌아가다 turn/spin
+    "날아",     # 날아가다 fly
+    "비행",     # 비행 flight
+    "부딪",     # 부딪치다 collide
+    "충돌",     # 충돌 collision
+    "내려",     # 내려가다 go down, 내려오다 come down
+    "떠올",     # 떠오르다 rise
+    "오르",     # 오르다 climb/rise
+    "가속",     # 가속 acceleration
+    "튕기",     # 튕기다 bounce off
+})
+
+# Korean abstract / hold-still markers — substring matched against text.
+# Conservative set: only phrases that strongly imply abstract framing or
+# explicit no-motion. Avoid bare "정지" (could appear inside "정지하지 않고"
+# = "without stopping" inside a kinetic response) and "이미지" / "도형"
+# (overlap with prompt echoes).
+KOREAN_ABSTRACT_MARKERS: frozenset[str] = frozenset({
+    "그대로",         # as is, unchanged
+    "변하지 않",      # doesn't change
+    "변화 없",        # no change
+    "변동 없",        # no movement/change
+    "움직이지 않",    # doesn't move
+    "변동이 없",      # no change
+    "추상",           # abstract
+})
+
+
 # ---------------------------------------------------------------------------
 # M8d category-specific regime keywords.
 # Used by metrics.pmr.classify_regime to assign one of {kinetic, static,

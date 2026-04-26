@@ -113,6 +113,19 @@ Korean labels (공/원/행성).
 
 ![§4.3 cross-model Korean vs English](../figures/sec4_3_korean_vs_english_cross_model.png)
 
+### Scorer note (2026-04-26)
+
+The cross-model run surfaced 12/1200 Hangul-only responses (LLaVA-Next:
+4, Idefics2: 8, others: 0) where the original English-keyword PMR
+scorer silently defaulted to 0. We added Korean physics-verb stems
+(`떨어` / `이동` / `움직` / `회전` / etc.) and Korean abstract markers
+(`그대로` / `움직이지 않` / `변하지 않` / etc.) to
+`src/physical_mode/metrics/lexicons.py` and a Korean substring fallback
+to `score_pmr`. The numbers below are post-fix; the original 5-model
+finding stands but with cleaner Idefics2 magnitudes (the −0.10 exotic
+drop shrinks to −0.05; abstract +0.08 grows to +0.11; rank-flip
+preserved).
+
 ### Per-model EN vs KO PMR
 
 | Model | Role | EN PMR | KO PMR | Δ (KO−EN) |
@@ -123,18 +136,18 @@ Korean labels (공/원/행성).
 | LLaVA-1.5  | physical             | 0.862 | 0.675 | **−0.19** |
 | LLaVA-1.5  | abstract             | 0.475 | 0.600 | **+0.13** |
 | LLaVA-1.5  | exotic               | 0.625 | 0.638 |  +0.01 |
-| LLaVA-Next | physical             | 0.988 | 0.925 |  −0.06 |
-| LLaVA-Next | abstract             | 0.825 | 0.850 |  +0.03 |
+| LLaVA-Next | physical             | 0.988 | 0.938 |  −0.05 |
+| LLaVA-Next | abstract             | 0.825 | 0.862 |  +0.04 |
 | LLaVA-Next | exotic               | 0.950 | 0.912 |  −0.04 |
 | Idefics2   | physical             | 0.988 | 0.988 |   0.00 |
-| Idefics2   | abstract             | 0.838 | 0.912 |  +0.08 |
-| Idefics2   | exotic               | 0.888 | 0.788 | **−0.10** |
+| Idefics2   | abstract             | 0.838 | 0.950 | **+0.11** |
+| Idefics2   | exotic               | 0.888 | 0.838 |  −0.05 |
 | InternVL3  | physical             | 1.000 | 1.000 |   0.00 |
 | InternVL3  | abstract             | 0.988 | 0.962 |  −0.03 |
 | InternVL3  | exotic               | 1.000 | 0.975 |  −0.03 |
 
 Mean |Δ| per model (rank-preservation magnitude):
-InternVL3 0.02 < LLaVA-Next 0.04 < Qwen 0.06 ≈ Idefics2 0.06 < LLaVA-1.5 0.11.
+InternVL3 0.02 < LLaVA-Next 0.04 < Idefics2 0.05 < Qwen 0.06 < LLaVA-1.5 0.11.
 
 ### Cross-model headlines
 
@@ -152,12 +165,16 @@ InternVL3 0.02 < LLaVA-Next 0.04 < Qwen 0.06 ≈ Idefics2 0.06 < LLaVA-1.5 0.11.
    survives (`공` 0.68 > `행성` 0.64 > `원` 0.60 mirrors
    `ball` > `planet` > `circle`).
 
-3. **Idefics2 specifically loses `행성`.** The −0.10 pp drop on the
-   exotic role flips the rank against `원`. Consistent with a token-
-   frequency story: `행성` (compound noun, lower training-data
-   frequency) suffers when the LM (Mistral-7B with limited Korean
-   SFT) has a thinner Korean prior. The simpler nouns 공 and 원 are
-   stable.
+3. **Idefics2 specifically loses `행성` rank.** The −0.05 pp drop on
+   the exotic role combined with a +0.11 pp rise on the abstract role
+   flips the rank against `원`: KO `공 > 원 > 행성` vs EN
+   `ball > planet > circle`. Consistent with a token-frequency story:
+   `행성` (compound noun, lower training-data frequency) under-
+   performs `원` (single-syllable, very common) when the LM (Mistral-7B
+   with limited Korean SFT) has a thinner Korean prior. Note that the
+   Idefics2 exotic drop is smaller after the Korean-scorer fix
+   (−0.10 → −0.05) — the original measurement over-stated the
+   single-cell deficit but the rank-flip story is unchanged.
 
 4. **InternVL3 is at ceiling** in both languages (PMRs ≈ 1.0). The
    near-zero swing is consistent with both (a) saturated label prior

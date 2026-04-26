@@ -688,14 +688,15 @@ Qwen2.5-VL (original):
 | circle / 원 | 0.80 | 0.76 | −0.04 |
 | planet / 행성 | 0.96 | 0.88 | −0.09 |
 
-Cross-model EN→KO Δ (KO − EN):
+Cross-model EN→KO Δ (KO − EN), Korean-aware scorer (added 12 Korean-only
+responses that the original English-keyword scorer silently dropped):
 
 | Model | physical | abstract | exotic | mean |Δ| |
 |-------|---------:|---------:|-------:|---------:|
 | Qwen2.5-VL | +0.04 | −0.04 | −0.09 | 0.06 |
 | LLaVA-1.5  | **−0.19** | **+0.13** | +0.01 | 0.11 |
-| LLaVA-Next | −0.06 | +0.03 | −0.04 | 0.04 |
-| Idefics2   |  0.00 | +0.08 | **−0.10** | 0.06 |
+| LLaVA-Next | −0.05 | +0.04 | −0.04 | 0.04 |
+| Idefics2   |  0.00 | **+0.11** | −0.05 | 0.05 |
 | InternVL3  |  0.00 | −0.03 | −0.03 | 0.02 |
 
 **Headline (5-model)**:

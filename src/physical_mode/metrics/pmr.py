@@ -13,6 +13,8 @@ from .lexicons import (
     CATEGORY_REGIME_KEYWORDS,
     DOWN_DIRECTION_PHRASES,
     HOLD_STILL_STEMS,
+    KOREAN_ABSTRACT_MARKERS,
+    KOREAN_PHYSICS_VERB_STEMS,
     PHYSICS_VERB_STEMS,
     UNIVERSAL_KINETIC_STEMS,
 )
@@ -43,13 +45,22 @@ def score_pmr(text: str) -> int:
 
     The abstract-rejection check prevents "this is just a circle — it won't move"
     from counting as physical because of "move".
+
+    Korean fallback: when a model emits Hangul-only responses (observed in
+    §4.3 cross-model runs for LLaVA-Next, Idefics2 on a small fraction of
+    stim), the English `_words` tokenizer returns nothing. The Korean
+    substring match catches those responses so they aren't silently scored 0.
     """
     if not text:
         return 0
     if _any_phrase_hit(text, ABSTRACT_MARKERS):
         return 0
+    if _any_phrase_hit(text, KOREAN_ABSTRACT_MARKERS):
+        return 0
     words = _words(text)
     if _any_stem_hit(words, PHYSICS_VERB_STEMS):
+        return 1
+    if _any_phrase_hit(text, KOREAN_PHYSICS_VERB_STEMS):
         return 1
     return 0
 
