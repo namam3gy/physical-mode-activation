@@ -35,7 +35,7 @@ OUT_DIR = PROJECT_ROOT / "outputs" / "m2_cross_model_summary"
 # (English M2 labeled run pattern, M2 label-free run pattern). Patterns
 # match the latest run of each kind by glob + sort.
 MODEL_RUNS: dict[str, tuple[str, str]] = {
-    "Qwen2.5-VL":  ("mvp_full_*",                                 "m4b_label_free_*"),
+    "Qwen2.5-VL":  ("mvp_full_2*",                                "label_free_2*"),
     "LLaVA-1.5":   ("cross_model_llava_2*",                       "cross_model_llava_label_free_*"),
     "LLaVA-Next":  ("cross_model_llava_next_capture_2*",          "cross_model_llava_next_label_free_*"),
     "Idefics2":    ("cross_model_idefics2_capture_2*",            "cross_model_idefics2_label_free_*"),
