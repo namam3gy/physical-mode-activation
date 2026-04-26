@@ -41,6 +41,14 @@ PMR_POSITIVE = [
     "円は移動するでしょう。",            # circle will move
     "惑星は落下します。",                # planet falls
     "ボールが動いています。",             # ball is moving
+    "ボールがドロップ.",                 # Katakana drop
+    # Chinese fallback (§4.3 ext: Idefics2 emits Chinese on Japanese 惑星).
+    "惑星会向下落下.",                   # planet falls down
+    "惑星会掉入黑洞.",                   # planet falls into black hole
+    "惑星会下降.",                       # planet descends
+    "惑星向下跌落.",                     # planet falls
+    "惑星会向下坠落.",                   # planet plummets
+    "惑星将会继续飞行.",                 # planet will continue to fly
 ]
 
 PMR_NEGATIVE = [

@@ -205,6 +205,36 @@ JAPANESE_PHYSICS_VERB_STEMS: frozenset[str] = frozenset({
     "降り",         # 降りる descend
     "加速",         # 加速 acceleration
     "墜落",         # 墜落 crash
+    "ドロップ",     # Katakana loanword for "drop" (physical drop)
+})
+
+
+# Chinese (simplified) physics-verb stems for §4.3-style runs.
+# Surfaced when Idefics2 (Mistral-7B LM, limited Japanese SFT) responded
+# to Japanese label `惑星` (which is also a valid Chinese word for
+# planet) with Chinese-language physics descriptions — 19/80 responses
+# on Idefics2's `惑星` arm were simplified Chinese:
+# "惑星会向下落下", "惑星掉入黑洞", "惑星会下降", etc.
+#
+# Same overlap-with-label rule as the Korean / Japanese sets — none of
+# `球` / `圆` / `行星` (Chinese names of the 3 §4.3 roles) appear here.
+# Note: some stems overlap with JA (落下, 加速); duplication is harmless
+# (substring matching short-circuits on first match).
+CHINESE_PHYSICS_VERB_STEMS: frozenset[str] = frozenset({
+    "下落",         # fall down (Chinese phrasing distinct from JA 落ち)
+    "掉入",         # fall into
+    "掉落",         # fall down
+    "跌落",         # fall
+    "坠落",         # plummet (CN simplified 坠, JA uses 墜)
+    "下降",         # descend
+    "旋转",         # rotate (CN simplified 旋转, JA uses 回転)
+    "飞行",         # fly (CN simplified 飞, JA uses 飛)
+    "滚动",         # roll
+    "弹起",         # bounce
+    "撞击",         # impact
+    "倒下",         # fall over
+    "落地",         # land on the ground
+    "下坠",         # plummet down
 })
 
 # Japanese abstract / hold-still markers — substring matched against text.

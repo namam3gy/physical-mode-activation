@@ -11,6 +11,7 @@ import pandas as pd
 from .lexicons import (
     ABSTRACT_MARKERS,
     CATEGORY_REGIME_KEYWORDS,
+    CHINESE_PHYSICS_VERB_STEMS,
     DOWN_DIRECTION_PHRASES,
     HOLD_STILL_STEMS,
     JAPANESE_ABSTRACT_MARKERS,
@@ -67,6 +68,8 @@ def score_pmr(text: str) -> int:
     if _any_phrase_hit(text, KOREAN_PHYSICS_VERB_STEMS):
         return 1
     if _any_phrase_hit(text, JAPANESE_PHYSICS_VERB_STEMS):
+        return 1
+    if _any_phrase_hit(text, CHINESE_PHYSICS_VERB_STEMS):
         return 1
     return 0
 

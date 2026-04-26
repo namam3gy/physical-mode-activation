@@ -1,11 +1,11 @@
 ---
 section: §4.3
 date: 2026-04-26
-status: complete (5-model: Qwen2.5-VL, LLaVA-1.5, LLaVA-Next, Idefics2, InternVL3)
+status: complete (5-model × 2 non-English languages: Korean, Japanese)
 hypothesis: 라벨 언어가 PMR 강도에 영향, 그러나 라벨-prior ordering 에는 영향 안 줌
 ---
 
-# §4.3 — Korean vs English label prior (5-model)
+# §4.3 — Korean / Japanese vs English label prior (5-model × 2 languages)
 
 ## 질문
 
@@ -199,11 +199,144 @@ coverage 에 의해 bottlenecked — vision encoder 아님. Encoder-saturation
 / label-prior 스토리 (M6 r2 / M8a / §4.7) 에서 분리된 축: LM-측
 토큰 coverage 가 encoder-측 이미지 coverage 와 별개로 중요.
 
+## Japanese cross-model 확장 (2026-04-26, 5 VLMs)
+
+Korean 의 "LM-언어-fluency 가 magnitude 변조" 스토리가 일반화되는지
+검증하기 위해 같은 cross-model 디자인을 Japanese 라벨 (ボール / 円 /
+惑星) 로 동일 M8a circle stim 에 반복. 결과적으로 **Japanese 가 다른
+mechanism 을 테스트** 함이 드러남: 대부분의 모델이 Japanese 를
+Japanese 로 engage 하지 않고 더 fluent 한 언어로 번역.
+
+![§4.3 Japanese cross-model](../figures/sec4_3_japanese_vs_english_cross_model.png)
+
+### 모델별 EN vs JA PMR (Korean-aware + Chinese-aware scorer)
+
+| Model | Role | EN PMR | JA PMR | Δ (JA−EN) |
+|-------|------|-------:|-------:|----------:|
+| Qwen2.5-VL | physical (ball/ボール)   | 0.812 | 0.938 | **+0.13** |
+| Qwen2.5-VL | abstract (circle/円)     | 0.800 | 0.800 |   0.00  |
+| Qwen2.5-VL | exotic (planet/惑星)     | 0.962 | 0.950 |  −0.01  |
+| LLaVA-1.5  | physical                 | 0.862 | 0.812 |  −0.05  |
+| LLaVA-1.5  | abstract                 | 0.475 | 0.512 |  +0.04  |
+| LLaVA-1.5  | exotic                   | 0.625 | 0.675 |  +0.05  |
+| LLaVA-Next | physical                 | 0.988 | 0.962 |  −0.03  |
+| LLaVA-Next | abstract                 | 0.825 | 0.925 | **+0.10** |
+| LLaVA-Next | exotic                   | 0.950 | 0.988 |  +0.04  |
+| Idefics2   | physical                 | 0.988 | 0.975 |  −0.01  |
+| Idefics2   | abstract                 | 0.838 | 0.900 |  +0.06  |
+| Idefics2   | exotic *                 | 0.888 | 0.938 |  +0.05  |
+| InternVL3  | physical                 | 1.000 | 1.000 |   0.00  |
+| InternVL3  | abstract                 | 0.988 | 0.975 |  −0.01  |
+| InternVL3  | exotic                   | 1.000 | 0.975 |  −0.03  |
+
+\* Idefics2 exotic Δ 가 Japanese engagement 가 아닌 Chinese-fallback
+응답에서 옴 — 아래 "메커니즘: Japanese 가 다른 path 테스트" 참조.
+
+모델별 평균 |Δ|: InternVL3 0.013 < Idefics2 0.042 < Qwen 0.046 ≈
+LLaVA-1.5 0.046 < LLaVA-Next 0.054.
+
+### 메커니즘: Japanese 가 다른 path 테스트
+
+Japanese run 이 Korean run 에서 노출되지 않은 두 가지 응답 전략을
+드러냄:
+
+**Label-echo rate** (모델이 Japanese 라벨을 번역하지 않고 출력에 그대로
+쓴 응답 비율):
+
+| Model | ボール | 円 | 惑星 |
+|-------|---:|---:|---:|
+| Qwen2.5-VL  | 85% | 81% | 91% |
+| LLaVA-Next  | 12% | 18% | 51% |
+| InternVL3   |  2% |  9% | 55% |
+| LLaVA-1.5   | low | low | low |
+| Idefics2    | low | low | low (+ 24% Chinese) |
+
+다른 path:
+
+1. **Qwen2.5-VL 이 Japanese 라벨 유지** ~85-91% — 진짜로 Japanese-as-
+   Japanese 로 engage. `ボール` 의 +0.13 boost 는 Katakana ボール 가
+   영어 `ball` (춤, 모임 등 polysemous) 보다 훨씬 덜 polysemous 한
+   "physical ball" cue 임을 반영. Exotic + abstract Δ 가 거의 0 —
+   Qwen 의 Japanese label-prior 가 영어 label-prior 와 잘 calibrated.
+
+2. **LLaVA-1.5 가 kanji 를 영어로 내부 번역**. 샘플:
+   "The ball will roll down the hill" (ボール 응답), "The white circle
+   will continue to expand" (円 응답). 출력에 kanji 거의 없음. Japanese
+   에서 LLaVA-1.5 의 작은 swing (mean |Δ|=0.05) 가 *Vicuna 의 Japanese
+   가 강함을 의미하지 않음* — 모델이 영어로 번역하여 Japanese 를
+   bypass 함을 의미. 즉 LLaVA-1.5 ↓Korean / ≈Japanese 비대칭이 LM
+   fluency 자체가 아닌 Hangul 의 *고립* vs kanji 의 *번역가능성* 에
+   대해 알려줌.
+
+3. **Idefics2 가 `惑星` 에서 Chinese 로 fallback** 19/80 응답 (24%).
+   샘플: "惑星会向下落下" (planet falls down), "惑星会掉入黑洞" (planet
+   falls into black hole), "惑星向下跌落" (planet falls). Mistral-7B 가
+   `惑星` 에 제한된 Japanese SFT; kanji 가 simplified-Chinese 惑星
+   (planet, 行星 보다는 덜 흔하지만 인식됨) 와 공유, 모델이 concept 를
+   아는 언어로 fallback. Chinese-aware scorer (이 commit 에 추가됨:
+   `src/physical_mode/metrics/lexicons.py` 의 `CHINESE_PHYSICS_VERB_STEMS`)
+   적용 시 PMR=1 로 정확하게 점수. 수정된 Idefics2 exotic Δ 는 +0.05;
+   fix 없으면 **−0.15** 로 보였을 것 — 순수 scorer artifact.
+
+4. **LLaVA-Next + InternVL3 가 mixed** — `惑星` 에서 ~50% kanji 유지,
+   `ボール`/`円` 에서는 대부분 영어 번역.
+
+### Cross-label ordering (해석)
+
+Bootstrap noise (95% CI) 안에서 5 모델 모두 Japanese 의 cross-label
+ordering 보존 — 그러나 *메커니즘* 이 다름:
+
+- **Qwen**: 진짜 Japanese label-prior 로 보존 (high label-echo).
+- **LLaVA-1.5**: 내부 영어 번역으로 보존 (essentially 영어 label-prior
+  사용).
+- **LLaVA-Next, InternVL3**: mixed kanji-engagement 로 보존.
+- **Idefics2 exotic**: `惑星` 의 Chinese-fallback 응답이 점수될 때만
+  보존 — 모델이 *concept* 를 Japanese SFT 가 아닌 Chinese cross-script
+  로 인식.
+
+이는 Korean 의미의 "5/5 multilingual semantic representation" **과
+다름**. Korean run 이 모델들에게 Hangul engage 강제 (shared-script
+번역 route 없음); Japanese run 은 번역/cognate 으로 shortcut 허용.
+따라서:
+
+- Korean: **language-fluency-bottleneck** 테스트 (4/5 ordering 진짜
+  Korean engagement 로 보존).
+- Japanese: **kanji-as-bridge** 테스트 (5/5 ordering 각 모델이 찾은
+  path — 번역, fallback, 또는 진짜 Japanese — 로 보존).
+
+### Korean 과 비교
+
+모델별 평균 |Δ| 두 언어 비교:
+
+| Model | KO mean \|Δ\| | JA mean \|Δ\| | KO−JA |
+|-------|---:|---:|---:|
+| Qwen2.5-VL | 0.06 | 0.046 | +0.01 |
+| LLaVA-1.5  | 0.11 | 0.046 | **+0.07** |
+| LLaVA-Next | 0.04 | 0.054 | −0.01 |
+| Idefics2   | 0.05 | 0.042 | +0.01 |
+| InternVL3  | 0.02 | 0.013 | +0.01 |
+
+큰 비대칭은 **LLaVA-1.5: 0.11 (KO) vs 0.046 (JA)**. 원래 해석:
+Vicuna-Japanese 가 Vicuna-Korean 보다 강함. 수정된 해석: LLaVA-1.5 가
+Japanese 를 번역으로 *bypass*, 따라서 JA 결과가 Vicuna 의 Japanese
+fluency 를 측정하지 않음. KO 결과는 Hangul 고립이 engagement 강제하므로
+Vicuna 의 Korean fluency 진짜 측정.
+
+### Idefics2 cross-language: 다른 실패
+
+| Language | Effect | Mechanism |
+|----------|--------|-----------|
+| Korean   | `행성` 이 `원` 아래로 rank-flip | 진짜 Mistral-Korean SFT 의 compound noun `행성` 약점 |
+| Japanese | `惑星` 가 24% Chinese 응답 생성 | Cross-script kanji fallback — Chinese coverage 로 concept 회복 |
+
+둘 다 Mistral-7B 의 non-English SFT 한계지만, script 가 알려진 언어로
+shortcut 가능한지에 따라 다르게 발현. Korean 결과는 모델의 Korean *실패*.
+Japanese 결과는 모델이 Chinese 로 Japanese 를 *성공적으로 우회*.
+
 ## 한계
 
 1. **(언어 × 라벨 × 모델) 당 n = 80** 가 ±10 pp 차이가 noise 라기엔
-   작음. Cross-model 헤드라인 (4/5 ordering 보존; LLaVA-1.5 swing
-   최대; Idefics2 exotic flip) 은 robust; 더 미세한 magnitude 차이는
+   작음. Cross-model 헤드라인은 robust; 더 미세한 magnitude 차이는
    시사적.
 3. **영어 question template** 일정 유지. Hybrid 영어-question + 한국어-
    label 설정이 isolation 에서 label-prior 강도 검증, 그러나 전체 프롬프
@@ -217,38 +350,44 @@ coverage 에 의해 bottlenecked — vision encoder 아님. Encoder-saturation
 ## Reproducer
 
 ```bash
-# 모델별 추론 (H200 에서 각 ~4–8 분)
-for cfg in configs/sec4_3_korean_labels{,_llava,_llava_next,_idefics2,_internvl3}.py; do
+# 모델별 + 언어별 추론 (H200 에서 각 ~5–12 분)
+for cfg in configs/sec4_3_korean_labels{,_llava,_llava_next,_idefics2,_internvl3}.py \
+          configs/sec4_3_japanese_labels{,_llava,_llava_next,_idefics2,_internvl3}.py; do
     uv run python scripts/02_run_inference.py \
         --config "$cfg" \
         --stimulus-dir inputs/m8a_qwen_<ts>
 done
 
-# Qwen-only 분석 (원래)
+# Qwen-only Korean 분석 (원래)
 uv run python scripts/sec4_3_korean_vs_english.py
 
-# 5-model cross-model 분석
+# 5-model cross-model 분석 (Korean / Japanese)
 uv run python scripts/sec4_3_korean_vs_english_cross_model.py
+uv run python scripts/sec4_3_japanese_vs_english_cross_model.py
 ```
 
 출력:
-- `outputs/sec4_3_korean_labels_<model>_<ts>/predictions.{jsonl,parquet,csv}`
-- `outputs/sec4_3_korean_vs_english.csv` (Qwen-only)
-- `outputs/sec4_3_korean_vs_english_cross_model.csv` (5-model long-form)
-- `outputs/sec4_3_korean_vs_english_cross_model_deltas.csv` (모델별 Δ)
-- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only)
-- `docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model panels)
+- `outputs/sec4_3_{korean,japanese}_labels_<model>_<ts>/predictions.{jsonl,parquet,csv}`
+- `outputs/sec4_3_{korean,japanese}_vs_english_cross_model.csv` — long-form
+- `outputs/sec4_3_{korean,japanese}_vs_english_cross_model_deltas.csv` — 모델별 Δ
+- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only KO)
+- `docs/figures/sec4_3_{korean,japanese}_vs_english_cross_model.png` (5-model panels)
 
 ## 산출물
 
-- `configs/sec4_3_korean_labels.py` — Qwen Korean 라벨 config
-- `configs/sec4_3_korean_labels_{llava,llava_next,idefics2,internvl3}.py` — cross-model configs
-- `scripts/sec4_3_korean_vs_english.py` — Qwen-only 분석 드라이버
-- `scripts/sec4_3_korean_vs_english_cross_model.py` — 5-model 분석 드라이버
-- `outputs/sec4_3_korean_labels_<model>_*/predictions.{jsonl,parquet,csv}`
-- `outputs/sec4_3_korean_vs_english.csv` — Qwen-only 요약
-- `outputs/sec4_3_korean_vs_english_cross_model.csv` — 5-model 요약
-- `outputs/sec4_3_korean_vs_english_cross_model_deltas.csv` — 모델별 Δ
+- `configs/sec4_3_korean_labels{,_llava,_llava_next,_idefics2,_internvl3}.py`
+- `configs/sec4_3_japanese_labels{,_llava,_llava_next,_idefics2,_internvl3}.py`
+- `scripts/sec4_3_korean_vs_english.py` — Qwen-only Korean 분석
+- `scripts/sec4_3_korean_vs_english_cross_model.py` — 5-model Korean 분석
+- `scripts/sec4_3_japanese_vs_english_cross_model.py` — 5-model Japanese 분석
+- `src/physical_mode/metrics/lexicons.py` — KOREAN / JAPANESE / CHINESE
+  physics-verb stems + abstract markers (Idefics2 의 cross-script
+  fallback `惑星` 위해 Chinese 추가)
+- `outputs/sec4_3_{korean,japanese}_labels_<model>_*/predictions.{jsonl,parquet,csv}`
+- `outputs/sec4_3_korean_vs_english.csv` — Qwen-only KO 요약
+- `outputs/sec4_3_{korean,japanese}_vs_english_cross_model.csv` — 5-model 요약
+- `outputs/sec4_3_{korean,japanese}_vs_english_cross_model_deltas.csv` — 모델별 Δ
 - `docs/figures/sec4_3_korean_vs_english.png` — Qwen-only paired bars
-- `docs/figures/sec4_3_korean_vs_english_cross_model.png` — 5-model panel grid
+- `docs/figures/sec4_3_korean_vs_english_cross_model.png` — 5-model KO panels
+- `docs/figures/sec4_3_japanese_vs_english_cross_model.png` — 5-model JA panels
 - `docs/insights/sec4_3_korean_vs_english_ko.md` (이 문서)

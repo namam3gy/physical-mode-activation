@@ -1,11 +1,11 @@
 ---
 section: §4.3
 date: 2026-04-26
-status: complete (5-model: Qwen2.5-VL, LLaVA-1.5, LLaVA-Next, Idefics2, InternVL3)
+status: complete (5-model × 2 non-English languages: Korean, Japanese)
 hypothesis: language of the label affects PMR strength but not the label-prior ordering
 ---
 
-# §4.3 — Korean vs English label prior (5-model)
+# §4.3 — Korean / Japanese vs English label prior (5-model × 2 languages)
 
 ## Question
 
@@ -215,12 +215,153 @@ This is a separate axis from the encoder-saturation / label-prior
 story (M6 r2 / M8a / §4.7): the LM-side token coverage matters
 independently from the encoder-side image coverage.
 
+## Japanese cross-model extension (2026-04-26, 5 VLMs)
+
+To test whether the Korean "LM-language-fluency modulates magnitude"
+story generalizes, the same cross-model design was repeated with
+Japanese labels (ボール / 円 / 惑星) on the same M8a circle stim.
+What it surfaced is that **Japanese tests a different mechanism**: most
+models translate the Japanese kanji to a language they're more fluent
+in, rather than engaging with Japanese as Japanese.
+
+![§4.3 Japanese cross-model](../figures/sec4_3_japanese_vs_english_cross_model.png)
+
+### Per-model EN vs JA PMR (Korean-aware + Chinese-aware scorer)
+
+| Model | Role | EN PMR | JA PMR | Δ (JA−EN) |
+|-------|------|-------:|-------:|----------:|
+| Qwen2.5-VL | physical (ball/ボール)   | 0.812 | 0.938 | **+0.13** |
+| Qwen2.5-VL | abstract (circle/円)     | 0.800 | 0.800 |   0.00  |
+| Qwen2.5-VL | exotic (planet/惑星)     | 0.962 | 0.950 |  −0.01  |
+| LLaVA-1.5  | physical                 | 0.862 | 0.812 |  −0.05  |
+| LLaVA-1.5  | abstract                 | 0.475 | 0.512 |  +0.04  |
+| LLaVA-1.5  | exotic                   | 0.625 | 0.675 |  +0.05  |
+| LLaVA-Next | physical                 | 0.988 | 0.962 |  −0.03  |
+| LLaVA-Next | abstract                 | 0.825 | 0.925 | **+0.10** |
+| LLaVA-Next | exotic                   | 0.950 | 0.988 |  +0.04  |
+| Idefics2   | physical                 | 0.988 | 0.975 |  −0.01  |
+| Idefics2   | abstract                 | 0.838 | 0.900 |  +0.06  |
+| Idefics2   | exotic *                 | 0.888 | 0.938 |  +0.05  |
+| InternVL3  | physical                 | 1.000 | 1.000 |   0.00  |
+| InternVL3  | abstract                 | 0.988 | 0.975 |  −0.01  |
+| InternVL3  | exotic                   | 1.000 | 0.975 |  −0.03  |
+
+\* Idefics2 exotic Δ comes from Chinese-fallback responses, not Japanese
+engagement — see "Mechanism: Japanese tests different paths" below.
+
+Mean |Δ| per model: InternVL3 0.013 < Idefics2 0.042 < Qwen 0.046 ≈
+LLaVA-1.5 0.046 < LLaVA-Next 0.054.
+
+### Mechanism: Japanese tests different paths
+
+The Japanese run revealed two distinct response strategies that the
+Korean run did not surface:
+
+**Label-echo rate** (fraction of responses where the model writes the
+Japanese label in its output, instead of translating it):
+
+| Model | ボール | 円 | 惑星 |
+|-------|---:|---:|---:|
+| Qwen2.5-VL  | 85% | 81% | 91% |
+| LLaVA-Next  | 12% | 18% | 51% |
+| InternVL3   |  2% |  9% | 55% |
+| LLaVA-1.5   | low | low | low |
+| Idefics2    | low | low | low (+ 24% Chinese) |
+
+Different paths:
+
+1. **Qwen2.5-VL keeps the Japanese label** in ~85-91% of responses —
+   genuinely engages with Japanese-as-Japanese. The +0.13 boost on
+   `ボール` likely reflects that Katakana ボール is a much less polysemous
+   "physical ball" cue than English `ball` (which can also mean "dance,"
+   "gathering," etc.). The exotic and abstract Δ are near zero — Qwen's
+   Japanese label-prior is well-calibrated to its English label-prior.
+
+2. **LLaVA-1.5 translates kanji to English internally**. Sample:
+   "The ball will roll down the hill" (response to ボール), "The white
+   circle will continue to expand" (response to 円). Almost no kanji in
+   output. The small LLaVA-1.5 swing on Japanese (mean |Δ|=0.05) does
+   *not* indicate Vicuna's Japanese is strong — it indicates the model
+   bypasses Japanese by translating to English. So the LLaVA-1.5
+   ↓Korean / ≈Japanese asymmetry tells us about the *isolation* of
+   Hangul vs translatability of kanji, not about LM fluency per se.
+
+3. **Idefics2 falls back to Chinese on `惑星`** in 19/80 responses
+   (24%). Sample: "惑星会向下落下" (planet falls down), "惑星会掉入黑洞"
+   (planet falls into black hole), "惑星向下跌落" (planet falls).
+   Mistral-7B has limited Japanese SFT for `惑星`; the kanji is shared
+   with simplified-Chinese 惑星 (planet, less common than 行星 but
+   still recognized), so the model falls back to a language it knows
+   the concept in. With a Chinese-aware scorer (added in this commit:
+   `CHINESE_PHYSICS_VERB_STEMS` in `src/physical_mode/metrics/lexicons.py`),
+   these score correctly as PMR=1. The corrected Idefics2 exotic Δ is
+   +0.05; without the fix it would have appeared as **−0.15** — a
+   strict scorer artifact.
+
+4. **LLaVA-Next + InternVL3 are mixed** — they keep the kanji on `惑星`
+   ~50% of the time but translate `ボール` and `円` mostly to English.
+
+### Cross-label ordering (interpretation)
+
+Within bootstrap noise (95% CI), all 5 models preserve the cross-label
+ordering on Japanese — but the *mechanism* differs:
+
+- **Qwen**: preserves via genuine Japanese label-prior (high label-echo).
+- **LLaVA-1.5**: preserves via internal English translation (essentially
+  uses its English label-prior).
+- **LLaVA-Next, InternVL3**: preserves via mixed kanji-engagement.
+- **Idefics2 exotic**: preserves only when Chinese-fallback responses
+  on `惑星` are scored — the model recognizes the *concept* via Chinese
+  cross-script, not via Japanese SFT.
+
+This is **not** the same as "5/5 multilingual semantic representation"
+in the Korean sense. The Korean run forced models to engage with Hangul
+(no shared-script translation route); the Japanese run lets them
+shortcut through translation/cognate. So:
+
+- Korean: tests **language-fluency-bottleneck** (4/5 ordering preserved
+  via genuine Korean engagement).
+- Japanese: tests **kanji-as-bridge** (5/5 ordering preserved via
+  whatever path each model finds — translation, fallback, or genuine
+  Japanese).
+
+### Comparison to Korean
+
+Mean |Δ| per model across the two languages:
+
+| Model | KO mean \|Δ\| | JA mean \|Δ\| | KO−JA |
+|-------|---:|---:|---:|
+| Qwen2.5-VL | 0.06 | 0.046 | +0.01 |
+| LLaVA-1.5  | 0.11 | 0.046 | **+0.07** |
+| LLaVA-Next | 0.04 | 0.054 | −0.01 |
+| Idefics2   | 0.05 | 0.042 | +0.01 |
+| InternVL3  | 0.02 | 0.013 | +0.01 |
+
+The big asymmetry is **LLaVA-1.5: 0.11 (KO) vs 0.046 (JA)**. Original
+interpretation: Vicuna-Japanese stronger than Vicuna-Korean. Corrected
+interpretation: LLaVA-1.5 *bypasses* Japanese via translation, so the
+JA result doesn't measure Vicuna's Japanese fluency at all. The KO
+result genuinely measures Vicuna's Korean fluency because Hangul
+isolation forces engagement.
+
+### Idefics2 cross-language: different failures
+
+| Language | Effect | Mechanism |
+|----------|--------|-----------|
+| Korean   | `행성` rank-flips below `원` | Genuine Mistral-Korean SFT weakness for compound noun `행성` |
+| Japanese | `惑星` produces 24% Chinese responses | Cross-script kanji fallback — concept recovered via Chinese coverage |
+
+Both are limitations of Mistral-7B's non-English SFT, but they manifest
+differently depending on whether the script can be shortcut to a known
+language. The Korean result is a *failure* of the model on Korean. The
+Japanese result is the model *successfully bypassing* Japanese via
+Chinese.
+
 ## Limitations
 
 1. **n = 80 per (language × label × model)** is small enough that
-   ±10 pp differences are noise. The cross-model headline (ordering
-   preserved 4/5; LLaVA-1.5 swing largest; Idefics2 exotic flip)
-   is robust; finer magnitude differences are suggestive.
+   ±10 pp differences are noise. The cross-model headlines are robust;
+   finer magnitude differences are suggestive.
 3. **English question template** is held constant. The hybrid
    English-question + Korean-label setup tests label-prior strength
    in isolation, but doesn't address what happens when the entire
@@ -235,38 +376,44 @@ independently from the encoder-side image coverage.
 ## Reproducer
 
 ```bash
-# Inference per model (~4–8 min on H200, each)
-for cfg in configs/sec4_3_korean_labels{,_llava,_llava_next,_idefics2,_internvl3}.py; do
+# Inference per model per language (~5–12 min on H200, each)
+for cfg in configs/sec4_3_korean_labels{,_llava,_llava_next,_idefics2,_internvl3}.py \
+          configs/sec4_3_japanese_labels{,_llava,_llava_next,_idefics2,_internvl3}.py; do
     uv run python scripts/02_run_inference.py \
         --config "$cfg" \
         --stimulus-dir inputs/m8a_qwen_<ts>
 done
 
-# Qwen-only analysis (original)
+# Qwen-only Korean analysis (original)
 uv run python scripts/sec4_3_korean_vs_english.py
 
-# 5-model cross-model analysis
+# 5-model cross-model analyses (Korean / Japanese)
 uv run python scripts/sec4_3_korean_vs_english_cross_model.py
+uv run python scripts/sec4_3_japanese_vs_english_cross_model.py
 ```
 
 Outputs:
-- `outputs/sec4_3_korean_labels_<model>_<ts>/predictions.{jsonl,parquet,csv}`
-- `outputs/sec4_3_korean_vs_english.csv` (Qwen-only)
-- `outputs/sec4_3_korean_vs_english_cross_model.csv` (5-model long-form)
-- `outputs/sec4_3_korean_vs_english_cross_model_deltas.csv` (per-model Δ)
-- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only)
-- `docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model panels)
+- `outputs/sec4_3_{korean,japanese}_labels_<model>_<ts>/predictions.{jsonl,parquet,csv}`
+- `outputs/sec4_3_{korean,japanese}_vs_english_cross_model.csv` — long-form
+- `outputs/sec4_3_{korean,japanese}_vs_english_cross_model_deltas.csv` — per-model Δ
+- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only KO)
+- `docs/figures/sec4_3_{korean,japanese}_vs_english_cross_model.png` (5-model panels)
 
 ## Artifacts
 
-- `configs/sec4_3_korean_labels.py` — Qwen Korean labels config
-- `configs/sec4_3_korean_labels_{llava,llava_next,idefics2,internvl3}.py` — cross-model configs
-- `scripts/sec4_3_korean_vs_english.py` — Qwen-only analysis driver
-- `scripts/sec4_3_korean_vs_english_cross_model.py` — 5-model analysis driver
-- `outputs/sec4_3_korean_labels_<model>_*/predictions.{jsonl,parquet,csv}`
-- `outputs/sec4_3_korean_vs_english.csv` — Qwen-only summary
-- `outputs/sec4_3_korean_vs_english_cross_model.csv` — 5-model summary
-- `outputs/sec4_3_korean_vs_english_cross_model_deltas.csv` — per-model Δ
+- `configs/sec4_3_korean_labels{,_llava,_llava_next,_idefics2,_internvl3}.py`
+- `configs/sec4_3_japanese_labels{,_llava,_llava_next,_idefics2,_internvl3}.py`
+- `scripts/sec4_3_korean_vs_english.py` — Qwen-only Korean analysis
+- `scripts/sec4_3_korean_vs_english_cross_model.py` — 5-model Korean analysis
+- `scripts/sec4_3_japanese_vs_english_cross_model.py` — 5-model Japanese analysis
+- `src/physical_mode/metrics/lexicons.py` — KOREAN / JAPANESE / CHINESE
+  physics-verb stems + abstract markers (Chinese added for Idefics2's
+  cross-script fallback on `惑星`)
+- `outputs/sec4_3_{korean,japanese}_labels_<model>_*/predictions.{jsonl,parquet,csv}`
+- `outputs/sec4_3_korean_vs_english.csv` — Qwen-only KO summary
+- `outputs/sec4_3_{korean,japanese}_vs_english_cross_model.csv` — 5-model summaries
+- `outputs/sec4_3_{korean,japanese}_vs_english_cross_model_deltas.csv` — per-model Δ
 - `docs/figures/sec4_3_korean_vs_english.png` — Qwen-only paired bars
-- `docs/figures/sec4_3_korean_vs_english_cross_model.png` — 5-model panel grid
+- `docs/figures/sec4_3_korean_vs_english_cross_model.png` — 5-model KO panels
+- `docs/figures/sec4_3_japanese_vs_english_cross_model.png` — 5-model JA panels
 - `docs/insights/sec4_3_korean_vs_english.md` (this doc, + ko)

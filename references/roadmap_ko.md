@@ -716,8 +716,39 @@ scorer 가 조용히 누락한 12개 한국어-only 응답 추가):
 `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only) +
 `docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model).
 
-**여전히 열림**: 다른 언어 (일본어 / 중국어 / 스페인어); 완전 한국어
-프롬프트 (단지 영어 템플릿에 한국어 라벨 삽입이 아닌).
+**Japanese 확장 (2026-04-26, 같은 날)**: 같은 5-model 디자인을
+Japanese 라벨 (ボール / 円 / 惑星) 로 추가. Korean 과 다른 mechanism
+드러남: Qwen2.5-VL 가 Japanese 라벨 85-91% 유지 (진짜 Japanese
+engagement); LLaVA-1.5 / LLaVA-Next / InternVL3 가 대부분 kanji 를
+영어로 내부 번역; **Idefics2 가 `惑星` 에서 19/80 응답을 Chinese 로
+fallback** (Mistral-7B 가 제한된 Japanese SFT 지만 kanji 를 Chinese
+惑星 = planet 로 인식).
+
+| Model | physical | abstract | exotic | mean |Δ| |
+|-------|---------:|---------:|-------:|---------:|
+| Qwen2.5-VL | **+0.13** | 0.00 | −0.01 | 0.05 |
+| LLaVA-1.5  | −0.05 | +0.04 | +0.05 | 0.05 |
+| LLaVA-Next | −0.03 | +0.10 | +0.04 | 0.05 |
+| Idefics2   | −0.01 | +0.06 | +0.05 *| 0.04 |
+| InternVL3  |  0.00 | −0.01 | −0.03 | 0.01 |
+
+\* Idefics2 exotic +0.05 는 새 `CHINESE_PHYSICS_VERB_STEMS` lexicon 으로
+정확히 점수된 Chinese-fallback 응답에서 옴. Fix 없으면 보이는 Δ 가
+**−0.15** — 순수 scorer artifact.
+
+Cross-language 요약:
+- Korean 이 **language-fluency-bottleneck** 테스트 (Hangul 고립이
+  engagement 강제; 4/5 ordering 보존; LLaVA-1.5 swing 0.11 이
+  Vicuna-Korean 약점 진짜 측정).
+- Japanese 가 **kanji-as-bridge** 테스트 (bootstrap noise 안에서 5/5
+  ordering 보존, 그러나 mixed path 통해: 진짜 engagement (Qwen), 내부
+  번역 (LLaVA-1.5), 또는 cross-script fallback (Idefics2)).
+- LLaVA-1.5 ↓Korean / ≈Japanese 비대칭 (0.11 vs 0.05) 이 *Vicuna-
+  Japanese 가 Vicuna-Korean 보다 강함의 증거가 아님* — script 의
+  번역 가능성을 반영, LM SFT 깊이 아님.
+
+**여전히 열림**: 중국어 / 스페인어; 완전 target-language 프롬프트
+(단지 영어 템플릿에 라벨 삽입이 아닌).
 
 ### 4.4 Video frame pair → Michotte-style causality
 

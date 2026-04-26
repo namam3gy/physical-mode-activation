@@ -717,8 +717,39 @@ Doc: `docs/insights/sec4_3_korean_vs_english.md` (+ ko).
 Figures: `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only) +
 `docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model).
 
-**Still open**: other languages (Japanese / Chinese / Spanish); fully
-Korean prompt (not just Korean label inserted into English template).
+**Japanese extension (2026-04-26, same day)**: same 5-model design with
+Japanese labels (ボール / 円 / 惑星) added. Surfaced a different
+mechanism than Korean: Qwen2.5-VL keeps the Japanese label 85-91% of
+the time (genuine Japanese engagement); LLaVA-1.5 / LLaVA-Next /
+InternVL3 mostly translate kanji to English internally; **Idefics2
+falls back to Chinese on `惑星` in 19/80 responses** (Mistral-7B has
+limited Japanese SFT but recognizes the kanji as Chinese 惑星 = planet).
+
+| Model | physical | abstract | exotic | mean |Δ| |
+|-------|---------:|---------:|-------:|---------:|
+| Qwen2.5-VL | **+0.13** | 0.00 | −0.01 | 0.05 |
+| LLaVA-1.5  | −0.05 | +0.04 | +0.05 | 0.05 |
+| LLaVA-Next | −0.03 | +0.10 | +0.04 | 0.05 |
+| Idefics2   | −0.01 | +0.06 | +0.05 *| 0.04 |
+| InternVL3  |  0.00 | −0.01 | −0.03 | 0.01 |
+
+\* Idefics2 exotic +0.05 comes from Chinese-fallback responses scored
+correctly by the new `CHINESE_PHYSICS_VERB_STEMS` lexicon. Without the
+fix the apparent Δ would have been **−0.15** — pure scorer artifact.
+
+Cross-language summary:
+- Korean tests **language-fluency-bottleneck** (Hangul isolation forces
+  engagement; 4/5 ordering preserved; LLaVA-1.5 swing 0.11 measures
+  Vicuna-Korean weakness genuinely).
+- Japanese tests **kanji-as-bridge** (5/5 ordering preserved within
+  bootstrap noise, but via mixed paths: genuine engagement (Qwen),
+  internal translation (LLaVA-1.5), or cross-script fallback (Idefics2)).
+- LLaVA-1.5 ↓Korean / ≈Japanese asymmetry (0.11 vs 0.05) is *not*
+  evidence that Vicuna-Japanese is stronger than Vicuna-Korean — it
+  reflects the script's translatability, not LM SFT depth.
+
+**Still open**: Chinese / Spanish; fully target-language prompt (not
+just label inserted into English template).
 
 ### 4.4 Video frame pair → Michotte-style causality
 
