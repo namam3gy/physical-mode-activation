@@ -76,10 +76,34 @@ H-encoder-saturation reframe 의 별도 시그니처.
   saturation 이 cue 하의 seed-level commit 도 lock. 같은 architectural
   속성의 두 별도 시그니처.
 
+## 세션 후반 추가: InternVL3 M8d (§4.11 5-모델 갭 닫음)
+
+§4.7 + §4.11 4-모델 commit 후, InternVL3 가 M8d 에서 실행됨 (GPU 0
+~13분) 그리고 §4.11 figure 가 5-모델로 재생성. Commit `be29792`
+(§4.11 5-모델 close) 와 `3b1e5d8` (M9 audit InternVL3 M8d 행).
+
+**InternVL3 M8d 신규 발견**: `person × exotic` (statue) PMR 이 0.800
+(physical "person") 에서 0.481 (exotic "statue") 로 하락 — 32 pp 억제.
+Categorical 뷰: 30% kinetic / 65% static — **프로젝트에서 가장 강한
+단일 라벨-driven static commit**. saturated-encoder architecture (M8a
+PMR 0.92) 도 라벨이 uniquely non-moving entity 가리킬 때 fire 하는 활성
+라벨-disambiguation channel 보유함을 보임.
+
+업데이트된 5-모델 `person × abs` (stick figure) gradient:
+| Model | % kinetic |
+|---|---:|
+| Idefics2 | 99 |
+| InternVL3 | 99 |
+| Qwen | 91 |
+| LLaVA-Next | 80 |
+| LLaVA-1.5 | 58 |
+
+5-모델 §4.11 figure: `docs/figures/sec4_11_regime_distribution_5model.png`.
+Roadmap §4.11 가 "partial" 에서 "complete" 로 승격.
+
 ## 이어지는 한계
 
-1. **§4.11 InternVL3 누락**: M8d 가 InternVL3 에 미실행 (M6 r5 round
-   에서 deferred). 5-모델 그림 닫을 수 있음.
+1. ~~§4.11 InternVL3 누락~~ — *닫음* (commit `be29792`).
 2. **§4.11 5-카테고리 fine-grained 분류기** (gravity-fall / gravity-roll
    / orbital / inertial / static) M2 circle-only 데이터에 여전히 열림 —
    신규 키워드 셋 + `classify_regime` 의 `circle` 도형 확장 필요.

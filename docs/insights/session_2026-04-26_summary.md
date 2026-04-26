@@ -79,10 +79,35 @@ H-encoder-saturation reframe.
   dimension**: saturation also locks in seed-level commitment under cues.
   Two distinct signatures of the same architectural property.
 
+## Late-session addition: InternVL3 M8d (closes §4.11 5-model gap)
+
+After §4.7 + §4.11 4-model commits, InternVL3 was run on M8d (~13 min
+on GPU 0) and §4.11 figure regenerated as 5-model. Commits `be29792`
+(§4.11 5-model close) and `3b1e5d8` (M9 audit InternVL3 M8d row).
+
+**InternVL3 M8d new finding**: `person × exotic` (statue) PMR drops
+from 0.800 (physical "person") to 0.481 (exotic "statue") — a 32 pp
+suppression. Categorical view: 30% kinetic / 65% static — **the
+strongest single label-driven static commit in the project**. This
+shows that even saturated-encoder architectures (InternVL3 PMR 0.92
+on M8a) have an active label-disambiguation channel that fires when
+the label uniquely picks out a non-moving entity.
+
+Updated 5-model `person × abs` (stick figure) gradient:
+| Model | % kinetic |
+|---|---:|
+| Idefics2 | 99 |
+| InternVL3 | 99 |
+| Qwen | 91 |
+| LLaVA-Next | 80 |
+| LLaVA-1.5 | 58 |
+
+5-model § 4.11 figure: `docs/figures/sec4_11_regime_distribution_5model.png`.
+Roadmap §4.11 promoted from "partial" to "complete".
+
 ## Limitations carried forward
 
-1. **§4.11 InternVL3 missing**: M8d not run for InternVL3 (deferred from
-   M6 r5 round). Would close the 5-model picture.
+1. ~~§4.11 InternVL3 missing~~ — *closed* (commit `be29792`).
 2. **§4.11 5-category fine-grained classifier** (gravity-fall / gravity-
    roll / orbital / inertial / static) for M2 circle-only data is still
    open — would need new keyword sets + extending `classify_regime` to
