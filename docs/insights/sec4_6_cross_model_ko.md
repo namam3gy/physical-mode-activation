@@ -1,11 +1,23 @@
 ---
 section: §4.6 cross-model
 date: 2026-04-26
-status: complete (transfer test 4 모델 + LLaVA-1.5 per-model gradient ascent)
-hypothesis: v_L10 의 픽셀-인코드 가능성은 encoder-saturation 특이적 — Qwen 결과는 cross-architecturally 일반화하지 않음
+status: 2026-04-26 저녁 재수정 — `docs/insights/sec4_6_cross_model_revised_ko.md` 참조. 아래 "Qwen-scoped" 결론은 wrong-layer-choice artifact. LLaVA-1.5 L25 가 픽셀-인코드 가능성 admits (ε=0.2 에서 5/5 flip).
+hypothesis: ~~v_L10 의 픽셀-인코드 가능성은 encoder-saturation 특이적~~ — 재수정: 5 모델 중 적어도 2 개에 일반화, 각 모델이 자기 자신의 "shortcut layer" 가짐 (Qwen L10, LLaVA-1.5 L25)
 ---
 
-# §4.6 cross-model — Qwen 한정 결과, encoder-saturation 특이적
+# §4.6 cross-model — ~~Qwen 한정 결과~~ 재수정: 모델별 layer
+
+> ⚠️ **REVISION NOTICE (2026-04-26 저녁 overnight followup)**: 아래의
+> "Qwen-scoped" / "encoder-saturation 특이적" reading 은 wrong-layer-
+> choice artifact. LLaVA-1.5 를 L10 만 테스트했지만, LLaVA-1.5 는 32 LM
+> layer (vs Qwen 28) 라 L10 이 매우 다른 relative depth. Layer sweep
+> (L5 / L15 / L20 / L25) 결과 **L25 가 ε=0.2 에서 5/5 v_L flip, ε=0.1
+> 에서 4/5**, random 0/15. 픽셀-인코드 가능성은 Qwen-특이적이 아님.
+> 수정된 분석: `docs/insights/sec4_6_cross_model_revised_ko.md`.
+>
+> **여전히 유효**: random-direction control 이 모든 layer 에서 "어떤
+> perturbation 이든" 기각; M9 PMR-천장과 §4.7 결정-안정성 천장은 이
+> 수정과 무관한 별도 saturation 시그니처.
 
 > **이 문서에서 쓰는 코드 한 줄 recap** (전체 정의는 `references/roadmap.md` §1.3 + §2 참조)
 >

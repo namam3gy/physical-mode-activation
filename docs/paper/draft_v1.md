@@ -93,18 +93,19 @@ dimensions, each yielding a paper-grade claim:
    shortcut localized to a single LM layer at sub-100 hidden-dim
    resolution.
 
-3. **Pixel encodability is encoder-saturation specific** (§7). On
-   Qwen2.5-VL, gradient-ascent on post-processor `pixel_values` to
-   maximize `<h_L10, v_L10>` produces PMR flips with **5/5 success at
-   ε = 0.05** (L∞-bounded). Random unit-direction controls at matched
-   magnitude flip 0/15. Cross-model tests (4 non-Qwen VLMs) reveal
-   this is **Qwen-specific**: Qwen-derived synth doesn't transfer
-   (0/140 flips), and per-model gradient ascent on LLaVA-1.5
-   (the only model with class-balanced v_L10) raises projection
-   magnitudes comparably to Qwen (~150–200) but produces 0/5
-   behavioral flips. Pixel-encodability of the regime axis is a
-   third signature of encoder-saturation, parallel to PMR ceiling
-   (Claim 1) and decision-stability ceiling (§8.2).
+3. **Pixel encodability with model-conditional shortcut layer**
+   (§7; revised 2026-04-26 evening). On Qwen2.5-VL, gradient-ascent on
+   post-processor `pixel_values` to maximize `<h_L10, v_L10>` produces
+   PMR flips with **5/5 success at ε = 0.05** (L∞-bounded). Random
+   unit-direction controls at matched magnitude flip 0/15. Cross-model
+   layer sweep on LLaVA-1.5 (L5/L10/L15/L20/L25) reveals **L25 admits
+   5/5 v_L flips at ε = 0.2 and 4/5 at ε = 0.1**, with random controls
+   0/15 at every tested layer. Pixel-encodability is *not* Qwen-only;
+   each model has its own shortcut layer at a different relative LM
+   depth (Qwen L10 ≈ 36%, LLaVA-1.5 L25 ≈ 78%). The earlier "Qwen-
+   scoped" reading was a wrong-layer-choice artifact. Sample LLaVA-1.5
+   L25 ε=0.2 synth response: "The circle will be hit by a ball."
+   (baseline: "filled in with color").
 
 A fourth claim — that real photographs **compress** the encoder gap
 across all 5 models (paper Table 1) — provides external validity for
@@ -694,8 +695,8 @@ Final state of H1-H7 + named H- hypotheses:
 | H-LM-modulation | suggested only | M9 Idefics2 M8d H7 CI just touches 0; no clean LM-only counterfactual |
 | H-locus (mid-LM L10) | supported (Qwen-only) | M5a (Qwen): L10 α=40 flips 10/10 line/blank/none. Cross-model untested. |
 | H-direction-bidirectional | supported (Qwen-only) | M5a-ext Exp 3 (Qwen): −α flips D→B at L10. Cross-model untested. |
-| H-direction-specificity | **Qwen-scoped (behavior-level); projection-level cross-model** | §4.6 Qwen: 5/5 v_L10 flips at ε=0.05 vs 0/15 random (matched magnitude). §4.6 cross-model on LLaVA-1.5: projection-level specificity preserved (v_L10 reaches 150-200 vs random 2-10) but behavior-level collapses (both 0/5 flips). |
-| H-shortcut (pixel-encodable) | **Qwen-scoped (encoder-saturation specific)** | §4.6 Qwen: pixel-space gradient ascent flips PMR (5/5 at ε=0.05). §4.6 cross-model: 0/140 flips on Qwen-derived stim transfer to 4 other models; 0/5 LLaVA-1.5 per-model gradient ascent flips despite matching projection magnitudes. Pixel-encodability is encoder-saturation specific — Qwen's saturated SigLIP makes a pixel-to-L10 channel the LM reads from; LLaVA-1.5's unsaturated CLIP doesn't. Parallels M9 PMR-ceiling + §4.7 decision-stability-ceiling. |
+| H-direction-specificity | **supported, model-conditional layer** | §4.6 Qwen L10: 5/5 v_L10 flips at ε=0.05 vs 0/15 random. §4.6 LLaVA-1.5 layer sweep: L25 admits 5/5 v_L25 flips at ε=0.2 + 4/5 at ε=0.1; random 0/15 at every layer. Earlier "behavior-level Qwen-only" was wrong-layer artifact (L10 in LLaVA-1.5's 32-layer LM = 31% depth, vs Qwen L10 = 36%; LLaVA-1.5's shortcut is at 78% depth = L25). |
+| H-shortcut (pixel-encodable) | **supported (NOT Qwen-only)** | §4.6 Qwen: 5/5 PMR flips at ε=0.05 via L10 v_L10 gradient ascent. §4.6 cross-model layer sweep on LLaVA-1.5 (revised 2026-04-26 evening): L25 admits 5/5 flips at ε=0.2; previous "Qwen-scoped" was wrong-layer artifact. Pixel-encodability generalizes across at least 2/5 architectures with model-conditional shortcut layers. Sample LLaVA-1.5 L25 ε=0.2 response: "The circle will be hit by a ball." |
 
 ## Appendix E — Software stack
 

@@ -1,11 +1,26 @@
 ---
 section: §4.6 cross-model
 date: 2026-04-26
-status: complete (transfer test 4 models + LLaVA-1.5 per-model gradient ascent)
-hypothesis: pixel-encodability of v_L10 is encoder-saturation-specific — Qwen's result does not generalize cross-architecturally
+status: REVISED 2026-04-26 evening — see `docs/insights/sec4_6_cross_model_revised.md`. The "Qwen-scoped" reading below is wrong: a wrong-layer-choice artifact. LLaVA-1.5 L25 admits pixel-encodability (5/5 flips at ε=0.2).
+hypothesis: ~~pixel-encodability is encoder-saturation-specific (Qwen-only)~~ — REVISED: pixel-encodability generalizes across at least 2 of 5 models, with each model having its own "shortcut layer" (Qwen L10, LLaVA-1.5 L25)
 ---
 
-# §4.6 cross-model — Qwen-only result, encoder-saturation-specific
+# §4.6 cross-model — ~~Qwen-only~~ REVISED: per-model layer
+
+> ⚠️ **REVISION NOTICE (2026-04-26 evening overnight followup)**: The
+> "Qwen-scoped" / "encoder-saturation-specific" reading in this doc is
+> a wrong-layer-choice artifact. We tested LLaVA-1.5 only at L10 (the
+> Qwen-derived layer), but LLaVA-1.5 has 32 LM layers (vs Qwen's 28),
+> so L10 is at very different relative depth. A layer sweep
+> (L5 / L15 / L20 / L25) shows **L25 v_L admits pixel-encodability with
+> 5/5 PMR flips at ε=0.2 and 4/5 at ε=0.1**, with random controls 0/15.
+> Pixel-encodability is NOT Qwen-specific. See
+> `docs/insights/sec4_6_cross_model_revised.md` for the corrected analysis.
+>
+> **What still stands**: random-direction controls reject "any
+> perturbation" at every layer; M9 PMR-ceiling and §4.7 decision-stability
+> ceiling are independent saturation signatures unaffected by this
+> revision.
 
 > **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
 >
