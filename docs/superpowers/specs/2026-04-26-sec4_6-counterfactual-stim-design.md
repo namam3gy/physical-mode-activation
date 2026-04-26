@@ -1,7 +1,7 @@
 ---
 section: §4.6
 date: 2026-04-26
-status: design — pending user review (autonomous defaults)
+status: design — approved 2026-04-26 (user "그대로 진행해")
 ---
 
 # §4.6 — Counterfactual stimulus generation via VTI reverse (design)
@@ -317,4 +317,6 @@ Total estimate: 10-11 hrs across 4-5 implementation iterations.
   Approach A pixel-values gradient ascent, bounded ε ∈ {0.05, 0.1, 0.2}
   + unconstrained, random-direction control n=3, full deliverable
   (script + driver + summarize + notebook + insight doc + KO).
-- **Pending**: user review of this spec before invoking writing-plans.
+- **2026-04-26 — approved by user** ("그대로 진행해"). All open
+  questions defaulted to the recommended answers. Proceeding to
+  writing-plans skill for detailed implementation plan.
