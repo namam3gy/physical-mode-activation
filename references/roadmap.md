@@ -739,18 +739,25 @@ per-layer, per-head visual-token attention. For the paper appendix figure.
 Extending to LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3 is a follow-up
 that would multiply disk cost (~2 GB total for 5 models × 60 records).
 
-### 4.11 H7 follow-up — label-regime category annotation ✅ partial (2026-04-26)
+### 4.11 H7 follow-up — label-regime category annotation ✅ (2026-04-26)
 
 Systematically validate "label selects the physics regime". **Done
-2026-04-26 (4-model M8d, kinetic / static / abstract / ambiguous via
-classify_regime)**. **Headline**: LLaVA-1.5 cleanly selects regime by
-label (`person × no label` 40% kinetic + 40% static; `person × physical`
-62% kinetic; `car × abs / silhouette` 28% kinetic + 70% ambiguous).
-Qwen + Idefics2 saturated kinetic everywhere. LLaVA-Next intermediate
-with a notable 3-way split on `person × exotic` (statue: 30% kinetic +
-25% static + 25% abstract). 4-model gradient is the granular form of
-M9 H7 finding. Doc: `docs/insights/sec4_11_regime_distribution.md`
-(+ ko). Figure: `docs/figures/sec4_11_regime_distribution_4model.png`.
+2026-04-26 (5-model M8d, kinetic / static / abstract / ambiguous via
+classify_regime)**.
+
+**Headline**: LLaVA-1.5 cleanly selects regime by label (`person × no
+label` 40% kinetic + 40% static; `person × physical` 62% kinetic;
+`car × abs / silhouette` 28% kinetic + 70% ambiguous). Qwen + Idefics2
++ InternVL3 saturated kinetic everywhere except `person × exotic`
+(statue): Qwen ~30% static, **InternVL3 ~65% static** (strongest
+single label-driven static commit in the project — saturated-encoder
+architectures defer to language when the label uniquely disambiguates).
+LLaVA-Next intermediate with a 3-way split on `person × exotic`
+(30% kinetic + 25% static + 25% abstract). 5-model gradient is the
+granular form of the M9 H7 finding.
+
+Doc: `docs/insights/sec4_11_regime_distribution.md` (+ ko).
+Figure: `docs/figures/sec4_11_regime_distribution_5model.png`.
 
 **Still open**: 5-category fine-grained regime (gravity-fall / gravity-
 roll / orbital / inertial / static) for M2 circle-only data; M8a 5-shape

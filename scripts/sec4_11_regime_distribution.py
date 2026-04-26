@@ -45,6 +45,7 @@ MODEL_RUNS = {
     "LLaVA-1.5":   ("m8d_llava_2*",                      "m8d_llava_label_free_*"),
     "LLaVA-Next":  ("encoder_swap_llava_next_m8d_2*",    "encoder_swap_llava_next_m8d_label_free_*"),
     "Idefics2":    ("encoder_swap_idefics2_m8d_2*",      "encoder_swap_idefics2_m8d_label_free_*"),
+    "InternVL3":   ("encoder_swap_internvl3_m8d_2*",     "encoder_swap_internvl3_m8d_label_free_*"),
 }
 
 
@@ -151,7 +152,8 @@ def main() -> None:
                  y=1.06, fontsize=11)
     fig.tight_layout()
 
-    out = FIG_DIR / "sec4_11_regime_distribution_4model.png"
+    suffix = f"{n_models}model"
+    out = FIG_DIR / f"sec4_11_regime_distribution_{suffix}.png"
     fig.savefig(out, dpi=150, bbox_inches="tight")
     plt.close(fig)
     print(f"Wrote {out}")

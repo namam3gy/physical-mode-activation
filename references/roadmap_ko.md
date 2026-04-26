@@ -738,18 +738,25 @@ per-layer, per-head 의 visual token attention. 논문 appendix figure 용.
 LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3 으로 확장은 follow-up; 디스크
 비용 ~2 GB (5 모델 × 60 record).
 
-### 4.11 H7 follow-up — label-regime 범주 주석 ✅ partial (2026-04-26)
+### 4.11 H7 follow-up — label-regime 범주 주석 ✅ (2026-04-26)
 
 "라벨이 물리 regime 을 선택한다" 의 체계적 검증. **2026-04-26 완료
-(4-모델 M8d, classify_regime 으로 kinetic / static / abstract /
-ambiguous)**. **헤드라인**: LLaVA-1.5 가 라벨로 regime 깔끔하게 선택
-(`person × no label` 40% kinetic + 40% static; `person × physical`
-62% kinetic; `car × abs / silhouette` 28% kinetic + 70% ambiguous).
-Qwen + Idefics2 는 saturated kinetic 모든 곳에서. LLaVA-Next 는
-intermediate, `person × exotic` (statue) 에서 주목할 3-way split (30%
-kinetic + 25% static + 25% abstract). 4-모델 gradient 가 M9 H7 finding
-의 granular form. 문서: `docs/insights/sec4_11_regime_distribution_ko.md`.
-Figure: `docs/figures/sec4_11_regime_distribution_4model.png`.
+(5-모델 M8d, classify_regime 으로 kinetic / static / abstract /
+ambiguous)**.
+
+**헤드라인**: LLaVA-1.5 가 라벨로 regime 깔끔하게 선택 (`person × no
+label` 40% kinetic + 40% static; `person × physical` 62% kinetic;
+`car × abs / silhouette` 28% kinetic + 70% ambiguous). Qwen + Idefics2
++ InternVL3 는 saturated kinetic 모든 곳에서, `person × exotic`
+(statue) 만 예외: Qwen ~30% static, **InternVL3 ~65% static** (프로젝트
+에서 가장 강한 단일 라벨-driven static commit — 라벨이 uniquely
+disambiguate 할 때 saturated-encoder architecture 도 언어에 deferred).
+LLaVA-Next intermediate, `person × exotic` 에서 3-way split (30%
+kinetic + 25% static + 25% abstract). 5-모델 gradient 가 M9 H7 finding
+의 granular form.
+
+문서: `docs/insights/sec4_11_regime_distribution_ko.md`.
+Figure: `docs/figures/sec4_11_regime_distribution_5model.png`.
 
 **여전히 열림**: M2 circle-only 데이터의 5-카테고리 fine-grained regime
 (gravity-fall / gravity-roll / orbital / inertial / static); M8a

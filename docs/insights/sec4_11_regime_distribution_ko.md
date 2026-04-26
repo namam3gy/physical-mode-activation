@@ -1,11 +1,11 @@
 ---
 section: §4.11
 date: 2026-04-26
-status: complete (4-모델 M8d)
+status: complete (5-모델 M8d)
 hypothesis: H7 카테고리 follow-up — 라벨이 PMR (binary) 가 아닌 physics regime 을 선택
 ---
 
-# §4.11 — 카테고리 H7 follow-up: 4-모델 M8d regime 분포
+# §4.11 — 카테고리 H7 follow-up: 5-모델 M8d regime 분포
 
 ## 질문
 
@@ -28,12 +28,12 @@ person/bird 카테고리-특정 키워드 셋으로 확장) 을 4-모델 M8d lab
 가장 sharp 라고 언급한 곳) 의 (모델 × 카테고리 × label_role) 셀별 응답
 의 {kinetic, static, abstract, ambiguous} 비율 계산.
 
-모델: Qwen2.5-VL / LLaVA-1.5 / LLaVA-Next / Idefics2 (InternVL3 는 M8d
-에 미실행).
+모델: Qwen2.5-VL / LLaVA-1.5 / LLaVA-Next / Idefics2 / InternVL3
+(InternVL3 는 2026-04-26 추가, 5-모델 갭 닫음).
 
 ## 결과
 
-![§4.11 4-모델 M8d regime 분포](../figures/sec4_11_regime_distribution_4model.png)
+![§4.11 5-모델 M8d regime 분포](../figures/sec4_11_regime_distribution_5model.png)
 
 *그림*: (모델 × 카테고리 × label_role) regime 비율. 각 열 = {no label,
 physical label, abstract label, exotic label} 중 하나. 각 행 = 한 모델.
@@ -42,10 +42,14 @@ horizontal-event subset; 라벨 역할 셀당 n ≈ 40, _nolabel n ≈ 40.
 
 ### 헤드라인 읽기
 
-1. **Qwen + Idefics2 는 모든 셀에서 saturated kinetic**. 보이는 예외만:
-   Qwen 이 `person × exotic` (`statue`) 에서 ~30% static — `statue` 가
-   exotic 해서 saturated SigLIP architecture 도 약간 양보. 그 외에는:
-   ~95% kinetic 어디서나.
+1. **Qwen + Idefics2 + InternVL3 는 대부분 셀에서 saturated kinetic**.
+   주목할 예외:
+   - Qwen `person × exotic` (statue): ~30% static
+   - **InternVL3 `person × exotic` (statue): ~65% static** — 프로젝트
+     에서 가장 강한 단일 라벨-driven static commit. statue 라벨이 30%
+     kinetic / 65% static split 을 disambiguate, car/bird × exotic 은
+     InternVL3 에서 ≥90% kinetic 유지.
+   - 그 외에는 3 saturated encoder 모두에서 ≥95% kinetic 어디서나.
 
 2. **LLaVA-1.5 가 가장 regime-discriminative 모델** (프로젝트 최강 H7
    M8d +0.31 와 일치):
@@ -69,15 +73,24 @@ horizontal-event subset; 라벨 역할 셀당 n ≈ 40, _nolabel n ≈ 40.
    - 다른 모든 셀은 ≥80% kinetic — LLaVA-Next 의 더 강한 시각 architecture
      가 대부분의 라벨-conditioning override.
 
-4. **`person × abs` 의 cross-model 대조**: 라벨이 가장 약한 곳 (horizontal-
-   event person stim 의 stick figure):
+4. **`person × abs` 의 cross-model 대조** (horizontal-event person stim
+   의 stick figure):
    - Qwen ~91% kinetic (saturated)
    - Idefics2 ~99% kinetic (saturated)
-   - LLaVA-1.5 ~58% kinetic + ambiguous (라벨-discriminative)
+   - InternVL3 ~99% kinetic (saturated, Idefics2 와 유사)
    - LLaVA-Next ~80% kinetic + 15% static (intermediate)
+   - LLaVA-1.5 ~58% kinetic + ambiguous (라벨-discriminative)
 
-   이 4-모델 gradient 가 M9 H7 finding 의 granular form: 라벨 하의 regime
+   이 5-모델 gradient 가 M9 H7 finding 의 granular form: 라벨 하의 regime
    분포가 binary H7 가 가렸던 LM-modulation gradient 드러냄.
+
+5. **`person × exotic` 의 InternVL3 cross-model 대조** (statue):
+   30% kinetic + 65% static split 가 흥미로움, InternVL3 가 그 외에는
+   강하게 saturated 모델 (M8a PMR 0.92, 행동이 Qwen + Idefics2 와 매치).
+   `statue` 에 강한 반응은 라벨이 uniquely disambiguate 할 때 (statue 가
+   진짜로 움직이지 않는 entity), saturated-encoder architecture 도 언어
+   신호에 deferred 보임. 라벨-disambiguation channel 이 모든 architecture
+   에 존재; 단지 대부분 조건에서 dormant.
 
 ## 가설 함의
 
@@ -102,12 +115,14 @@ horizontal-event subset; 라벨 역할 셀당 n ≈ 40, _nolabel n ≈ 40.
 1. **classify_regime 가 키워드 기반**, M8d insight doc 에 따른 5.6% 손
    라벨링 오차. 미묘한 regime 구분 (예: "rolls down" vs "tumbles") 가
    별도 추적 안 됨.
-2. **InternVL3 행 없음**, M8d 미실행.
-3. **셀당 n ≈ 40** 가 ±5 pp 변동이 noise 라기엔 작음. 헤드라인 의 ≥10 pp
+2. **셀당 n ≈ 40** 가 ±5 pp 변동이 noise 라기엔 작음. 헤드라인 의 ≥10 pp
    차이는 robust; 작은 것은 시사적.
-4. **horizontal-event subset 만** (M8d insight 의 라벨 대조 가장 sharp 한
+3. **horizontal-event subset 만** (M8d insight 의 라벨 대조 가장 sharp 한
    곳). fall event subset 은 다른 regime 보일 것 (kinetic 에 "falls" /
    "drops" 더 많이).
+4. **5-카테고리 fine-grained regime** (gravity-fall / gravity-roll /
+   orbital / inertial / static) M2 circle-only 데이터에 여전히 열림.
+   Circle-shape regime 별 신규 키워드 셋 필요.
 
 ## Reproducer
 
@@ -122,7 +137,9 @@ uv run python scripts/sec4_11_regime_distribution.py
 ## 산출물
 
 - `scripts/sec4_11_regime_distribution.py` — 드라이버
-- `docs/figures/sec4_11_regime_distribution_4model.png` — 4×3×4 stacked
-  bar matrix
+- `docs/figures/sec4_11_regime_distribution_5model.png` — 5×3×4 stacked
+  bar matrix (4model 대체)
 - `outputs/sec4_11_regime_distribution.csv` — 기반 수치
+- `configs/encoder_swap_internvl3_m8d{,_label_free}.py` — InternVL3 M8d
+  config (2026-04-26 추가, 5-모델 갭 닫음)
 - `docs/insights/sec4_11_regime_distribution_ko.md` (이 문서)
