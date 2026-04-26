@@ -10,7 +10,6 @@ Usage:
 
 from __future__ import annotations
 
-import time
 from pathlib import Path
 
 from pptx import Presentation
@@ -897,14 +896,9 @@ def main():
 
     out_dir = PROJECT_ROOT / "docs" / "review_ppt"
     out_dir.mkdir(parents=True, exist_ok=True)
-    ts = time.strftime("%Y%m%d-%H%M%S")
-    out_path = out_dir / f"physical_mode_review_{ts}.pptx"
+    out_path = out_dir / "physical_mode_review_latest.pptx"
     prs.save(str(out_path))
     print(f"\nSaved: {out_path}")
-    # Also save a stable copy at a fixed name for easy linking.
-    stable = out_dir / "physical_mode_review_latest.pptx"
-    prs.save(str(stable))
-    print(f"Stable: {stable}")
 
 
 if __name__ == "__main__":
