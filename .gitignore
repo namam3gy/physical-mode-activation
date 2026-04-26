@@ -21,3 +21,6 @@ outputs/
 .DS_Store
 .idea/
 .vscode/
+
+# Per-project Claude Code local state (scheduled tasks, etc.)
+.claude/
