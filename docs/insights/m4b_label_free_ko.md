@@ -12,6 +12,11 @@
 > - **M5a** — ST4 VTI steering — LM L10 시각 토큰에 +α·v_L10 더하면 line/blank/none 이 "정지" → physics-mode 로 뒤집힘.
 > - **M6** — ST5 cross-model sweep — M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next) 참조.
 
+
+**자극** — 동일한 M2 line/blank/none baseline. label-free ("무엇이 보입니까?") 프롬프트가 이 이미지에 대한 labeled ("the ball...") 프롬프트의 H2 null test:
+
+![M4b 참조 자극: line / blank / none](../figures/01_line_blank_none.png)
+
 ROADMAP §4.9 ("H2 null-hypothesis test 로서의 label-free prompt") 를 실행.
 부산물로 M4 의 switching-layer degeneracy 를 재검토.
 

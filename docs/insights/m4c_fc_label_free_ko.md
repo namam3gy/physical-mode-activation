@@ -11,6 +11,11 @@
 > - **M6** — ST5 cross-model sweep — M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next) 참조.
 > - **M6 r1** — ST5 cross-model — LLaVA-1.5-7B 가 H2 깔끔하게 재현 (포화되지 않은 CLIP encoder 가 label-prior 의 PMR 이동을 허용).
 
+
+**자극** — M4b 와 동일한 M2 line/blank/none baseline, forced-choice 프롬프팅 하:
+
+![M4c 참조 자극: line / blank / none](../figures/01_line_blank_none.png)
+
 M4b 의 companion. H2 reframing (`ball ≈ no-label`, `circle = suppressor`)
 이 open-ended 에서 forced-choice prompt 로 옮겨가도 살아남는지 검증;
 또한 FC 옵션의 label antecedent 를 제거 (`The depicted object falls down...`)

@@ -13,6 +13,11 @@
 > - **M6** — ST5 cross-model sweep — see M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next).
 > - **v_L10** — Steering direction in LM hidden space (dim 3584) at layer 10, derived from M5a class-mean diff (physics − abstract). Unit norm.
 
+
+**The stim being steered** — `line / blank / none` (M5a Exp 1) and `textured / blank / none` (Exp 3). The Exp-3 baseline below sits *below* the |α| threshold so −α can flip it to static, +α to kinetic:
+
+![M5a-ext reference stim: line / blank / none](../figures/01_line_blank_none.png)
+
 Follow-up to `m5_vti_steering.md`. Addresses two §7 limitations:
 negative-α bidirectionality and label × steering-direction interaction.
 

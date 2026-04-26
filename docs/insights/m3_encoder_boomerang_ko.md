@@ -9,6 +9,11 @@
 > - **M5** — ST4 인과 localization (VTI steering / activation patching / SAE) — M5a, M5a-ext, M5b 참조.
 > - **M6** — ST5 cross-model sweep — M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next) 참조.
 
+
+**M2 자극에 적용된 encoder probe** — 아래 line/blank/none baseline. Vision encoder 는 factorial 셀을 AUC ≈ 1.0 으로 선형 분리; 같은 자극의 LM 행동 PMR 은 0.28–0.95 변동:
+
+![M3 참조 자극: line / blank / none](../figures/01_line_blank_none.png)
+
 Sub-task 2 (vision encoder probing) 결과의 심층 분석. Pilot 이 행동 수준의
 gap(open vs forced-choice 등)을 보여줬다면, M3 는 그 gap 이 **어디서
 발생하는지** 를 mechanism 수준에서 답한다.

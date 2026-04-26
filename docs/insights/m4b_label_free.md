@@ -12,6 +12,11 @@
 > - **M5a** — ST4 VTI steering — adding +α·v_L10 at LM L10 over visual tokens flips line/blank/none from "stays still" → physics-mode.
 > - **M6** — ST5 cross-model sweep — see M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next).
 
+
+**The stim** — same M2 line/blank/none baseline. The label-free ("What do you see?") prompt is the H2 null test against the labeled ("the ball...") prompt on this exact image:
+
+![M4b reference stim: line / blank / none](../figures/01_line_blank_none.png)
+
 Executes ROADMAP §4.9 ("label-free prompt as H2 null-hypothesis test"), with
 a byproduct of revisiting M4's switching-layer degeneracy.
 

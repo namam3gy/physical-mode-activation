@@ -11,6 +11,11 @@
 > - **M6** — ST5 cross-model sweep — see M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next).
 > - **M6 r1** — ST5 cross-model — LLaVA-1.5-7B replicates H2 cleanly (unsaturated CLIP encoder lets the label-prior shift PMR).
 
+
+**The stim** — same M2 line/blank/none baseline as M4b, under forced-choice prompting:
+
+![M4c reference stim: line / blank / none](../figures/01_line_blank_none.png)
+
 Companion to M4b. Tests whether the H2 reframing (`ball ≈ no-label`,
 `circle = suppressor`) survives moving from open-ended to forced-choice
 prompts; also tests whether re-templating the FC options without a

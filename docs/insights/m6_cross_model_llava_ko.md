@@ -13,6 +13,11 @@
 > - **M4b** — M4 + label-free 프롬프트로 H2 null test; Qwen 에서 H2 가 비대칭 (circle 억제, ball 증강 아님).
 > - **M6** — ST5 cross-model sweep — M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next) 참조.
 
+
+**LLaVA-1.5 vision-encoder probe (M6 r1)** — CLIP-ViT-L 은 비포화 (AUC ~0.73), Qwen 의 포화된 SigLIP 과 다름 — 그래서 H2 가 LLaVA 에서 재현되고 Qwen 에서는 "circle 억제만" 으로 보임:
+
+![LLaVA-1.5 vision-encoder probe — layer-sweep AUC vs Qwen / Idefics2 baselines](../figures/encoder_swap_llava_probe.png)
+
 M4b 의 H2 reframing (`ball ≈ no-label`, `circle = suppressor`) 이 Qwen2.5-VL
 에서 두 번째 open-source VLM 으로 일반화되는지 검증. Round 1 은 LLaVA-1.5-7B-hf
 만 다룸; LLaVA-Next, InternVL2, Qwen2-VL 는 deferred.

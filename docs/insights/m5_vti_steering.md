@@ -13,6 +13,11 @@
 > - **M6** — ST5 cross-model sweep — see M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next).
 > - **v_L10** — Steering direction in LM hidden space (dim 3584) at layer 10, derived from M5a class-mean diff (physics − abstract). Unit norm.
 
+
+**The stim being steered** — the abstract `line / blank / none` circle that the model defaults to "abstract" on. M5a flips this exact stim to "object-ness" output by adding `+α · v_L10` at LM L10:
+
+![M5 reference stim: line / blank / none (canonical abstract circle baseline)](../figures/01_line_blank_none.png)
+
 The first deliverable of Sub-task 4. We extract a VTI-style **physics-mode
 direction** from M2-captured LM activations and inject it (α · v) into the
 LM residual stream at test time, to verify whether

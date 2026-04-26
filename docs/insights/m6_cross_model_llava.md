@@ -13,6 +13,11 @@
 > - **M4b** — M4 + label-free prompt as H2 null test; revealed H2 is asymmetric on Qwen (circle override, not ball enhancement).
 > - **M6** — ST5 cross-model sweep — see M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next).
 
+
+**LLaVA-1.5 vision-encoder probe (M6 r1)** — CLIP-ViT-L is unsaturated (AUC ~0.73), unlike Qwen's saturated SigLIP — that's why H2 replicates on LLaVA but Qwen shows it as "circle suppression only":
+
+![LLaVA-1.5 vision-encoder probe — layer-sweep AUC vs Qwen / Idefics2 baselines](../figures/encoder_swap_llava_probe.png)
+
 Tests whether the M4b H2 reframing (`ball ≈ no-label`, `circle = suppressor`)
 generalizes from Qwen2.5-VL to a second open-source VLM. Round 1 covers
 LLaVA-1.5-7B-hf only; LLaVA-Next, InternVL2, Qwen2-VL are deferred.

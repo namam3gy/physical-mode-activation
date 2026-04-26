@@ -10,6 +10,11 @@
 > - **M4** — ST3 LM logit lens / per-layer probes — LM AUC plateaus at ~0.95 at visual-token positions from L5.
 > - **M5** — ST4 causal localization (VTI steering / activation patching / SAE) — see M5a, M5a-ext, M5b.
 
+
+**The stim probed** — M2 480-stim factorial. Canonical line/blank/none baseline (low-PMR cell that the LM defaults to "abstract"):
+
+![M4 reference stim: line / blank / none](../figures/01_line_blank_none.png)
+
 Sub-task 3 is the **internal extension** of the M3 boomerang: if the vision
 encoder transmits information perfectly (M3), then **how far** through the
 LM does that information survive, and **where** does it leak out before

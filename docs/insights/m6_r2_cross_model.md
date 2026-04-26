@@ -17,6 +17,13 @@
 > - **M6 r1** — ST5 cross-model — LLaVA-1.5-7B replicates H2 cleanly (unsaturated CLIP encoder lets the label-prior shift PMR).
 > - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA captures expose CLIP-encoder bottleneck, FC logit ratio confirms LLaVA "A" bias is logit-level.
 
+
+**M6 r2 vision-encoder probes** — Qwen (AUC ~0.99, saturated SigLIP) vs LLaVA-1.5 (AUC ~0.73, unsaturated CLIP-ViT-L). The 0.26-AUC gap anchors the H-encoder-saturation hypothesis:
+
+![Qwen2.5-VL vision-encoder probe (SigLIP, layer-sweep AUC ~0.99)](../figures/encoder_swap_qwen_probe.png)
+
+![LLaVA-1.5 vision-encoder probe (CLIP-ViT-L, layer-sweep AUC ~0.73)](../figures/encoder_swap_llava_probe.png)
+
 Three sub-deliverables (r2a/r2b/r2c) executed 2026-04-25. All three converge
 on a single mechanistic story:
 

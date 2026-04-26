@@ -17,6 +17,13 @@
 > - **M6 r1** — ST5 cross-model — LLaVA-1.5-7B 가 H2 깔끔하게 재현 (포화되지 않은 CLIP encoder 가 label-prior 의 PMR 이동을 허용).
 > - **M6 r2** — ST5 round 2 — InternVL3 super-saturated, LLaVA 캡처가 CLIP encoder bottleneck 노출, FC logit ratio 가 LLaVA "A" bias 의 logit-수준 성격 확인.
 
+
+**M6 r2 vision-encoder probes** — Qwen (AUC ~0.99, 포화 SigLIP) vs LLaVA-1.5 (AUC ~0.73, 비포화 CLIP-ViT-L). 0.26-AUC 차이가 H-encoder-saturation 가설을 anchor:
+
+![Qwen2.5-VL vision-encoder probe (SigLIP, layer-sweep AUC ~0.99)](../figures/encoder_swap_qwen_probe.png)
+
+![LLaVA-1.5 vision-encoder probe (CLIP-ViT-L, layer-sweep AUC ~0.73)](../figures/encoder_swap_llava_probe.png)
+
 세 sub-deliverable (r2a/r2b/r2c) 을 2026-04-25 에 실행. 세 결과 모두 단일
 mechanistic 스토리로 수렴:
 

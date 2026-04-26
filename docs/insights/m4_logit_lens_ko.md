@@ -10,6 +10,11 @@
 > - **M4** — ST3 LM logit lens / per-layer probes — LM AUC 가 시각-토큰 위치에서 L5 부터 ~0.95 plateau.
 > - **M5** — ST4 인과 localization (VTI steering / activation patching / SAE) — M5a, M5a-ext, M5b 참조.
 
+
+**Probe 대상 자극** — M2 480-stim factorial. Canonical line/blank/none baseline (LM 이 기본 "abstract" 로 응답하는 low-PMR 셀):
+
+![M4 참조 자극: line / blank / none](../figures/01_line_blank_none.png)
+
 Sub-task 3 는 M3 boomerang 의 **내부 연장**: vision encoder 가 정보를
 완벽하게 전달한다면 (M3), LM 내부에서 그 정보는 **어느 레이어까지**
 살아남고, **어디서** 디코딩으로 가는 정보가 누수되는가?

@@ -13,6 +13,11 @@
 > - **M6** — ST5 cross-model sweep — M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next) 참조.
 > - **v_L10** — M5a class-mean diff (physics − abstract) 에서 유도된 layer 10 LM hidden space (dim 3584) steering 방향. Unit norm.
 
+
+**Steering 대상 자극** — `line / blank / none` (M5a Exp 1) 과 `textured / blank / none` (Exp 3). Exp-3 baseline 은 |α| 임계값 *아래* 에 있어 −α 로 정적, +α 로 동적 flip 가능:
+
+![M5a-ext 참조 자극: line / blank / none](../figures/01_line_blank_none.png)
+
 `m5_vti_steering.md`의 후속 실험. §7에서 제기된 두 가지 한계를
 다룬다: negative-α bidirectionality와 label × steering-direction 상호작용.
 

@@ -9,6 +9,11 @@
 > - **M5** — ST4 causal localization (VTI steering / activation patching / SAE) — see M5a, M5a-ext, M5b.
 > - **M6** — ST5 cross-model sweep — see M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next).
 
+
+**Encoder probed on M2 stim** — line/blank/none baseline shown below. Vision encoder linearly separates the factorial cells at AUC ≈ 1.0; the LM behavioral PMR varies 0.28–0.95 on the same stim:
+
+![M3 reference stim: line / blank / none](../figures/01_line_blank_none.png)
+
 A deep look at the Sub-task 2 (vision-encoder probing) results. The pilot
 showed a behavior-level gap (open vs forced-choice etc.); M3 answers
 **where this gap originates** at the mechanism level.

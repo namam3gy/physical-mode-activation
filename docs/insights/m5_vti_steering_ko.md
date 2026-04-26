@@ -13,6 +13,11 @@
 > - **M6** — ST5 cross-model sweep — M6 r1 (LLaVA-1.5), r2 (InternVL3 + LLaVA capture + FC ratio), r3 (Idefics2), r4 (InternVL3 probe), r5 (M8c photo probe), r6 (LLaVA-Next) 참조.
 > - **v_L10** — M5a class-mean diff (physics − abstract) 에서 유도된 layer 10 LM hidden space (dim 3584) steering 방향. Unit norm.
 
+
+**Steering 대상 자극** — 모델이 기본 "abstract" 로 응답하는 추상 `line / blank / none` 원. M5a 는 이 자극에 LM L10 에 `+α · v_L10` 을 더해 "object-ness" 출력으로 flip:
+
+![M5 참조 자극: line / blank / none (canonical 추상 원 baseline)](../figures/01_line_blank_none.png)
+
 Sub-task 4 의 첫 deliverable. M2 captured LM activations 에서 VTI 스타일
 **physics-mode direction** 을 추출하고, test-time 에 LM residual stream 에
 주입 (α · v) 했을 때 **Qwen2.5-VL-7B 가 선 원을 추상 도형으로 거부하던
