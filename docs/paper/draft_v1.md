@@ -275,6 +275,12 @@ fully separated between the three clusters.
 
 ### 4.2 H1 (abstraction ramp) — unsaturated-only
 
+![Figure 6: M8a abstraction ramp per shape per model](../figures/m8a_pmr_ramp.png)
+
+*Figure 6.* PMR(line / filled / shaded / textured) per (shape × model)
+on M8a. LLaVA-1.5 shows clean monotone ramps; Qwen / Idefics2 /
+InternVL3 are at ceiling and the ramp is invisible.
+
 LLaVA-1.5 (the unsaturated model) shows a clean monotone S-curve
 (line 0.45 → textured 0.78). Qwen / Idefics2 / InternVL3 are at
 ceiling and the ramp is invisible. Strict pre-registered scoring
@@ -282,6 +288,12 @@ ceiling and the ramp is invisible. Strict pre-registered scoring
 *is* the cross-shape validation of the architecture-level reframe.
 
 ### 4.3 H7 (label selects regime) — cross-category replication
+
+![Figure 7: M8d paired-delta per (model × category × label_role)](../figures/m8d_paired_delta.png)
+
+*Figure 7.* PMR_regime(physical) − PMR_regime(abstract) per
+(model × category) on M8d. LLaVA shows positive deltas in all 3
+categories; Qwen is flat (ceiling).
 
 Cross-category strict scoring (M8d):
 - LLaVA: 3/3 PASS (car +0.525, person +0.138, bird +0.550 on
@@ -291,6 +303,12 @@ Cross-category strict scoring (M8d):
   regime claim is now category-general, not circle-specific.
 
 ### 4.4 Photo collapse (M8c)
+
+![Figure 8: M8c synthetic vs photo paired comparison](../figures/m8c_paired_synthetic_vs_photo.png)
+
+*Figure 8.* Per-category mean PMR(_nolabel) on synthetic vs photo
+stim, paired across (model × category). Photos compress the encoder-
+family gap and reduce Qwen PMR by 18-48 pp.
 
 Real photographs reduce Qwen PMR(_nolabel) by 18-48 pp across
 categories. All 3 tested models converge to PMR [0.18, 0.67] on
@@ -339,6 +357,12 @@ from this comparison alone. We flag this as a future-work LM-swap
 counterfactual.)
 
 ### 5.3 §4.5 cross-encoder swap
+
+![Figure 9: §4.5 cross-encoder swap heatmap (Idefics2 vs Qwen vs LLaVA)](../figures/encoder_swap_heatmap.png)
+
+*Figure 9.* PMR(_nolabel) per (model × shape) on M8a. Idefics2
+(SigLIP-SO400M + Mistral) clusters with Qwen (SigLIP + Qwen2);
+LLaVA (CLIP-ViT-L + Vicuna) is the outlier.
 
 Idefics2-8B (SigLIP-SO400M + Mistral-7B) provides a causal
 counterfactual at the encoder-family level. Patterns identically
@@ -496,6 +520,12 @@ isolate v_L10.
 
 ### 8.1 Multilingual labels (§4.3)
 
+![Figure 10: §4.3 5-model Korean vs English label PMR](../figures/sec4_3_korean_vs_english_cross_model.png)
+
+*Figure 10.* Per-model EN vs KO PMR per role (physical / abstract /
+exotic). Cross-label ordering preserved 4/5 models; LLaVA-1.5 has
+the largest swing.
+
 Korean (공/원/행성) and Japanese (ボール/円/惑星) labels on M8a
 circle stim. Cross-label ordering preserved 4/5 models on Korean.
 Mechanisms differ:
@@ -506,6 +536,12 @@ Mechanisms differ:
 
 ### 8.2 Decision-stability ceiling (§4.7)
 
+![Figure 11: §4.7 5-model per-axis RC](../figures/sec4_7_rc_per_axis.png)
+
+*Figure 11.* Per-axis (object_level / bg_level / cue_level)
+response-consistency RC at T=0.7. Non-CLIP models converge to RC ≈ 1.0
+when cues fire; CLIP-based models retain seed-level variance.
+
 Saturated models (Qwen / Idefics2 / InternVL3) converge to the same
 PMR call across 5 seeds when cues fire. CLIP-based models
 (LLaVA-1.5 / LLaVA-Next) retain seed-level variance even under
@@ -515,12 +551,26 @@ architecture-level reframe.
 
 ### 8.3 Categorical regime distribution (§4.11)
 
+![Figure 12: §4.11 5-model M8d regime distribution](../figures/sec4_11_regime_distribution_5model.png)
+
+*Figure 12.* Stacked-bar fractions of (kinetic / static / abstract /
+ambiguous) per (model × category × label_role). LLaVA-1.5 most
+regime-discriminative; InternVL3 person × exotic (statue) shows
+the largest single label-driven static commit (65% static).
+
 Granular form of M9's H7 finding. InternVL3 person × exotic
 (statue): PMR drops 0.800 → 0.481, 65% static — strongest single
 label-driven static commit in the project. Categorical view reveals
 the *kind* of commitment, not just whether the model commits.
 
 ### 8.4 Cross-model attention to visual tokens (§4.10)
+
+![Figure 13: §4.10 cross-model attention to visual tokens](../figures/session_attention_cross_model.png)
+
+*Figure 13.* Per-layer attention from the last text token to visual
+tokens, per model. Visual attention peaks at mid-layers; absolute
+allocation varies architecturally (Qwen ~17%, LLaVA-1.5 ~7%,
+Idefics2 ~30%) despite all models receiving 79-98% visual tokens.
 
 Last-token attention to visual tokens varies architecturally despite
 all 5 LMs receiving 79–98% visual input tokens: Qwen ~17%, LLaVA-1.5
