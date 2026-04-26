@@ -673,12 +673,15 @@ phys − abs = 0.000** on 물리 사진: 실 공을 `"circle"` 이라 부르는 
 본 saturation 효과: 풍부한 이미지 → 이미지 지배; 빈약한 이미지 → 라벨
 지배. 전체 문서: `docs/insights/sec4_2_reverse_prompting_ko.md`.
 
-### 4.3 Label 언어 전환 ✅ (2026-04-26, Qwen-only)
+### 4.3 Label 언어 전환 ✅ (2026-04-26, 5-model)
 
 한국어 `"공"` vs 영어 `"ball"` 같은 stimulus 에서 PMR 차이? Qwen2.5-VL
-multilingual.
+multilingual; cross-model 이 일반화 검증.
 
-**2026-04-26 Qwen2.5-VL × M8a circle 에서 완료 (언어 × 라벨당 n=80)**:
+**2026-04-26 5 VLMs × M8a circle 에서 완료 (모델 × 언어 × 라벨당
+n=80)**: Qwen-only 헤드라인이 아래, cross-model 확장이 그 후.
+
+Qwen2.5-VL (원래):
 
 | Role | EN PMR | KO PMR | Δ |
 |------|-------:|-------:|---:|
@@ -686,19 +689,34 @@ multilingual.
 | circle / 원 | 0.80 | 0.76 | −0.04 |
 | planet / 행성 | 0.96 | 0.88 | −0.09 |
 
-**헤드라인**: 라벨 간 ordering 보존 (두 언어 모두 planet > ball > circle).
-한국어 라벨이 ball/circle 에서 영어 magnitude 와 일치 (±5 pp); `행성` 만
-`planet` 대비 ~9 pp 하락 — `행성` 이 덜 흔한 학습 데이터 토큰일 가능성.
-**Label-prior 메커니즘이 multilingual semantic representation, 영어-토큰
-shortcut 이 아님.** "라벨이 합성 stim 지배" 의 유용한 counterpoint —
-지배가 라벨이 *의미하는 것* 에 의해 driven, 영어 표면 형태가 아님.
+Cross-model EN→KO Δ (KO − EN):
 
-문서: `docs/insights/sec4_3_korean_vs_english_ko.md`. Figure:
-`docs/figures/sec4_3_korean_vs_english.png`.
+| Model | physical | abstract | exotic | mean |Δ| |
+|-------|---------:|---------:|-------:|---------:|
+| Qwen2.5-VL | +0.04 | −0.04 | −0.09 | 0.06 |
+| LLaVA-1.5  | **−0.19** | **+0.13** | +0.01 | 0.11 |
+| LLaVA-Next | −0.06 | +0.03 | −0.04 | 0.04 |
+| Idefics2   |  0.00 | +0.08 | **−0.10** | 0.06 |
+| InternVL3  |  0.00 | −0.03 | −0.03 | 0.02 |
 
-**여전히 열림**: cross-model (Qwen 만 테스트); 다른 언어 (일본어 /
-중국어 / 스페인어); 완전 한국어 프롬프트 (단지 영어 템플릿에 한국어
-라벨 삽입이 아닌).
+**헤드라인 (5-model)**:
+1. **Cross-label ordering 4/5 모델에서 보존** (Qwen, LLaVA-1.5,
+   LLaVA-Next, InternVL3). Idefics2 가 예외: KO 순서 `공 > 원 > 행성`
+   vs EN `ball > planet > circle` — `행성` rank 가 `원` 아래로 떨어짐.
+2. **LLaVA-1.5 swing 최대** (avg |Δ|=0.11; Vicuna LM 이 약한 한국어
+   SFT). **InternVL3 swing 최소** (avg |Δ|=0.02; 천장 + 강한
+   InternLM3 한국어 coverage).
+3. 원래 Qwen-only multilingual 주장 살아남지만, cross-model 그림이
+   **language-prior 축** 추가: LM 한국어 fluency 가 영어 라벨 prior 가
+   얼마나 transfer 되는지 modulate, vision encoder 와 독립. 같은
+   encoder + 다른 LM → 다른 한국어 magnitude.
+
+문서: `docs/insights/sec4_3_korean_vs_english_ko.md`. Figures:
+`docs/figures/sec4_3_korean_vs_english.png` (Qwen-only) +
+`docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model).
+
+**여전히 열림**: 다른 언어 (일본어 / 중국어 / 스페인어); 완전 한국어
+프롬프트 (단지 영어 템플릿에 한국어 라벨 삽입이 아닌).
 
 ### 4.4 Video frame pair → Michotte-style causality
 

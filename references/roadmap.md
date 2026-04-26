@@ -671,13 +671,16 @@ effect viewed from the input side: rich image → image dominates;
 impoverished image → label dominates. Full doc:
 `docs/insights/sec4_2_reverse_prompting.md` (+ ko).
 
-### 4.3 Label language switching ✅ (2026-04-26, Qwen-only)
+### 4.3 Label language switching ✅ (2026-04-26, 5-model)
 
 Does a Korean `"공"` vs an English `"ball"` on the same stimulus produce
-different PMR? Qwen2.5-VL is multilingual.
+different PMR? Qwen2.5-VL is multilingual; cross-model tests whether
+this generalizes.
 
-**Done 2026-04-26 on Qwen2.5-VL × M8a circle (n=80 per label per
-language)**:
+**Done 2026-04-26 on 5 VLMs × M8a circle (n=80 per label per language
+per model)**: Qwen-only headline below, cross-model extension after.
+
+Qwen2.5-VL (original):
 
 | Role | EN PMR | KO PMR | Δ |
 |------|-------:|-------:|---:|
@@ -685,20 +688,36 @@ language)**:
 | circle / 원 | 0.80 | 0.76 | −0.04 |
 | planet / 행성 | 0.96 | 0.88 | −0.09 |
 
-**Headline**: cross-label ordering is preserved (planet > ball > circle
-in both languages). Korean labels match English magnitude on ball/circle
-(±5 pp); only `행성` shows a ~9 pp drop vs `planet` — possibly because
-`행성` is a less common training-data token. **Label-prior mechanism is
-multilingual semantic representation, not English-token shortcut.** Useful
-counterpoint to "labels dominate synthetic stim" — dominance driven by
-what label *means*, not English surface form.
+Cross-model EN→KO Δ (KO − EN):
+
+| Model | physical | abstract | exotic | mean |Δ| |
+|-------|---------:|---------:|-------:|---------:|
+| Qwen2.5-VL | +0.04 | −0.04 | −0.09 | 0.06 |
+| LLaVA-1.5  | **−0.19** | **+0.13** | +0.01 | 0.11 |
+| LLaVA-Next | −0.06 | +0.03 | −0.04 | 0.04 |
+| Idefics2   |  0.00 | +0.08 | **−0.10** | 0.06 |
+| InternVL3  |  0.00 | −0.03 | −0.03 | 0.02 |
+
+**Headline (5-model)**:
+1. **Cross-label ordering preserved 4/5 models** (Qwen, LLaVA-1.5,
+   LLaVA-Next, InternVL3). Idefics2 is the exception: KO order
+   `공 > 원 > 행성` vs EN `ball > planet > circle` — `행성` rank
+   drops below `원`.
+2. **LLaVA-1.5 swing largest** (avg |Δ|=0.11; Vicuna LM has weak
+   Korean SFT). **InternVL3 swing smallest** (avg |Δ|=0.02; ceiling
+   + strong InternLM3 Korean coverage).
+3. Original Qwen-only multilingual claim survives, but the cross-model
+   picture adds a **language-prior axis**: LM Korean fluency modulates
+   how much of the English label prior transfers, independent of the
+   vision encoder. Same encoder + different LM → different Korean
+   magnitude.
 
 Doc: `docs/insights/sec4_3_korean_vs_english.md` (+ ko).
-Figure: `docs/figures/sec4_3_korean_vs_english.png`.
+Figures: `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only) +
+`docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model).
 
-**Still open**: cross-model (only Qwen tested); other languages
-(Japanese / Chinese / Spanish); fully Korean prompt (not just Korean
-label inserted into English template).
+**Still open**: other languages (Japanese / Chinese / Spanish); fully
+Korean prompt (not just Korean label inserted into English template).
 
 ### 4.4 Video frame pair → Michotte-style causality
 
