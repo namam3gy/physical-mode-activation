@@ -114,38 +114,98 @@ Roadmap §4.11 가 "partial" 에서 "complete" 로 승격.
 
 ## 산출물
 
-### Commit (이 세션, 2 substantive)
+### Commit (이 세션, 6 substantive + bookkeeping)
 
 - `309bdf6` — §4.11 4-model M8d regime distribution
 - `bbf01f9` — §4.7 per-axis RC stability
+- `be29792` — §4.11 5-model 마무리 (InternVL3 M8d)
+- `73a9bf9` — §4.3 Qwen-only 한국어 라벨
+- `df44a19` — §4.3 5-model cross-model 확장
+- `c05e170` — Korean PMR scorer (lexicons + fallback)
+- `38ef1c4` — §4.3 framing 다듬기 (advisor 반영)
 
 ### 신규 figure
 
 - `docs/figures/sec4_11_regime_distribution_4model.png`
+- `docs/figures/sec4_11_regime_distribution_5model.png`
 - `docs/figures/sec4_7_rc_per_axis.png`
+- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only)
+- `docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model)
 
 ### 신규 insight 문서
 
 - `docs/insights/sec4_11_regime_distribution.md` (+ ko)
 - `docs/insights/sec4_7_rc_per_axis.md` (+ ko)
+- `docs/insights/sec4_3_korean_vs_english.md` (+ ko)
 - `docs/insights/session_2026-04-26_summary.md` (이 문서, + ko)
 
 ### 신규 script
 
 - `scripts/sec4_11_regime_distribution.py`
 - `scripts/sec4_7_rc_per_axis.py`
+- `scripts/sec4_3_korean_vs_english.py` (Qwen-only)
+- `scripts/sec4_3_korean_vs_english_cross_model.py` (5-model)
+
+### 신규 config
+
+- `configs/sec4_3_korean_labels.py` (Qwen)
+- `configs/sec4_3_korean_labels_{llava,llava_next,idefics2,internvl3}.py`
 
 ### Roadmap
 
-- §4.11 가 "partial complete" 표시 (4-모델 M8d 완료; M2 fine-grained
-  여전히 열림)
+- §4.11 가 "complete" 표시 (5-model with InternVL3 M8d 늦게-세션 추가)
 - §4.7 가 "complete" 표시
+- §4.3 가 "Qwen-only" → "5-model" 로 promotion
+- §4.10 milestone 표 row 가 ✅ 로 업데이트 (여전히 PRIORITY 6 태그됨이었음)
+
+## Late-session addition #2: §4.3 한국어 vs 영어 라벨 prior (5-model + scorer 수정)
+
+§4.7 + §4.11 + InternVL3-M8d 후 §4.3 (원래 "PMR scorer 가 English-only"
+caveat 와 함께 열림 표시) 가 end-to-end 실행:
+
+1. **Qwen-only 초기** (commit `73a9bf9`): 단일 모델 Korean labels
+   (공/원/행성) on M8a circle. 라벨 간 ordering 언어 횡단 보존; `행성`
+   이 `planet` 대비 ~9 pp 감소. PMR scorer 가 cross-language 적용 가능
+   — 모델이 한국어 라벨에도 영어로 응답 (Qwen 에서 0/240 한국어-only).
+
+2. **5-model cross-model 확장** (commit `df44a19`): 같은 한국어-라벨
+   config 가 LLaVA-1.5, LLaVA-Next, Idefics2, InternVL3 에 복제
+   (configs: `configs/sec4_3_korean_labels_<model>.py`). 각 모델의
+   기존 M8a circle EN baseline 이 새 한국어 run 과 페어링. 헤드라인:
+   라벨 간 ordering 4/5 보존; LLaVA-1.5 swing 최대 (avg |Δ|=0.11;
+   Vicuna LM 약한 한국어 SFT); Idefics2 가 KO `공 > 원 > 행성` vs
+   EN `ball > planet > circle` 으로 rank-flip; InternVL3 swing 최소
+   (천장 + InternLM3 강한 한국어).
+
+3. **Korean scorer 수정** (commits `c05e170` + `38ef1c4`): advisor flag
+   가 1200 응답 중 12개 한국어-only 응답 (LLaVA-Next 4, Idefics2 8) 노출
+   — English-keyword scorer 가 조용히 누락. Korean physics-verb stems
+   (`떨어` / `이동` / `움직` / ...) + Korean abstract markers (`그대로`
+   / `움직이지 않` / ...) 를 `src/physical_mode/metrics/lexicons.py` 에
+   추가, `score_pmr` 에 substring fallback. `tests/test_pmr_scoring.py`
+   에 8개 신규 regression test (총 36 케이스, 모두 통과). Scorer 수정
+   이 Idefics2 exotic deficit 축소 (−0.10 → −0.05) 그러나 rank-flip
+   보존; LLaVA-1.5 수치 변화 없음 (0/80 KO-only) — LLaVA-1.5 swing 이
+   진짜이고 scorer artifact 가 아님 확인 (advisor 의 blind-spot
+   우려를 실증적으로 반박).
+
+**헤드라인 (메커니즘)**: Vision-language joint space 에서 multilingual
+semantic representation 이 4/5 모델 유지. Magnitude 가 *LM-측* 한국어
+fluency 에 의해 bottlenecked (Vicuna < Mistral < InternLM3 ≈ Qwen2.5),
+vision encoder 아님. 같은 encoder + 다른 LM → 다른 KO magnitude.
+Encoder-saturation / label-prior 스토리 (M6 r2 / M8a / §4.7) 와 별개의
+**language-prior 축** 추가.
+
+문서: `docs/insights/sec4_3_korean_vs_english_ko.md`.
+Figures: `docs/figures/sec4_3_korean_vs_english{,_cross_model}.png`.
 
 ## 이 세션 후 통합 backlog
 
 열린 §4 항목:
-- §4.3 — 한국어 vs 영어 라벨 prior (1시간, 그러나 PMR scorer 가
-  English-only, scorer 확장 필요)
+- ~~§4.3 — 한국어 vs 영어 라벨 prior~~ — *닫힘* (commit
+  `73a9bf9` + `df44a19` + `c05e170` + `38ef1c4`). Scorer 가 한국어로
+  확장. 다른 언어 (일본어 / 중국어 / 스페인어) 와 완전 한국어 프롬프트
+  는 미래 확장으로 열림.
 - §4.4 — Michotte 2-frame causality (2-이미지 prompt 지원 필요)
 - §4.6 — SAE counterfactual stim 생성 (복잡, 4-6 시간)
 - §4.8 — PMR scaling (Qwen 32B/72B — 새 대형 모델 로드 필요)
@@ -157,9 +217,15 @@ Roadmap §4.11 가 "partial" 에서 "complete" 로 승격.
 
 ## 세션 누계 (2026-04-25 + 2026-04-26)
 
-- M6 r6 시작 이래 총 commit: ~17 substantive
-- 총 insight 문서: 16 (영어) + 16 (한국어) = 32 페어 문서
-- 총 figure: 30+ (프로젝트 횡단); 이 자율 run 에서 5 추가
+- M6 r6 시작 이래 총 commit: ~22 substantive (+ session / scorer /
+  bookkeeping commits)
+- 총 insight 문서: 17 (영어) + 17 (한국어) = 34 페어 문서
+  (research_overview, session summaries, m6 r1-r6, m8 a/c/d/e, m9,
+  encoder_saturation_paper, sec4_2/4_3/4_7/4_10/4_11, m5/m4 series)
+- 총 figure: 32+ (프로젝트 횡단); 이 2일 run 에서 7 추가
 - 총 notebook: 13 (프로젝트 횡단); 1 신규 (attention_viz.ipynb) +
-  1 확장 (encoder_saturation_chain.ipynb)
-- pytest: 123/123 (regression 없음)
+  1 확장 (encoder_saturation_chain.ipynb). §4 follow-up 은 프로젝트
+  convention 상 reproduction notebook 안 함.
+- pytest: 36/36 PMR 케이스 (한국어 8개 추가) — total 모두 통과
+- Scorer 1회 확장 (English-only → English+Korean) regression test 와
+  함께; rubric 의 첫 언어 확장

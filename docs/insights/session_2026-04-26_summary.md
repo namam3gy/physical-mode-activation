@@ -119,38 +119,99 @@ Roadmap §4.11 promoted from "partial" to "complete".
 
 ## Artifacts
 
-### Commits (this session, 2 substantive)
+### Commits (this session, 6 substantive + bookkeeping)
 
 - `309bdf6` — §4.11 4-model M8d regime distribution
 - `bbf01f9` — §4.7 per-axis RC stability
+- `be29792` — §4.11 5-model close (InternVL3 M8d)
+- `73a9bf9` — §4.3 Qwen-only Korean labels
+- `df44a19` — §4.3 5-model cross-model extension
+- `c05e170` — Korean PMR scorer (lexicons + fallback)
+- `38ef1c4` — §4.3 framing tweaks per advisor
 
 ### New figures
 
 - `docs/figures/sec4_11_regime_distribution_4model.png`
+- `docs/figures/sec4_11_regime_distribution_5model.png`
 - `docs/figures/sec4_7_rc_per_axis.png`
+- `docs/figures/sec4_3_korean_vs_english.png` (Qwen-only)
+- `docs/figures/sec4_3_korean_vs_english_cross_model.png` (5-model)
 
 ### New insight docs
 
 - `docs/insights/sec4_11_regime_distribution.md` (+ ko)
 - `docs/insights/sec4_7_rc_per_axis.md` (+ ko)
+- `docs/insights/sec4_3_korean_vs_english.md` (+ ko)
 - `docs/insights/session_2026-04-26_summary.md` (this doc, + ko)
 
 ### New scripts
 
 - `scripts/sec4_11_regime_distribution.py`
 - `scripts/sec4_7_rc_per_axis.py`
+- `scripts/sec4_3_korean_vs_english.py` (Qwen-only)
+- `scripts/sec4_3_korean_vs_english_cross_model.py` (5-model)
+
+### New configs
+
+- `configs/sec4_3_korean_labels.py` (Qwen)
+- `configs/sec4_3_korean_labels_{llava,llava_next,idefics2,internvl3}.py`
 
 ### Roadmap
 
-- §4.11 marked "partial complete" (4-model M8d done; M2 fine-grained
-  still open)
+- §4.11 marked "complete" (5-model with InternVL3 M8d added late session)
 - §4.7 marked "complete"
+- §4.3 promoted from "Qwen-only" to "5-model"
+- §4.10 milestone-table row updated to ✅ (was still tagged PRIORITY 6)
+
+## Late-session addition #2: §4.3 Korean vs English label prior (5-model + scorer fix)
+
+After §4.7 + §4.11 + InternVL3-M8d, §4.3 was opened (originally listed as
+open with a "PMR scorer is English-only" caveat) and run end-to-end:
+
+1. **Qwen-only initial** (commit `73a9bf9`): single-model Korean labels
+   (공/원/행성) on M8a circle. Cross-label ordering preserved across
+   languages; `행성` shows ~9 pp drop vs `planet`. PMR scorer applies
+   cross-language because the model responds in English even with
+   Korean labels (0/240 Korean-only on Qwen).
+
+2. **5-model cross-model extension** (commit `df44a19`): same
+   Korean-label config replicated for LLaVA-1.5, LLaVA-Next, Idefics2,
+   InternVL3 (configs: `configs/sec4_3_korean_labels_<model>.py`). Each
+   model's existing M8a circle EN baseline paired with the new Korean
+   run. Headlines: cross-label ordering preserved 4/5 models;
+   LLaVA-1.5 swing largest (avg |Δ|=0.11; Vicuna LM weak Korean SFT);
+   Idefics2 rank-flips KO `공 > 원 > 행성` vs EN `ball > planet > circle`;
+   InternVL3 swing minimal (ceiling + InternLM3 strong Korean).
+
+3. **Korean scorer fix** (commits `c05e170` + `38ef1c4`): advisor flag
+   exposed 12/1200 Hangul-only responses (LLaVA-Next 4, Idefics2 8)
+   that the English-keyword scorer silently dropped. Added Korean
+   physics-verb stems (`떨어` / `이동` / `움직` / ...) and Korean
+   abstract markers (`그대로` / `움직이지 않` / ...) to
+   `src/physical_mode/metrics/lexicons.py` with substring fallback in
+   `score_pmr`. 8 new regression tests in `tests/test_pmr_scoring.py`
+   (36 cases total, all pass). Scorer fix narrows Idefics2 exotic
+   deficit (−0.10 → −0.05) but rank-flip preserved; LLaVA-1.5 numbers
+   unchanged (0/80 KO-only) — confirms LLaVA-1.5 swing is real, not a
+   scorer artifact (advisor's blind-spot concern empirically refuted).
+
+**Headline (mechanism)**: Multilingual semantic representation in the
+vision-language joint space holds 4/5 models. Magnitude is bottlenecked
+by *LM-side* Korean fluency (Vicuna < Mistral < InternLM3 ≈ Qwen2.5),
+not by vision encoder. Same encoder + different LM → different KO
+magnitude. This adds a **language-prior axis** distinct from the
+encoder-saturation / label-prior story (M6 r2 / M8a / §4.7).
+
+Doc: `docs/insights/sec4_3_korean_vs_english.md` (+ ko).
+Figures: `docs/figures/sec4_3_korean_vs_english{,_cross_model}.png`.
 
 ## Combined backlog after this session
 
 Open §4 items:
-- §4.3 — Korean vs English label prior (1-hour, but PMR scorer is
-  English-only, needs scorer extension)
+- ~~§4.3 — Korean vs English label prior~~ — *closed* (commits
+  `73a9bf9` + `df44a19` + `c05e170` + `38ef1c4`). Scorer extended to
+  Korean. Other languages (Japanese / Chinese / Spanish) and
+  fully-Korean prompt remain open as future extensions.
 - §4.4 — Michotte 2-frame causality (needs 2-image prompt support)
 - §4.6 — SAE counterfactual stim generation (complex, 4-6 hours)
 - §4.8 — PMR scaling (Qwen 32B/72B — needs new large-model loads)
@@ -162,14 +223,19 @@ Major milestones:
 
 ## Session running total (2026-04-25 + 2026-04-26)
 
-- Total commits since start of M6 r6: ~17 substantive
-- Total insight docs: 16 (English) + 16 (Korean) = 32 paired docs
+- Total commits since start of M6 r6: ~22 substantive (+ session/
+  scorer/bookkeeping commits)
+- Total insight docs: 17 (English) + 17 (Korean) = 34 paired docs
   (research_overview, session summaries, m6 r1-r6, m8 a/c/d/e, m9,
-  encoder_saturation_paper, sec4_2/4_7/4_10/4_11, m5/m4 series)
-- Total figures: 30+ (project-wide); 5 added in this autonomous run
+  encoder_saturation_paper, sec4_2/4_3/4_7/4_10/4_11, m5/m4 series)
+- Total figures: 32+ (project-wide); 7 added across this 2-day run
   (session_5model_cross_stim_pmr, session_image_vs_label_h7,
   session_attention_cross_model, sec4_11_regime_distribution_4model,
-  sec4_7_rc_per_axis)
+  sec4_11_regime_distribution_5model, sec4_7_rc_per_axis,
+  sec4_3_korean_vs_english + sec4_3_korean_vs_english_cross_model)
 - Total notebooks: 13 (project-wide); 1 new (attention_viz.ipynb) +
-  1 extended (encoder_saturation_chain.ipynb)
+  1 extended (encoder_saturation_chain.ipynb). §4 follow-ups don't
+  ship reproduction notebooks per project convention.
+- Scorer extended once (English-only → English+Korean) with regression
+  tests; first language extension to the rubric.
 - pytest: 123/123 (no regressions)
