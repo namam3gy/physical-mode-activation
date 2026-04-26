@@ -116,9 +116,11 @@ Qwen 은 **0.44** 로 하락, Idefics2 **0.77**, InternVL3 **0.59**.
 
 ## 헤드라인 그림
 
-(이번 라운드 신규 그림 없음; 수치는 encoder_chain_4model.png 의 caveat 으로
-들어감: 사진-측 AUC 가 M8a-측 AUC 와 인코더-LM 융합 재구성을 지지하는
-방식으로 다름).
+이번 라운드 신규 그림은 없음. M8c 수치가 M6 r4 4-모델 encoder
+chain 으로 들어감. 사진-측 AUC 가 M8a-측 AUC 와 인코더-LM 융합 재구성
+을 지지하는 방식으로 다름:
+
+![M6 r4 4-모델 encoder chain (모델별 encoder probe AUC + behavioral PMR)](../figures/encoder_chain_4model.png)
 
 ## 로드맵 함의
 

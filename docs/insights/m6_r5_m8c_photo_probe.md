@@ -123,9 +123,11 @@ encoder output as physics-mode signal), not at encoder discriminability.
 
 ## Headline figure
 
-(no new figure for this round; numbers feed into encoder_chain_4model.png
-caveat: photo-side AUCs differ from M8a-side AUCs in a way that supports
-the encoder-LM fusion reframe).
+No new figure for this round; the M8c numbers feed into the M6 r4
+4-model encoder chain. Photo-side AUCs differ from M8a-side AUCs in
+a way that supports the encoder-LM fusion reframe:
+
+![M6 r4 4-model encoder chain (encoder probe AUC + behavioral PMR per model)](../figures/encoder_chain_4model.png)
 
 ## Roadmap implications
 
