@@ -11,9 +11,8 @@ These are the hard constraints set by the user — follow them automatically wit
 3. **Adhere to the project file structure** (see "Repository layout" below). New artifacts go into the matching directory; do not invent ad-hoc top-level folders.
 4. **`references/` is the staging area for materials useful during work** — papers, raw spec PDFs, downloaded datasets schemas, etc. `project.md` and `roadmap.md` always live here.
 5. **`references/project.md` is the research plan; `references/roadmap.md` is the living execution doc derived from it.** At every step, refer to both. Update `roadmap.md` (status table, hypothesis scorecard, additional ideas, change log) whenever a milestone completes or a finding contradicts a hypothesis. Treat `project.md` as read-only; major spec revisions go into the roadmap.
-6. **Bilingual file requirement**: every file in `references/{project,roadmap}.md` and `docs/insights/*.md` MUST have a paired Korean translation `*_ko.md`. English is canonical; translations follow English. Other docs (`docs/architecture.md`, `docs/experiments/*.md`, etc.) may be bilingual but are not required to be.
-7. **After completing hypothesis validation or implementation, write a reproduction notebook** at `notebooks/<slug>.ipynb` that runs cell-by-cell and reproduces the result. Use the existing `notebooks/demo.ipynb` (M1) as the template.
-8. **Work in English; speak to the user in Korean.** All committed code, comments, docstrings, commit messages, and English markdown files are English. All terminal-visible messages to the user (chat replies, status updates, summaries) are Korean. Mid-sentence English technical terms are fine.
+6. **After completing hypothesis validation or implementation, write a reproduction notebook** at `notebooks/<slug>.ipynb` that runs cell-by-cell and reproduces the result. Use the existing `notebooks/demo.ipynb` (M1) as the template.
+7. **Work in English; speak to the user in Korean.** All committed code, comments, docstrings, commit messages, and markdown files are English. All terminal-visible messages to the user (chat replies, status updates, summaries) are Korean. Mid-sentence English technical terms are fine.
 
 ## Status
 
@@ -61,7 +60,7 @@ for code-level plug-in points.
 ## Repository layout
 
 ```
-references/    project.md, roadmap.md (+ Korean *_ko.md translations)
+references/    project.md, roadmap.md
 docs/
   figures/     — embedded figure assets (PNG)
   insights/    — per-milestone deep-dive markdown (m1_pilot, m3_..., m4_..., m5_...)
@@ -73,8 +72,6 @@ src/           physical_mode package
 tests/         pytest suite (no model-in-the-loop)
 notebooks/     demo.ipynb walkthrough
 ```
-
-Bilingual `*_ko.md` Korean translations are **required** for `references/{project,roadmap}.md` and every file under `docs/insights/`. They are also currently provided as a courtesy for the rest of `docs/*.md` and `docs/experiments/*.md`, but those are not required by the project rules; English is canonical regardless.
 
 ## Research intent (summary)
 
@@ -138,6 +135,6 @@ uv run jupyter lab notebooks/m5_vti_steering.ipynb    # M5a VTI causal steering 
   Do not hardcode `Qwen2_5_VLForConditionalGeneration` — it breaks the
   cross-model plan for Sub-task 5.
 - After each real run, append a per-run entry to
-  `docs/experiments/m{N}_<slug>.md` (English canonical; mirror in `_ko.md`).
-  Major milestone completions also get a `docs/insights/m{N}_<slug>.md`
-  deep dive — see `references/roadmap.md` §5 for the convention.
+  `docs/experiments/m{N}_<slug>.md`. Major milestone completions also
+  get a `docs/insights/m{N}_<slug>.md` deep dive — see
+  `references/roadmap.md` §5 for the convention.
