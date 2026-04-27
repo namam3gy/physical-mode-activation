@@ -30,24 +30,53 @@ class SAE(nn.Module):
             self.W.div_(self.W.norm(dim=1, keepdim=True) + 1e-8)
         self.b_enc = nn.Parameter(torch.zeros(d_features))
         self.b_pre = nn.Parameter(torch.zeros(d_in))
+        # Input z-score normalization (set by train_sae or set_input_stats).
+        self.register_buffer("input_mean", torch.zeros(d_in))
+        self.register_buffer("input_std", torch.ones(d_in))
+
+    def normalize_input(self, x: torch.Tensor) -> torch.Tensor:
+        return (x - self.input_mean) / self.input_std
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (..., d_in)
-        return torch.relu((x - self.b_pre) @ self.W.T + self.b_enc)
+        # x: (..., d_in) — RAW activation. Normalization happens here.
+        x_n = self.normalize_input(x)
+        return torch.relu((x_n - self.b_pre) @ self.W.T + self.b_enc)
 
     def decode(self, z: torch.Tensor) -> torch.Tensor:
+        # Returns RAW-scale output (un-normalize after linear decode).
+        x_hat_n = z @ self.W + self.b_pre
+        return x_hat_n * self.input_std + self.input_mean
+
+    def decode_normalized(self, z: torch.Tensor) -> torch.Tensor:
+        # For training: stays in normalized space.
         return z @ self.W + self.b_pre
 
-    def forward(self, x: torch.Tensor):
-        z = self.encode(x)
-        x_hat = self.decode(z)
+    def forward(self, x_normalized: torch.Tensor):
+        # Training-time forward: assumes input is already normalized.
+        z = torch.relu((x_normalized - self.b_pre) @ self.W.T + self.b_enc)
+        x_hat = z @ self.W + self.b_pre
         return x_hat, z
 
     @torch.no_grad()
     def normalize_decoder(self) -> None:
-        # Re-normalize W rows to unit norm (decoder columns = W rows).
         norms = self.W.norm(dim=1, keepdim=True) + 1e-8
         self.W.div_(norms)
+
+    @torch.no_grad()
+    def feature_contribution(self, x_raw: torch.Tensor, feature_idx: torch.Tensor) -> torch.Tensor:
+        """Return the raw-scale contribution of `feature_idx` features to the SAE
+        reconstruction. Used by intervention hooks to subtract specific features.
+
+        x_raw: (..., d_in) raw activations.
+        feature_idx: 1-D long tensor of feature indices.
+        Returns: (..., d_in) — same shape as x_raw, contribution of those
+        features (in raw scale, accounting for input_std).
+        """
+        z = self.encode(x_raw)  # (..., F)
+        target_z = z[..., feature_idx]  # (..., k)
+        target_W = self.W[feature_idx]  # (k, d_in) decoder rows in normalized space
+        contribution_n = target_z @ target_W  # (..., d_in) normalized scale
+        return contribution_n * self.input_std  # un-normalize
 
 
 @dataclass
@@ -64,6 +93,11 @@ def train_sae(activations: torch.Tensor, d_features: int,
               cfg: TrainConfig | None = None) -> tuple[SAE, dict]:
     """Train an SAE on flattened activations of shape (n_samples, d_in).
 
+    Inputs are z-score normalized (per-dim mean/std from a sample of the
+    data) so the L1 penalty has a stable scale across layers. The
+    normalization stats are saved as buffers on the SAE so the intervention
+    hook can apply the same transform.
+
     Returns the trained SAE plus a dict of training metrics.
     """
     cfg = cfg or TrainConfig()
@@ -72,19 +106,30 @@ def train_sae(activations: torch.Tensor, d_features: int,
     optimizer = torch.optim.Adam(sae.parameters(), lr=cfg.lr)
     activations = activations.to(cfg.device)
 
+    # Compute per-dim normalization stats from up to 100k samples.
+    n_stat = min(100_000, n)
+    sample_idx = torch.randperm(n, device=cfg.device)[:n_stat]
+    sample = activations[sample_idx].float()
+    mean = sample.mean(dim=0)
+    std = sample.std(dim=0).clamp_min(1e-6)
+    sae.input_mean.data.copy_(mean)
+    sae.input_std.data.copy_(std)
+
+    def normalize(x):
+        return (x - sae.input_mean) / sae.input_std
+
     metrics = {"recon_loss": [], "l1_loss": [], "total_loss": [],
                "frac_alive": [], "frac_active_per_token": []}
 
     for step in range(cfg.n_steps):
         idx = torch.randint(0, n, (cfg.batch_size,), device=cfg.device)
-        x = activations[idx].float()
+        x = normalize(activations[idx].float())
         x_hat, z = sae(x)
         recon_loss = ((x - x_hat) ** 2).mean()
         l1_loss = z.abs().mean()
         loss = recon_loss + cfg.l1_lambda * l1_loss
         optimizer.zero_grad()
         loss.backward()
-        # Project gradient component along W rows to zero (Anthropic trick).
         with torch.no_grad():
             grad_along = (sae.W.grad * sae.W).sum(dim=1, keepdim=True)
             sae.W.grad.sub_(grad_along * sae.W)

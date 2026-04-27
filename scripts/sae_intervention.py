@@ -54,11 +54,11 @@ PROMPT_FC_TEMPLATE = (
 
 def make_sae_intervention_hook(sae, feature_indices_to_zero: torch.Tensor):
     """Forward hook on the vision encoder's last layer output that subtracts
-    *only* the target SAE features' contributions, leaving everything else
-    (other features + reconstruction residual) bit-identical.
+    *only* the target SAE features' raw-scale contributions, leaving
+    everything else (other features + reconstruction residual) bit-identical.
 
-    Bricken et al. 2023 trick: x_new = x - z[:, target] @ W_dec[target].
-    Avoids overwriting the entire activation with the SAE's lossy decode.
+    Bricken et al. 2023 trick. The SAE's `feature_contribution` handles
+    input z-score normalization round-trip internally.
     """
     sae_device = next(sae.parameters()).device
 
@@ -73,13 +73,8 @@ def make_sae_intervention_hook(sae, feature_indices_to_zero: torch.Tensor):
         x_in = x.to(sae_device, dtype=torch.float32)
         flat_shape = x_in.shape
         x_flat = x_in.reshape(-1, flat_shape[-1])
-        with torch.no_grad():
-            z = sae.encode(x_flat)
-            target_z = z[:, feature_indices_to_zero]  # (N_tokens, k)
-            # Decoder rows for target features → reconstruct only their contribution.
-            target_W = sae.W[feature_indices_to_zero]  # (k, d_in)
-            target_contribution = target_z @ target_W  # (N_tokens, d_in)
-            x_new_flat = x_flat - target_contribution
+        contribution = sae.feature_contribution(x_flat, feature_indices_to_zero)
+        x_new_flat = x_flat - contribution
         x_new = x_new_flat.reshape(flat_shape).to(x.device, dtype=original_dtype)
         if rest is not None:
             return (x_new,) + rest
@@ -131,7 +126,12 @@ def main() -> None:
                    help="captured-activation key (informational; the script hooks the actual model)")
     p.add_argument("--top-k-list", default="1,5,10,20",
                    help="comma-separated feature counts to zero")
+    p.add_argument("--random-controls", type=int, default=0,
+                   help="for the largest k in --top-k-list, also test N random "
+                        "feature sets of the same size (drawn from features ranked "
+                        "below the top-50 to avoid overlap)")
     p.add_argument("--n-stim", type=int, default=20)
+    p.add_argument("--seed", type=int, default=42)
     p.add_argument("--device", default="cuda:0")
     p.add_argument("--model-id", default="Qwen/Qwen2.5-VL-7B-Instruct")
     p.add_argument("--label", default="circle")
@@ -147,6 +147,43 @@ def main() -> None:
     rank_df = pd.read_csv(args.sae_dir / "feature_ranking.csv")
     top_features = rank_df["feature_idx"].head(max(int(k) for k in args.top_k_list.split(","))).tolist()
     print(f"Top features (by physics − abstract delta): {top_features[:10]}...")
+
+    # Build magnitude-matched random control sets via mass-weighted sampling:
+    #   - draw the highest-mass non-top-20 features (rank 21..) until cumulative mass
+    #     hits the target window. Avoids the L1-killed tail (rank > ~500) where
+    #     features have ~zero mass.
+    # This controls for "ablating ~same total activation magnitude" (the advisor's blocker:
+    # the previous bottom-of-ranking sample had only ~1% of top-20's mass).
+    max_k = max(int(k) for k in args.top_k_list.split(","))
+    rank_df["mass"] = rank_df["mean_phys"] + rank_df["mean_abs"]
+    top_mass = rank_df.head(max_k)["mass"].sum()
+    # Use rank 21+; sort by mass descending so high-mass features are picked first.
+    active_pool_df = rank_df.iloc[max_k:].sort_values("mass", ascending=False).reset_index(drop=True)
+    target_mass_low = 0.7 * top_mass
+    target_mass_high = 2.0 * top_mass
+    rng = torch.Generator().manual_seed(args.seed)
+    random_feature_sets = []
+    attempts = 0
+    while len(random_feature_sets) < args.random_controls and attempts < 20000:
+        attempts += 1
+        # Restrict to the top-300 highest-mass non-top-20 features.
+        candidate_size = min(300, len(active_pool_df))
+        idx = torch.randperm(candidate_size, generator=rng)[:max_k].tolist()
+        chosen = active_pool_df.iloc[idx]
+        chosen_mass = chosen["mass"].sum()
+        if target_mass_low <= chosen_mass <= target_mass_high:
+            random_feature_sets.append((chosen["feature_idx"].tolist(), chosen_mass))
+    if not random_feature_sets and args.random_controls > 0:
+        # Could not match target range; fall back to the highest-mass non-top-20 sample
+        idx = torch.arange(min(max_k, len(active_pool_df)))
+        chosen = active_pool_df.iloc[idx]
+        random_feature_sets = [(chosen["feature_idx"].tolist(), chosen["mass"].sum())]
+        print(f"WARNING: could not match top-{max_k} mass; using fallback set with mass {chosen['mass'].sum():.2f} ({chosen['mass'].sum()/top_mass*100:.0f}% of top-{max_k})")
+    if random_feature_sets:
+        print(f"Magnitude-matched random controls: {len(random_feature_sets)} sets (target [{target_mass_low:.2f}, {target_mass_high:.2f}])")
+        print(f"  Top-{max_k} total mass: {top_mass:.2f}")
+        for r, (feats, mass) in enumerate(random_feature_sets):
+            print(f"  random_{r}: {len(feats)} features, mass={mass:.2f} ({mass/top_mass*100:.0f}% of top-{max_k})")
 
     manifest = pd.read_csv(PROJECT_ROOT / args.manifest)
     sample_ids = manifest["clean_sample_id"].head(args.n_stim).tolist()
@@ -181,19 +218,33 @@ def main() -> None:
             hook_fn = make_sae_intervention_hook(sae, feature_idx)
             txt = run_with_hook(model, processor, pil, prompt, last_vis_layer, hook_fn, args.device)
             rows.append({
-                "sample_id": sid, "k_zeroed": k, "intervention_text": txt,
+                "sample_id": sid, "condition": f"top_k={k}", "k_zeroed": k,
+                "intervention_text": txt,
+                "intervention_phys": _is_physics_letter(txt),
+                "baseline_text": bl, "baseline_phys": bl_phys,
+            })
+
+        for r, (rand_features, rand_mass) in enumerate(random_feature_sets):
+            feature_idx = torch.tensor(rand_features, device=args.device, dtype=torch.long)
+            hook_fn = make_sae_intervention_hook(sae, feature_idx)
+            txt = run_with_hook(model, processor, pil, prompt, last_vis_layer, hook_fn, args.device)
+            rows.append({
+                "sample_id": sid, "condition": f"random_{r}", "k_zeroed": len(rand_features),
+                "control_mass": rand_mass,
+                "intervention_text": txt,
                 "intervention_phys": _is_physics_letter(txt),
                 "baseline_text": bl, "baseline_phys": bl_phys,
             })
 
         elapsed = (time.time() - t_start) / 60
-        print(f"  [{i+1}/{len(sample_ids)}] {sid} bl={bl_phys} elapsed={elapsed:.1f}min")
+        print(f"  [{i+1}/{len(sample_ids)}] {sid} bl={bl_phys} elapsed={elapsed:.1f}min "
+              f"(rows={len(rows)} including {sum(1 for r in rows if r.get('condition','').startswith('random_'))} random)")
 
     df = pd.DataFrame(rows)
     df.to_csv(out_dir / "results.csv", index=False)
-    print("\n=== Aggregate (intervention phys rate by k_zeroed) ===")
-    agg = df.groupby("k_zeroed")["intervention_phys"].agg(
-        baseline_phys_rate=lambda x: 1.0,  # by manifest construction
+    print("\n=== Aggregate (intervention phys rate by condition) ===")
+    agg = df.groupby("condition")["intervention_phys"].agg(
+        n=lambda x: int((x >= 0).sum()),
         intervention_phys_rate=lambda x: float((x == 1).sum() / max(1, (x >= 0).sum())),
     ).reset_index()
     print(agg.round(3).to_string(index=False))
