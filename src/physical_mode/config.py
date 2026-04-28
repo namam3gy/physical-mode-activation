@@ -45,7 +45,14 @@ Label = Literal[
     # M8a label-role aliases (resolved at run.py to literal labels)
     "physical", "abstract", "exotic",
 ]
-PromptVariant = Literal["open", "open_no_label", "forced_choice", "forced_choice_no_label"]
+PromptVariant = Literal[
+    "open",
+    "open_no_label",
+    "forced_choice",
+    "forced_choice_no_label",
+    "describe_scene",
+    "meta_phys_yesno",
+]
 
 
 @dataclass(frozen=True)

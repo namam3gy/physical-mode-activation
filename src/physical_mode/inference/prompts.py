@@ -5,6 +5,8 @@ Variants:
   - `forced_choice`: 4-way MCQ over {falls, stays, moves sideways, abstract shape} with a `{label}` referent.
   - `open_no_label`: free-form, no label referent — H2 null-hypothesis probe (§4.9).
   - `forced_choice_no_label`: 4-way MCQ with "the depicted object" antecedent, no label token. Companion to `open_no_label` for FC-side H2 null-hypothesis testing.
+  - `describe_scene`: free-form scene description with a `{label}` referent (Track B Pillar A, M-MP). Tests whether physics-mode commitment fires under non-prediction prompts.
+  - `meta_phys_yesno`: meta-categorization yes/no probe with a `{label}` referent (Track B Pillar A, M-MP). Direct probe of whether the model treats the input as a real-world physical event.
 
 The `{label}` slot carries axis D of the factorial (circle / ball / planet /
 shape). The two `_no_label` variants are label-free by design; their `label`
@@ -53,6 +55,17 @@ FORCED_CHOICE_TEMPLATE_NO_LABEL = (
     "C) The depicted object moves sideways.\n"
     "D) This is an abstract shape — nothing physical happens.\n"
     "Answer with a single letter (A, B, C, or D), then briefly justify."
+)
+
+DESCRIBE_SCENE_TEMPLATE = (
+    "The image shows a {label}. Describe what you see in the image, "
+    "in one short sentence."
+)
+
+META_PHYS_YESNO_TEMPLATE = (
+    "The image shows a {label}. Is this a depiction of a real-world physical event "
+    "(an object subject to gravity, mass, momentum, or other physical forces)? "
+    "Answer with 'yes' or 'no', followed by a brief justification."
 )
 
 FC_CHOICES: tuple[str, ...] = ("A", "B", "C", "D")
@@ -138,5 +151,21 @@ def render(variant: str, label: str) -> RenderedPrompt:
             system=SYSTEM_PROMPT_FC,
             user=FORCED_CHOICE_TEMPLATE_NO_LABEL,
             choice_letters=FC_CHOICES,
+        )
+    if variant == "describe_scene":
+        return RenderedPrompt(
+            variant="describe_scene",
+            label=label,
+            system=SYSTEM_PROMPT_OPEN,
+            user=DESCRIBE_SCENE_TEMPLATE.format(label=label),
+            choice_letters=None,
+        )
+    if variant == "meta_phys_yesno":
+        return RenderedPrompt(
+            variant="meta_phys_yesno",
+            label=label,
+            system=SYSTEM_PROMPT_OPEN,
+            user=META_PHYS_YESNO_TEMPLATE.format(label=label),
+            choice_letters=None,
         )
     raise ValueError(f"unknown prompt variant: {variant}")
