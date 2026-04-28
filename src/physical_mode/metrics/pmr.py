@@ -74,6 +74,96 @@ def score_pmr(text: str) -> int:
     return 0
 
 
+_YES_TOKENS: frozenset[str] = frozenset({"yes", "y", "yeah", "yep", "yup"})
+_NO_TOKENS: frozenset[str] = frozenset({"no", "n", "nope"})
+_LEADING_PREFIX_RE = re.compile(r"^\s*(?:answer|response|a)\s*[:\-]\s*", re.IGNORECASE)
+
+
+def score_meta_yesno(text: str) -> int:
+    """1 if the response begins with 'yes', 0 if 'no', -1 if unparseable.
+
+    Used for the `meta_phys_yesno` prompt: "Is this a depiction of a real-world
+    physical event? Answer 'yes' or 'no'." The model's first English token after
+    any leading "Answer:" / "Response:" prefix decides.
+    """
+    if not text:
+        return -1
+    stripped = _LEADING_PREFIX_RE.sub("", text.strip())
+    m = re.match(r"^([A-Za-z]+)", stripped)
+    if not m:
+        return -1
+    word = m.group(1).lower()
+    if word in _YES_TOKENS:
+        return 1
+    if word in _NO_TOKENS:
+        return 0
+    return -1
+
+
+_DESCRIBE_PHYSICS_STEMS: frozenset[str] = frozenset({
+    # Action verbs implying motion / dynamics
+    "fall", "fell", "fallen", "drop", "dropp", "tumbl", "rolling", "roll",
+    "bounc", "collid", "land", "hit", "hits", "moving", "move", "moves",
+    "moved", "slid", "slide", "swung", "swing", "swings", "pull", "push",
+    "descend", "ascend",
+    # State / pose verbs implying physical context
+    "suspend", "hover", "float", "rest", "settl", "leans",
+    # Physics nouns / phrases
+    "gravit", "momentum", "mass", "weight", "weigh", "veloci",
+    "trajector", "force", "motion", "kinetic",
+    # Object-with-physical-context phrases (multi-word)
+    "in mid-air", "midair", "in the air",
+})
+
+# Abstract markers: phrases that explicitly *frame* the input as non-physical.
+# These should be conservative — incidental scene descriptors like
+# "white background" should NOT override a clear physics-mode statement.
+_DESCRIBE_ABSTRACT_STEMS: frozenset[str] = frozenset({
+    # Explicit geometric / diagram framing
+    "outline", "sketch", "geometric", "diagram", "illustration",
+    "line drawing", "minimalist", "abstract",
+    # "depicts X" alone is descriptive but ambiguous; require it to lack physics tokens.
+})
+
+
+def score_describe(text: str) -> int:
+    """1 if the description contains physics-mode language; 0 otherwise.
+
+    Decision logic:
+      - If the response has an explicit *abstract framing* marker (outline,
+        sketch, geometric, diagram, line drawing, etc.) AND no physics token,
+        return 0.
+      - Otherwise, return 1 if any physics token present; 0 if not.
+
+    Physics tokens fire on broader vocabulary than `score_pmr`'s
+    kinetic-action stems (suspend, hover, gravitational, motion, kinetic,
+    trajectory, weight, ...). Background phrases like "on white background"
+    do *not* override physics tokens.
+
+    Examples:
+      "A bowling ball suspended above a bowling lane." → 1 (suspend)
+      "Gravity pulls the ball down." → 1 (gravit + pull)
+      "A simple outline of a circle." → 0 (outline + no physics)
+      "Ball falling on a white background." → 1 (fall, even with background phrase)
+    """
+    if not text:
+        return 0
+    t = text.lower()
+    words = _words(text)
+
+    has_physics_word = any(w.startswith(s) for w in words for s in _DESCRIBE_PHYSICS_STEMS if " " not in s)
+    has_physics_phrase = any(s in t for s in _DESCRIBE_PHYSICS_STEMS if " " in s)
+    has_physics = has_physics_word or has_physics_phrase
+
+    has_abstract_phrase = any(s in t for s in _DESCRIBE_ABSTRACT_STEMS if " " in s)
+    has_abstract_word = any(w.startswith(s) for w in words for s in _DESCRIBE_ABSTRACT_STEMS if " " not in s)
+    has_abstract = has_abstract_phrase or has_abstract_word
+
+    if has_abstract and not has_physics:
+        return 0
+    return 1 if has_physics else 0
+
+
 def score_hold_still(text: str) -> int:
     if not text:
         return 0

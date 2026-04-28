@@ -6,8 +6,10 @@ import pytest
 
 from physical_mode.metrics.pmr import (
     score_abstract_reject,
+    score_describe,
     score_gar,
     score_hold_still,
+    score_meta_yesno,
     score_pmr,
 )
 
@@ -109,3 +111,79 @@ def test_abstract_reject_suppresses_physics_verb_match():
     """'This is just a circle, so it won't move' should NOT count as PMR=1."""
     s = "This is just a circle; it will not move."
     assert score_pmr(s) == 0
+
+
+# ---------------------------------------------------------------------------
+# M-MP Phase 1+2 scorers (Track B Pillar A — multi-prompt cross-task)
+# ---------------------------------------------------------------------------
+
+
+META_YES = [
+    "Yes",
+    "No",  # only the position matters; "no" should also pass
+    "Yes.",
+    "No.",
+    "Yes, this is a depiction of a real-world physical event.",
+    "No, the image is a simple geometric representation.",
+    "Answer: Yes",
+    "Answer: no",
+    "yeah, gravity pulls it down",
+    "Nope.",
+]
+META_YES_EXPECTED = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+META_UNPARSE = ["Maybe?", "", "I'm not sure", "...", "12345"]
+
+
+@pytest.mark.parametrize("text,expected", list(zip(META_YES, META_YES_EXPECTED)))
+def test_meta_yesno_parseable(text, expected):
+    assert score_meta_yesno(text) == expected
+
+
+@pytest.mark.parametrize("text", META_UNPARSE)
+def test_meta_yesno_unparseable_returns_minus_one(text):
+    assert score_meta_yesno(text) == -1
+
+
+DESCRIBE_PHYSICS = [
+    "A bowling ball suspended above a bowling lane.",
+    "Gravity pulls the ball down.",
+    "A ball with arrow pointing downward, suggesting it is about to fall.",
+    "The ball rolls toward the surface.",
+    "A planet falling from space.",
+    "The ball is in motion.",
+    "The sphere is hovering above the floor.",
+    "The object is in mid-air.",
+]
+
+DESCRIBE_ABSTRACT = [
+    "A simple black outline of a circle.",
+    "A circle is depicted in the image.",
+    "Simple line drawing of a sphere on white background.",
+    "A geometric symbol on a plain background.",
+    "The image shows a sketch of a circle.",
+]
+
+
+@pytest.mark.parametrize("text", DESCRIBE_PHYSICS)
+def test_describe_physics_mode(text):
+    assert score_describe(text) == 1, f"Expected physics-mode for: {text!r}"
+
+
+@pytest.mark.parametrize("text", DESCRIBE_ABSTRACT)
+def test_describe_abstract_mode(text):
+    assert score_describe(text) == 0, f"Expected abstract-mode for: {text!r}"
+
+
+def test_describe_physics_wins_over_abstract_framing():
+    """Physics tokens win over abstract-framing markers when both are present.
+
+    Rationale: the M-MP G1 question is whether the model expresses
+    physics-mode *commitment*. If the model says "ball that might fall"
+    — even hedged inside a 'line drawing' framing — that IS a physics-mode
+    commitment about the depicted object. Pure geometric framing without
+    any physics token (e.g., "A simple outline of a circle") still scores 0.
+    """
+    s = "A simple line drawing of a ball that might fall."
+    assert score_describe(s) == 1
+    # Pure geometric framing without physics → still 0
+    assert score_describe("A simple line drawing of a circle.") == 0
