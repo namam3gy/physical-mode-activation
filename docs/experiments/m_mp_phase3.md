@@ -62,19 +62,28 @@ language), not on **meta-categorization** (yes/no judgment). The yes/no
 decision goes through different LM circuitry that the encoder-side
 features don't gate.
 
-### Idefics2 — kinetic-prediction-specific (narrower than Qwen)
+### Idefics2 — kinetic-verb-production specifically (verified post-hoc 2026-04-28)
 
-Idefics2's mechanism is **even narrower**: only `open` (kinetic prediction)
-flips/breaks. `describe_scene` does NOT flip/break despite the same v_L
-direction. The α=20 steering produces a different non-physics response
-("The shape of the tip of the arrow is not shown"), confirming the
-steering has *some* effect but doesn't push toward physics-mode under
-descriptive prompting.
+Idefics2's mechanism is **mechanistically distinct from Qwen's**, not just narrower.
 
-**Refined claim**: Idefics2's mechanism is **kinetic-prediction-mode-
-specific**, not generic physics-mode-commitment. The CLIP-cluster
-architecture (or the perceiver-resampler projector) couples the encoder
-features more tightly to the kinetic-prediction prompt template.
+Initial reading (NULL on describe_scene + meta_phys_yesno) was verified by
+sanity checks (`docs/experiments/m_mp_phase3_idefics2_verification.md`):
+
+1. **Higher-α M5a steering** (α=40, 60): output degenerates ("tip tip tip..."), confirming v_L25 is FC-template-specific direction; pushing harder doesn't recover physics-mode.
+2. **Higher-k M5b ablation** (k=320, 500): intervention shifts output from "falling down" → "in the air" — both physics-mode but different framings. Ablation doesn't BREAK physics-mode in describe.
+3. **SAE feature quality**: Idefics2's top-10 Cohen's d range (0.25–0.35) is 2× weaker than Qwen's (0.39–0.78), aligning with M3 vision-encoder probe AUC differences (0.93 vs 0.99).
+
+**Refined claim**: Idefics2's encoder features encode **kinetic-verb production**
+specifically (falling/dropping/rolling), NOT general physics-mode commitment.
+Ablating them shifts the model to alternative physics-mode framings ("in the air",
+"suspended") rather than abstract description. Qwen's features by contrast encode
+general physics-mode commitment that bridges across kinetic-prediction and
+descriptive language.
+
+This is a **stronger** finding than "Idefics2 mechanism is narrower" — it identifies
+*what* the encoder features represent in each architecture, not just the breadth of
+their effect. Reviewers will read the cross-model dissociation as architecturally
+informative rather than as a methodological null.
 
 ## Headline for paper §6 / Track B framing
 
