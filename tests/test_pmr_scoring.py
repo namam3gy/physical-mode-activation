@@ -7,6 +7,7 @@ import pytest
 from physical_mode.metrics.pmr import (
     score_abstract_reject,
     score_describe,
+    score_for_variant,
     score_gar,
     score_hold_still,
     score_meta_yesno,
@@ -187,3 +188,42 @@ def test_describe_physics_wins_over_abstract_framing():
     assert score_describe(s) == 1
     # Pure geometric framing without physics → still 0
     assert score_describe("A simple line drawing of a circle.") == 0
+
+
+# ---------------------------------------------------------------------------
+# score_for_variant — Phase 3 cross-prompt dispatch
+# ---------------------------------------------------------------------------
+
+
+def test_score_for_variant_open_uses_score_pmr():
+    """open variant routes to score_pmr (kinetic-prediction lexicon)."""
+    assert score_for_variant("The ball will fall down.", "open") == 1
+    assert score_for_variant("The circle stays the same.", "open") == 0
+    assert score_for_variant("This is just an abstract shape.", "open") == 0
+
+
+def test_score_for_variant_describe_uses_score_describe():
+    """describe_scene variant routes to score_describe (description lexicon)."""
+    assert score_for_variant("A bowling ball suspended above a lane.", "describe_scene") == 1
+    assert score_for_variant("A simple outline of a circle.", "describe_scene") == 0
+
+
+def test_score_for_variant_yesno_treats_unparseable_as_zero():
+    """meta_phys_yesno variant returns 1/0; -1 (unparseable) → 0."""
+    assert score_for_variant("Yes, this is real.", "meta_phys_yesno") == 1
+    assert score_for_variant("No, it's an abstract shape.", "meta_phys_yesno") == 0
+    assert score_for_variant("Maybe?", "meta_phys_yesno") == 0  # unparseable → 0
+    assert score_for_variant("", "meta_phys_yesno") == 0
+
+
+def test_score_for_variant_unknown_falls_back_to_score_pmr():
+    """Unknown variant (forced_choice / forced_choice_no_label) falls back to score_pmr."""
+    # Forced-choice text "A) It falls down." has the kinetic stem "fall"
+    assert score_for_variant("A) It falls down.", "forced_choice") == 1
+    assert score_for_variant("D) Abstract shape.", "forced_choice") == 0
+
+
+def test_score_for_variant_open_no_label():
+    """open_no_label variant routes to score_pmr."""
+    assert score_for_variant("It falls.", "open_no_label") == 1
+    assert score_for_variant("This is a static circle.", "open_no_label") == 0

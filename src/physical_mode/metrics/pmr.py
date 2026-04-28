@@ -164,6 +164,27 @@ def score_describe(text: str) -> int:
     return 1 if has_physics else 0
 
 
+def score_for_variant(text: str, variant: str) -> int:
+    """Dispatch to the right scorer based on prompt variant.
+
+    Returns 1/0 in all cases. Used by Phase 3 cross-prompt M5a/M5b runs
+    where a single run uses one prompt and we want a uniform pmr column.
+
+    For `meta_phys_yesno`, unparseable (-1) is treated as 0 (no
+    physics-mode commitment) so the pmr column stays binary.
+    """
+    if variant in ("open", "open_no_label"):
+        return score_pmr(text)
+    if variant == "describe_scene":
+        return score_describe(text)
+    if variant == "meta_phys_yesno":
+        s = score_meta_yesno(text)
+        return s if s != -1 else 0
+    # forced_choice / forced_choice_no_label rely on letter parsing,
+    # not raw_text scoring; fall back to score_pmr for raw_text cases.
+    return score_pmr(text)
+
+
 def score_hold_still(text: str) -> int:
     if not text:
         return 0

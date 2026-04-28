@@ -37,33 +37,22 @@ from transformers import AutoModelForImageTextToText, AutoProcessor
 
 from physical_mode.sae.train import load_sae
 from physical_mode.models.vlm_runner import _resolve_vision_blocks
-from physical_mode.metrics.pmr import score_pmr
+from physical_mode.metrics.pmr import score_for_variant
+from physical_mode.inference.prompts import render as render_prompt
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 M2_STIM_DIR = PROJECT_ROOT / "inputs/mvp_full_20260424-093926_e9d79da3/images"
 
 
-PROMPT_FC_TEMPLATE = (
-    "The image shows a {label}. Which option best describes what will happen next?\n"
-    "A) It falls down.\n"
-    "B) It stays still.\n"
-    "C) It moves sideways.\n"
-    "D) This is an abstract shape — nothing physical happens.\n"
-    "Answer with a single letter (A, B, C, or D), then briefly justify."
-)
-
-
-PROMPT_OPEN_TEMPLATE = (
-    "The image shows a {label}. Describe what will happen to the {label} "
-    "in the next moment, in one short sentence."
-)
-
-
-SYSTEM_PROMPT_OPEN = (
-    "You are a careful observer of images. When asked what will happen next, "
-    "describe the most likely next state or motion in one short sentence."
-)
+# Map --prompt-mode CLI value → physical_mode.inference.prompts variant name.
+# Backward compatible: 'fc' and 'open' keep their original meaning.
+PROMPT_MODE_TO_VARIANT = {
+    "fc": "forced_choice",
+    "open": "open",
+    "describe_scene": "describe_scene",
+    "meta_phys_yesno": "meta_phys_yesno",
+}
 
 
 def make_sae_intervention_hook(sae, feature_indices_to_zero: torch.Tensor):
@@ -190,9 +179,13 @@ def main() -> None:
     p.add_argument("--manifest",
                    default="outputs/m5b_sip/manifest.csv",
                    help="FC mode: CSV with clean_sample_id column listing stim to use.")
-    p.add_argument("--prompt-mode", choices=["fc", "open"], default="fc",
+    p.add_argument("--prompt-mode",
+                   choices=["fc", "open", "describe_scene", "meta_phys_yesno"],
+                   default="fc",
                    help="fc=force-choice letter scoring (Qwen-original protocol); "
-                   "open=free-text + PMR scoring (cross-model uniform protocol).")
+                   "open=free-text kinetic prediction + score_pmr; "
+                   "describe_scene=free-form description + score_describe (Phase 3 cross-prompt); "
+                   "meta_phys_yesno=binary yes/no probe + score_meta_yesno (Phase 3 cross-prompt).")
     p.add_argument("--stimulus-dir", type=Path, default=None,
                    help="OPEN mode: stimulus directory containing manifest.parquet + images/.")
     p.add_argument("--test-subset", default=None,
@@ -289,9 +282,15 @@ def main() -> None:
             print(f"  random_{r}: {len(feats)} features, mass={mass:.2f} "
                   f"({mass/top_mass*100:.0f}% of top-{max_k}, seed={used_seed})")
 
-    if args.prompt_mode == "open":
+    variant = PROMPT_MODE_TO_VARIANT[args.prompt_mode]
+    rp = render_prompt(variant, args.label)
+    is_fc_mode = (args.prompt_mode == "fc")
+
+    if not is_fc_mode:
         if args.stimulus_dir is None or args.test_subset is None:
-            raise SystemExit("--prompt-mode open requires --stimulus-dir and --test-subset")
+            raise SystemExit(
+                f"--prompt-mode {args.prompt_mode} requires --stimulus-dir and --test-subset"
+            )
         stim_manifest = pd.read_parquet(args.stimulus_dir / "manifest.parquet")
         obj, bg, cue = args.test_subset.split("/")
         sub = stim_manifest[
@@ -301,16 +300,16 @@ def main() -> None:
         ].reset_index(drop=True)
         sample_ids = sub["sample_id"].head(args.n_stim).tolist()
         stim_image_dir = args.stimulus_dir / "images"
-        prompt = PROMPT_OPEN_TEMPLATE.format(label=args.label)
-        system_prompt = SYSTEM_PROMPT_OPEN
+        prompt = rp.user
+        system_prompt = rp.system
         max_new_tokens = 64
-        print(f"OPEN mode: stim cell {obj}/{bg}/{cue}, n={len(sample_ids)}")
+        print(f"{args.prompt_mode.upper()} mode: stim cell {obj}/{bg}/{cue}, n={len(sample_ids)}")
     else:
         manifest = pd.read_csv(PROJECT_ROOT / args.manifest)
         sample_ids = manifest["clean_sample_id"].head(args.n_stim).tolist()
         stim_image_dir = M2_STIM_DIR
-        prompt = PROMPT_FC_TEMPLATE.format(label=args.label)
-        system_prompt = None
+        prompt = rp.user
+        system_prompt = rp.system
         max_new_tokens = 32
 
     print(f"Loading {args.model_id}...")
@@ -335,7 +334,7 @@ def main() -> None:
         # Baseline (no hook).
         bl = run_with_hook(model, processor, pil, prompt, last_vis_layer, None, args.device,
                            system_prompt=system_prompt, max_new_tokens=max_new_tokens)
-        bl_phys = _is_physics_letter(bl) if args.prompt_mode == "fc" else -1  # PMR scored later
+        bl_phys = _is_physics_letter(bl) if is_fc_mode else -1  # PMR scored later
 
         for k_str in args.top_k_list.split(","):
             k = int(k_str)
@@ -346,7 +345,7 @@ def main() -> None:
             rows.append({
                 "sample_id": sid, "condition": f"top_k={k}", "k_zeroed": k,
                 "intervention_text": txt,
-                "intervention_phys": _is_physics_letter(txt) if args.prompt_mode == "fc" else -1,
+                "intervention_phys": _is_physics_letter(txt) if is_fc_mode else -1,
                 "baseline_text": bl, "baseline_phys": bl_phys,
             })
 
@@ -359,24 +358,28 @@ def main() -> None:
                 "sample_id": sid, "condition": f"random_{r}", "k_zeroed": len(rand_features),
                 "control_mass": rand_mass, "control_seed": rand_seed,
                 "intervention_text": txt,
-                "intervention_phys": _is_physics_letter(txt) if args.prompt_mode == "fc" else -1,
+                "intervention_phys": _is_physics_letter(txt) if is_fc_mode else -1,
                 "baseline_text": bl, "baseline_phys": bl_phys,
             })
 
         elapsed = (time.time() - t_start) / 60
-        marker = bl_phys if args.prompt_mode == "fc" else (bl[:30].replace(chr(10), ' / '))
+        marker = bl_phys if is_fc_mode else (bl[:30].replace(chr(10), ' / '))
         print(f"  [{i+1}/{len(sample_ids)}] {sid} bl={marker!r} elapsed={elapsed:.1f}min "
               f"(rows={len(rows)} including {sum(1 for r in rows if r.get('condition','').startswith('random_'))} random)")
 
     df = pd.DataFrame(rows)
 
-    if args.prompt_mode == "open":
-        df["intervention_pmr"] = df["intervention_text"].astype(str).map(score_pmr)
-        df["baseline_pmr"] = df["baseline_text"].astype(str).map(score_pmr)
+    if not is_fc_mode:
+        df["intervention_pmr"] = df["intervention_text"].astype(str).map(
+            lambda t: score_for_variant(t, variant)
+        )
+        df["baseline_pmr"] = df["baseline_text"].astype(str).map(
+            lambda t: score_for_variant(t, variant)
+        )
 
     df.to_csv(out_dir / "results.csv", index=False)
     print("\n=== Aggregate (rate by condition) ===")
-    if args.prompt_mode == "open":
+    if not is_fc_mode:
         agg = df.groupby("condition").agg(
             n=("intervention_pmr", "count"),
             bl_pmr=("baseline_pmr", "mean"),

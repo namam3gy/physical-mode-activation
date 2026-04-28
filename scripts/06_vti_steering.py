@@ -27,7 +27,7 @@ from tqdm import tqdm
 
 from physical_mode.inference.prompts import render as render_prompt
 from physical_mode.metrics.first_letter import extract_first_letter
-from physical_mode.metrics.pmr import score_rows
+from physical_mode.metrics.pmr import score_for_variant, score_rows
 from physical_mode.models.vlm_runner import InferenceArgs, PhysModeVLM
 from physical_mode.probing.steering import load_steering_vectors
 
@@ -153,7 +153,12 @@ def main() -> None:
 
     # -------- score + summarize --------
     df = pd.DataFrame(records)
-    df = score_rows(df)
+    if args.prompt_variant in ("open", "open_no_label", "forced_choice", "forced_choice_no_label"):
+        # Canonical M5a path: score_rows fills pmr/hold_still/abstract_reject/gar.
+        df = score_rows(df)
+    else:
+        # Phase 3 cross-prompt M5a (describe_scene / meta_phys_yesno): only pmr is meaningful.
+        df["pmr"] = df["raw_text"].apply(lambda t: score_for_variant(t, args.prompt_variant))
     df["first_letter"] = df["raw_text"].apply(extract_first_letter)
 
     outdir = args.run_dir / "steering_experiments"
