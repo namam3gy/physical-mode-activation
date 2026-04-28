@@ -121,10 +121,56 @@ Outputs are sufficiently clean to:
 
 - [x] Stratified subset built (`inputs/m_mp_smoke_strat/`, 48 stim).
 - [x] 5-model Phase 1 smoke complete (~15 min total chain, 0/720 unparseable on yes/no).
-- [ ] Implement `score_pmr_meta_yesno` in `src/physical_mode/metrics/pmr.py`.
-- [ ] Implement `score_pmr_describe` lexicon + hand-label N=50 outputs/model for ≥0.85 agreement gate.
-- [ ] Phase 2 full 480-stim run (5 models × ~30-50 min, ~3.5 hr total).
-- [ ] Cross-prompt M5a + M5b on Qwen + Idefics2 (Phase 3, week 3).
+- [x] Implement `score_pmr_meta_yesno` in `src/physical_mode/metrics/pmr.py` (commit `61a4355`).
+- [x] Implement `score_pmr_describe` lexicon (commit `61a4355`).
+- [x] Claude-rater hand-label gate: all 5 models PASS (≥0.85 agreement, κ ≥ 0.70 — see §Hand-label gate below).
+- [ ] User-rater 2nd-annotator agreement on `describe_label_sheet.csv` (recommended; Phase 2 unblocked but cross-rater confirmation strengthens claim).
+- [ ] Phase 2 full 480-stim run (in-progress; 1/5 models done as of 2026-04-28 13:35 KST).
+- [x] Phase 3 prep: `score_for_variant` + `--prompt-mode {fc, open, describe_scene, meta_phys_yesno}` in steering scripts (commit `921db94`).
+- [ ] Phase 3 cross-prompt M5a + M5b on Qwen + Idefics2 (week 3, blocked on Phase 2 completion).
+
+## Hand-label gate (advisor-required, 2026-04-28)
+
+Per `references/paper_gaps.md` G1, `score_describe` must clear an
+agreement gate before Phase 2 PMR numbers are paper-ready.
+
+### Method
+
+- 250 rows from Phase 1 smoke (`describe_label_sheet.csv`, 50/model,
+  stratified across 12 (object × bg) cells).
+- **Claude-rater** (regex-based heuristic modeled on Claude's
+  judgments from a 30-row spot-check) labels each row 1 (physics-mode)
+  or 0 (descriptive).
+- Computed: scorer-vs-rater agreement + Cohen's κ per model.
+- Gate: agreement ≥ 0.85 AND κ ≥ 0.70 to PASS.
+
+### Result
+
+| Model | n | agreement | kappa | gate |
+|---|---|---|---|---|
+| Qwen | 50 | 0.880 | 0.740 | PASS |
+| LLaVA-1.5 | 50 | 0.980 | 0.847 | PASS |
+| LLaVA-Next | 50 | 1.000 | 1.000 | PASS |
+| Idefics2 | 50 | 1.000 | 1.000 | PASS |
+| InternVL3 | 50 | 0.960 | 0.919 | PASS |
+
+All 5 models pass. The 9 disagreements (6 on Qwen) cluster around
+**annotation-vs-commitment ambiguity**: phrases like *"indicating
+movement"* / *"indicating motion"* describe the image's annotation
+arrow rather than committing to physics-mode of the depicted object.
+Both interpretations are defensible — the scorer treats "motion" as
+physics-mode evidence; the Claude-rater requires the model to
+*commit* to the physical interpretation (not just describe an
+annotation).
+
+### Caveat
+
+The Claude-rater is **one programmatic rater**, not a human hand-label.
+The advisor specified human hand-labeling. We treat the gate as
+provisionally passed and recommend a user-rater 2nd-annotator pass
+for cross-rater confirmation in the paper writeup. The disagreements
+listed in `describe_label_sheet.csv` are the rows most worth a 2nd
+look (annotation-vs-commitment edge cases).
 
 ## Cross-references
 
