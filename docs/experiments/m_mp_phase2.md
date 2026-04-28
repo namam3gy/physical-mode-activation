@@ -40,11 +40,11 @@ Phase 2 result is consistent with **Strong** at the behavioral level — H2 hold
 
 | model      |   open |   describe_scene |   meta_phys_yesno |
 |:-----------|-------:|-----------------:|------------------:|
-| Idefics2   |  0.935 |            0.595 |             0.95  |
+| Idefics2   |  0.935 |            0.597 |             0.95  |
 | InternVL3  |  0.99  |            0.508 |             0.976 |
 | LLaVA-1.5  |  0.673 |            0.176 |             0.321 |
 | LLaVA-Next |  0.936 |            0.135 |             0.407 |
-| Qwen       |  0.907 |            0.459 |             0.714 |
+| Qwen       |  0.907 |            0.465 |             0.714 |
 
 ## H2 paired-delta per (model, prompt)
 
@@ -52,7 +52,7 @@ Phase 2 result is consistent with **Strong** at the behavioral level — H2 hold
 
 | model      | prompt_variant   |   circle |   ball |   planet |   h2_ball_minus_circle |   h2_planet_minus_circle |
 |:-----------|:-----------------|---------:|-------:|---------:|-----------------------:|-------------------------:|
-| Idefics2   | describe_scene   |    0.535 |  0.802 |    0.448 |                  0.267 |                   -0.087 |
+| Idefics2   | describe_scene   |    0.535 |  0.802 |    0.454 |                  0.267 |                   -0.081 |
 | Idefics2   | meta_phys_yesno  |    0.933 |  0.979 |    0.938 |                  0.046 |                    0.005 |
 | Idefics2   | open             |    0.94  |  0.99  |    0.877 |                  0.05  |                   -0.063 |
 | InternVL3  | describe_scene   |    0.431 |  0.61  |    0.483 |                  0.179 |                    0.052 |
@@ -64,7 +64,7 @@ Phase 2 result is consistent with **Strong** at the behavioral level — H2 hold
 | LLaVA-Next | describe_scene   |    0.119 |  0.173 |    0.112 |                  0.054 |                   -0.007 |
 | LLaVA-Next | meta_phys_yesno  |    0.242 |  0.558 |    0.421 |                  0.316 |                    0.179 |
 | LLaVA-Next | open             |    0.875 |  0.975 |    0.958 |                  0.1   |                    0.083 |
-| Qwen       | describe_scene   |    0.375 |  0.55  |    0.452 |                  0.175 |                    0.077 |
+| Qwen       | describe_scene   |    0.377 |  0.554 |    0.462 |                  0.177 |                    0.085 |
 | Qwen       | meta_phys_yesno  |    0.617 |  0.765 |    0.76  |                  0.148 |                    0.143 |
 | Qwen       | open             |    0.852 |  0.944 |    0.925 |                  0.092 |                    0.073 |
 
@@ -107,7 +107,7 @@ PMR per cell, by model, for each prompt.
 | textured/blank/none         | Qwen       |  0.667 |            0     |             0.233 |
 | textured/blank/none         | LLaVA-1.5  |  0.7   |            0.1   |             0.267 |
 | textured/blank/none         | LLaVA-Next |  0.9   |            0     |             0.367 |
-| textured/blank/none         | Idefics2   |  0.8   |            0     |             0.467 |
+| textured/blank/none         | Idefics2   |  0.8   |            0.033 |             0.467 |
 | textured/blank/none         | InternVL3  |  1     |            0.333 |             1     |
 | textured/ground/cast_shadow | Qwen       |  1     |            0.367 |             0.867 |
 | textured/ground/cast_shadow | LLaVA-1.5  |  0.833 |            0.4   |             0.267 |
@@ -124,7 +124,7 @@ PMR per cell, by model, for each prompt.
 
 | Model | open H2 | describe H2 | yesno H2 | strongest |
 |---|---|---|---|---|
-| Qwen | +0.092 | **+0.175** | +0.148 | describe |
+| Qwen | +0.092 | **+0.177** | +0.148 | describe |
 | LLaVA-1.5 | **+0.344** | +0.183 | +0.115 | open |
 | LLaVA-Next | +0.100 | +0.054 | **+0.316** | yesno |
 | Idefics2 | +0.050 | **+0.267** | +0.046 | describe |
@@ -137,6 +137,7 @@ PMR per cell, by model, for each prompt.
 - **`describe_scene` scoring** has a passing Claude-rater hand-label gate (agreement 0.88–1.00, κ 0.74–1.00, all 5 models PASS) — but this is one programmatic rater. Paper writeup should add a 2nd-rater (user) pass for cross-rater confirmation.
 - Phase 2 is **behavioral evidence only**. Causal claim ("same `v_L10` / SAE features fire across prompts") requires Phase 3 cross-prompt M5a + M5b runs (week 3, scheduled next).
 - One Phase 2 LLaVA-1.5 result (line/scene/none cell) had Phase 1 vs Phase 2 PMR Δ +0.014 — the 2nd-largest deviation across all (model × prompt × cell) tuples. Within sampling noise.
+- **Lexicon expansion re-score (audit 2026-04-28)**: after `score_describe` was extended mid-Phase-3 with stems `impact`, `about to (fall|hit|impact|land|drop|bounce)`, `is about to`, `going to (fall|hit)`, the entire Phase 2 was re-summarized. Deltas are microscopic — max +0.006 on label-averaged PMR (Qwen describe 0.459 → 0.465; Idefics2 describe 0.595 → 0.597), max +0.033 on a single cell (Idefics2 textured/blank/none describe 0.000 → 0.033). All 15/15 H2 cells remain positive (+0.006 to +0.344 range unchanged); all per-(model, prompt) ladder orderings preserved. The Phase 2 headline survives the lexicon expansion.
 
 ## Cross-references
 

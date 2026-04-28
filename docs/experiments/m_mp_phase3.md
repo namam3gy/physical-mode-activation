@@ -26,6 +26,29 @@ on the `open` prompt also flip/break PMR on the new prompts?
 - Idefics2: existing 4608-feature SAE (`outputs/sae/idefics2_vis26_4608`), Cohen's-d top-160, hook on vis_26.
 - For both: cell=shaded/ground/both, label=ball (high-PMR cell where break is detectable).
 
+### Cell-selection rationale (audit 2026-04-28)
+
+M5a (`line/blank/none` + label=`circle`) and M5b (`shaded/ground/both` + label=`ball`)
+use **different cells**, by design constraint, not as a methodological choice:
+
+- **M5a** is a *flip-direction* test: needs a baseline-low cell so a positive PMR
+  delta is detectable. `line/blank/none` × `circle` is the canonical 0-PMR cell from
+  M2 (Qwen 0.000 / Idefics2 0.133 on Phase 2 describe; comparably low on open).
+- **M5b** is a *break-direction* test: needs a baseline-high cell so a negative
+  PMR delta is detectable. `shaded/ground/both` × `ball` is Qwen's canonical
+  ceiling cell (Phase 2 describe 0.800; open 1.0).
+
+Choosing matched-direction cells for the two methods is unavoidable — a single
+cell cannot be both baseline-low (for flip) AND baseline-high (for break). This
+means the M5a/M5b "agreement" is on the **same prompt × same model**, not the
+same cell.
+
+**M5b cell switch on Qwen describe**: a first attempt used `filled/blank/both`
+(Qwen Phase 2 describe = 0.000 — wrong direction for a break test). It was
+switched to `shaded/ground/both` (Phase 2 describe = 0.800) post-hoc. The switch
+was driven by the cell-selection logic above, not by inspecting intervention
+results. No M5b break test on `filled/blank/both` was performed and discarded.
+
 ### Code
 
 `scripts/06_vti_steering.py --prompt-variant {describe_scene, meta_phys_yesno}`
@@ -47,7 +70,7 @@ Random controls (×3, mass-matched):
 
 ## Interpretation
 
-### Qwen — task-agnostic for generative, blocked for categorical
+### Qwen — generative-prompt-conserved, blocked for categorical (within Qwen)
 
 The same `v_L10` direction and the same top-20 SAE features cause **PMR
 flip/break on `describe_scene`** with the same threshold as `open`. But
@@ -56,11 +79,19 @@ the response. The model continues to say "Yes" (baseline) even when
 the encoder's physics-cue features are ablated or the LM residual is
 steered.
 
-**Refined claim**: Qwen's physics-mode commitment mechanism operates on
-**generative language production** (kinetic prediction + descriptive
-language), not on **meta-categorization** (yes/no judgment). The yes/no
-decision goes through different LM circuitry that the encoder-side
-features don't gate.
+**Refined claim (Qwen-specific)**: In **Qwen**, the physics-mode commitment
+mechanism operates on **generative language production** (kinetic
+prediction + descriptive language) but does NOT gate **meta-categorization**
+(yes/no judgment). The yes/no decision in Qwen goes through different LM
+circuitry that the encoder-side features don't gate.
+
+**Architecture-level scope (audit 2026-04-28)**: This dissociation is
+demonstrated **only in Qwen**. Idefics2 describe is null/null on M5a + M5b
+(a generative-prompt failure, not success) and Idefics2 yesno is also
+null/null — Idefics2 cannot dissociate generative-vs-categorical because
+neither prompt produces a flip/break. The "generative-vs-categorical"
+mechanism dissociation is therefore a **Qwen finding**, not a
+cross-architecture finding, and should be presented as such.
 
 ### Idefics2 — kinetic-verb-production specifically (verified post-hoc 2026-04-28)
 
@@ -101,9 +132,35 @@ more honest**:
 
 This refinement strengthens the **mechanistic dissociation** thread in
 the paper: M5a (LM-side) and M5b (encoder-side) **agree** on the same
-boundaries (generative vs categorical, plus architecture-conditional
-breadth) — the *cross-method consistency* is itself evidence that we've
-identified a real mechanism rather than an artifact of either method.
+prompt-level boundaries (generative vs categorical, plus
+architecture-conditional breadth) — the *cross-method consistency* is
+itself evidence that we've identified a real mechanism rather than an
+artifact of either method.
+
+### Cross-method "agreement" — asymmetry caveat (audit 2026-04-28)
+
+The 4 (model × prompt) cells in the M5a/M5b cross-method comparison are
+**asymmetric**:
+
+| Cell | M5a | M5b | Type |
+|---|---|---|---|
+| Qwen × `describe_scene` | 10/10 flip | 0/10 break | **positive/positive** (1 cell) |
+| Qwen × `meta_phys_yesno` | 0/10 NO flip | NO break | **null/null** |
+| Idefics2 × `describe_scene` | 0/10 NO flip | NO break | **null/null** |
+| Idefics2 × `meta_phys_yesno` | 0/10 NO flip | NO break | **null/null** |
+
+So "cross-method agreement" rests on **1 positive/positive cell + 3 null/null
+cells**. Strict reading: only the Qwen-describe positive shows that M5a and M5b
+*both fire* on the same condition; the 3 null/null cells show that neither
+method fires when the other doesn't, but *that's also consistent with both
+methods being insensitive in the same way*.
+
+The framing "same prompt-level boundary, two methods" is **defensible**, but the
+strength of the cross-method-agreement evidence is **n=1 positive coincidence + 3
+shared nulls**, not n=4 independent confirmations. This is a real limitation —
+expanding to a 3rd or 4th model that's tractable on M5a + M5b would lift the
+positive count, and is a candidate for follow-up if the Pillar B work
+(M-PSwap / M-LMSwap) opens additional model points.
 
 Pillar C (Marr 3-level §6 restructure) gains a clean dichotomy:
 - **Computational level (PMR)**: H2 cross-prompt-conserved (15/15 cells, Phase 2).
@@ -116,9 +173,10 @@ finding for the broader claim.
 
 ## Follow-ups (for paper writeup)
 
-1. **Test Qwen M5a + M5b on a 4th cognitive task**: e.g. *"What kind of object is this — a ball, a planet, or a circle?"* (multi-choice categorization, NOT yes/no). Tests whether the categorical blockage is yes/no-specific or all-categorization.
+1. **Test Qwen M5a + M5b on a 4th cognitive task**: e.g. *"What kind of object is this — a ball, a planet, or a circle?"* (multi-choice categorization, NOT yes/no). Tests whether the categorical blockage is yes/no-specific or all-categorization. **(Audit 2026-04-28)**: this is now load-bearing for the "Generative vs Categorical" claim. The current Phase 3 design has 2 generative prompts (open + describe) + 1 categorical prompt (yesno) — the asymmetry means we can't dissociate "categorical task" from "yes/no binary format". Recommended priority: high. Cheap (one new prompt variant + 5-model × 1-cell run).
 2. **Test with `meta_phys_yesno` re-worded** to make it more generative ("Explain whether this is a real-world physical event"). Tests whether the yes/no blockage is the *binary format* or the *meta-cognitive task*.
-3. **LLaVA / LLaVA-Next / InternVL3 M5a × describe_scene**: extends the architecture-conditional claim. (Stretch — not in the Required scope.)
+3. **LLaVA / LLaVA-Next / InternVL3 M5a × describe_scene**: extends the architecture-conditional claim. (Stretch — not in the Required scope.) **(Audit)**: Currently the cross-method-agreement claim leans on 1 positive cell; adding a 3rd model with M5a+M5b positive on describe (e.g. InternVL3) would strengthen from n=1 to n=2.
+4. **Audit-driven**: re-run M5a on `shaded/ground/both ball` and M5b on `line/blank/none circle` if any model has dynamic range that allows both directions to be tested in *the same cell*. If feasible, M5a/M5b agreement on a single cell × prompt = a stronger cross-method signature than the current matched-prompt agreement.
 
 ## Cross-references
 
