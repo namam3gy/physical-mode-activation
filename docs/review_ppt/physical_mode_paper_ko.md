@@ -339,11 +339,11 @@ Bootstrap 5000-iter CI 가 각 메트릭에 적용됨 (prediction-level resampli
 
 ---
 
-### Slide 13: 인과 개입 — VTI steering + §4.6 픽셀 ascent
+### Slide 13: 인과 개입 — VTI steering + §4.6 픽셀 ascent + M5b SAE 개입
 
-**슬라이드 내용**: 두 가지 인과 개입 방법.
+**슬라이드 내용**: 세 가지 인과 개입 방법.
 
-**핵심 메시지**: 단순 상관 관계가 아닌 *causal* 분석을 위해 두 가지 개입을 수행.
+**핵심 메시지**: 단순 상관 관계가 아닌 *causal* 분석을 위해 *세 가지* 보완적 개입을 수행. (1) LM-side runtime steering, (2) pixel-space gradient ascent (역방향), (3) encoder-side SAE feature ablation.
 
 **상세 설명**:
 
@@ -370,7 +370,26 @@ v_unit_L = v_L / ||v_L||
 - *제약*: L_∞-bounded `clamp_(δ, -ε, +ε)` ε ∈ {0.05, 0.1, 0.2} 또는 unconstrained.
 - **Random control**: 매칭 ε=0.1 에서 random unit direction 에 대해 동일 최적화. magnitude 매칭 controls falsify "any perturbation flips" alternative.
 
-이 두 개입이 슬라이드 18 (M5a) 와 19-20 (§4.6) 에서 결과 보임.
+**M5b — encoder-side SAE feature ablation (2026-04-27 → 2026-04-28 cross-model)**:
+
+- **개입 위치**: vision encoder 의 마지막 (모델별로 LM 이 *실제로 소비* 하는) layer 의 forward output 에 hook 으로 *features 빼기*.
+- **모델별 hook layer** (LLaVA `vision_feature_layer=-2` 같은 model-specific routing 반영):
+  - Qwen2.5-VL: `model.visual.blocks[31]` (마지막 layer, 32 layers).
+  - LLaVA-1.5 / LLaVA-Next: `vision_tower.encoder.layers[22]` (penultimate, `vision_feature_layer=-2` convention; layers[23] 은 *버려짐*).
+  - Idefics2: `vision_model.encoder.layers[26]` (마지막 layer of 27, `last_hidden_state` 로 들어감).
+  - InternVL3-hf: `vision_tower.encoder.layer[23]` (마지막 layer of 24, `vision_feature_layer=-1`).
+- **SAE 학습**: 4× overcomplete (n_features = 4 × d_in), λ=1.0 L1 sparsity, 5K steps Adam lr=1e-3 batch=4096, input z-score, tied weights.
+- **Feature ranking**: `delta = mean(z|physics) − mean(z|abstract)`; **Cohen's d = delta / pooled_std** (high-baseline outlier 필터링). Phys / Abs 라벨링은 per-stim mean PMR ≥ 0.667 (phys) 또는 ≤ 0.333 (abs) — saturated 모델 (LLaVA-Next / Idefics2 / InternVL3) 은 ≤ 0.5 로 완화.
+- **개입 방법**: top-k physics-cue features (Cohen's d 순) 의 *raw-scale contribution* 을 vision encoder hidden state 에서 빼기 (Bricken et al. 2023 trick: SAE 의 z-score 정규화 round-trip 을 보존하면서 다른 features 와 reconstruction residual 은 bit-identical 유지).
+- **Random control (3 sets)**: high-mass non-top-k pool 에서 랜덤 추출, [0.7×, 2×] top-k mass window 에서 magnitude-matched. 3 random sets × top-k features 의 ablation 으로 비교.
+- **k sweep**: {5, 10, 20, 40, 80, 160}; LLaVA-1.5 는 high-k extension {200, 300, 500, 800} 까지 확장.
+
+**세 개입의 상보성**:
+- M5a (LM-side): "이 LM direction 이 행동을 인과적으로 결정하는가?" 를 묻는 *forward* 개입.
+- §4.6 (pixel-side): "이 LM direction 이 *역방향* 으로 픽셀에서 인코딩 가능한가?" 를 묻는 *inverse* 개입.
+- M5b (encoder-side): "encoder 가 이 LM direction 의 *국소화된 feature* 표현을 가지는가?" 를 묻는 *encoder-side localization* 개입.
+
+이 세 개입이 슬라이드 18 (M5a Qwen), 18b (M5a cross-model), 18c (M5b cross-model), 19-20 (§4.6) 에서 결과로 보여짐.
 
 ---
 
@@ -502,7 +521,59 @@ H2 paired-delta = `PMR(label) − PMR(_nolabel)` (per-stim 매칭).
 
 ---
 
-### Slide 18: M5a VTI causal steering
+### Slide 17b: M4 LM logit-lens cross-model — 5-model × 5-layer probe AUC
+
+**슬라이드 내용**: m4_lm_probing_cross_model.png 그림 + AUC ladder 표.
+
+**핵심 메시지**: Encoder probe AUC ladder (Slide 17) 와 *동일한 architecture-level 분류* 를 LM probe 에서도 발견. **추가**: Idefics2 의 LM AUC (0.995) 가 vision AUC (0.93) *보다 높음* — perceiver-resampler 가 정보를 *제거하지 않고 오히려 집중*. encoder-saturation 의 *두 번째 downstream 시그니처*.
+
+**상세 설명**:
+
+**Setup**:
+- 기존 M2 cross-model captures 재사용 (no new inference). 5 models × 5 LM layers (5/10/15/20/25) 의 visual-token mean hidden state 를 feature 로.
+- Y label: per-stim mean PMR 의 binary threshold (≥ 0.667 phys, ≤ 0.333 abs).
+- Probe: scikit-learn `LogisticRegression` with `class_weight="balanced"`, 5-fold StratifiedKFold (saturated 모델은 imbalanced — n_pos / n_neg 비율 매우 큼).
+- 메트릭: 5-fold mean AUROC.
+
+**Result — 5-model × 5-layer LM probe AUC**:
+
+| Model | L5 | L10 | L15 | L20 | L25 | M3 vision AUC | n_phys / n_abs |
+|---|--:|--:|--:|--:|--:|--:|---:|
+| **Idefics2-8B** | **0.995** | **0.995** | **0.995** | **0.995** | **0.995** | 0.93 | 390 / 5 |
+| Qwen2.5-VL-7B | 0.965 | 0.965 | 0.962 | 0.959 | 0.957 | 0.99 | 310 / 19 |
+| LLaVA-Next-Mistral-7B | 0.732 | 0.762 | 0.751 | 0.786 | 0.791 | 0.81 | 393 / 9 |
+| LLaVA-1.5-7B | 0.758 | 0.760 | 0.762 | 0.763 | 0.768 | 0.73 | 327 / 13 |
+| InternVL3-8B | NaN | NaN | NaN | NaN | NaN | 0.89 | 479 / 1 |
+
+**3 가지 발견**:
+
+1. **LM AUC ladder 가 vision AUC ladder 와 정렬**:
+   - Non-CLIP 인코더 (Qwen / Idefics2 / InternVL3-경향) → LM AUC 0.96 ~ 0.99.
+   - CLIP 인코더 (LLaVA-1.5 / LLaVA-Next) → LM AUC 0.73 ~ 0.79.
+   - **H-encoder-saturation 이 downstream LM 으로 propagate** — 인코더 표현능력이 LM 의 visual-token 위치에서의 PMR-relevant 정보 인코딩 정도를 결정.
+
+2. **Idefics2 LM AUC (0.995) > Idefics2 vision AUC (0.93)**:
+   - Vision encoder 출력 (1296-token SigLIP-SO400M) 이 perceiver-resampler 로 320-token 으로 *압축* 됨.
+   - 압축된 budget 에서 LM probe AUC 가 *더 높음* — perceiver 가 정보를 stripping 하지 않고, 오히려 *physics-mode 신호를 시각 토큰 위치로 집중* 시킴.
+   - **§4.6 Idefics2 anomaly 와의 dissociation**: §4.6 에서 Idefics2 의 픽셀-공간 gradient ascent 는 9 layers 모두 0 flip; 그러나 M4 LM probe 는 0.995 — 즉 *정보는 LM 에 있는데 픽셀-공간에서 방향이 routable 하지 않다*.
+
+3. **Architecture-level 의미**:
+   - "정보 존재" (M4 LM probe) ≠ "픽셀-공간 shortcut routability" (§4.6 픽셀 ascent).
+   - Perceiver-resampler 의 bottleneck 효과는 *정보 stripping* 이 아니라 *픽셀-공간 gradient routability 의 차단*.
+   - H-shortcut 가설의 정밀화: pixel-encodability 는 *encoder 가 정보를 가지는가* 가 아니라 *projector 디자인이 픽셀-공간에서 그 방향을 routable 하게 두는가* 의 함수.
+
+**Limitations**:
+- InternVL3 untestable (n_neg=1, probe degenerate).
+- Per-stim mean across visual tokens 으로 positional structure 손실 (perceiver-compressed 320 vs CLIP 576 vs AnyRes 2928 — 토큰 수 다름).
+- Idefics2 LM dim 4096 (Mistral) vs vision dim 1152 (SigLIP-SO400M) — LM AUC 의 일부는 *higher-dim 인코딩 공간* 효과 (4096-d probe 가 1152-d 보다 capacity 더 큼). 단 dissociation 논거는 AUC *크기* 가 아니라 ≫ chance 에 의존하므로 robust.
+
+**시사점**:
+- 본 결과가 §4.6 cross-model + M5a cross-model 과 triangulation 됨.
+- Idefics2 의 case: LM 에 신호 있음 (M4 0.995) + forward-hook 작동 (M5a 10/10) + 픽셀-공간 inverse 차단 (§4.6 0/9) → **perceiver 가 inverse pathway 만 차단**.
+
+---
+
+### Slide 18: M5a VTI causal steering (Qwen)
 
 **슬라이드 내용**: First-letter 응답 분포 표 + line/blank/none 자극 그림 + 응답 비교.
 
@@ -544,7 +615,163 @@ L10 α=40 (intervention):
 **시사점**:
 - shortcut 의 *causal locus* 가 LM L10 에 단일 선형 방향으로 존재.
 - 이는 **H-locus** 가설 (mid-LM 결정 layer) 의 직접 증거.
-- 후속 §4.6 에서 이 v_L10 을 *픽셀 공간* 에서 reverse-engineer 해 봄.
+- 후속 슬라이드에서 (a) cross-model M5a (18b), (b) cross-model M5b SAE encoder-side (18c), (c) §4.6 픽셀 reverse (19) 에서 *세 가지 보완적 시그니처* 로 확인.
+
+---
+
+### Slide 18b: M5a runtime steering — cross-model (3 of 4 testable models)
+
+**슬라이드 내용**: 4 models × 응답 비교 표 + 모델별 sweet-spot α + 응답 텍스트.
+
+**핵심 메시지**: Qwen 만의 결과로 보였던 **forward-hook v_L injection** 이 **3 of 4 testable models** 로 확장됨. **Idefics2 결과 (10/10 flip at L25 α=20)** 가 §4.6 cross-model 의 perceiver-resampler 가설을 정밀화 — *forward 방향은 작동, inverse 픽셀-공간만 차단*.
+
+**상세 설명**:
+
+**Setup (per model)**:
+- 모델별 v_L 추출: M2 cross-model captures 재사용 (M6 r7 결과). v_L = mean(h_L | PMR=1) − mean(h_L | PMR=0) at 모델별 LM hidden state.
+- 모델별 hook layer (각 모델의 baseline-PMR=0 가능한 layer 선택):
+  - Qwen2.5-VL: L10 (M5a 원본), L15/20/25 sweep.
+  - LLaVA-Next-Mistral-7B: L20, L25 (cross-model §4.6 에서 가장 강한 shortcut layer).
+  - Idefics2-8B (Mistral-7B LM): L20, L25.
+  - LLaVA-1.5-7B (Vicuna-7B LM): L25 (cross-model §4.6 에서 4/10 weak shortcut layer).
+  - InternVL3-8B: 모든 cell baseline=1 → 측정 불가능 (saturated, no abstract baseline).
+- α sweep: 모델별 dynamic range 다름 — Qwen 0~60, LLaVA-Next 0~20, Idefics2 0~60, LLaVA-1.5 0~60.
+- Stim cell: per-model baseline-PMR=0 cell 선택.
+  - Qwen: line/blank/none × circle (PMR=0).
+  - LLaVA-Next: line_blank_both × circle (PMR=0.3, 가장 abstract-mode 가 많은 cell).
+  - Idefics2: line_blank_none × circle (PMR=0, perfect abstract baseline).
+  - LLaVA-1.5: line_blank_none × circle (PMR=0).
+- Prompt: open-ended ("circle 다음에 무슨 일이 일어날지 한 문장으로"). PMR scorer 로 점수.
+
+**Result table — 모델별 sweet-spot α 에서의 PMR flip rate**:
+
+| Model | Layer | α sweet spot | PMR flip | Stim cell (baseline) | 대표 응답 |
+|---|---:|---:|---:|---|---|
+| Qwen2.5-VL-7B | L10 | 40 | **10/10** | line/blank/none × circle (0) | "The ball is falling down due to gravity." |
+| **LLaVA-Next-Mistral-7B** | **L20** | **10** | **10/10** | line_blank_both × circle (0) | "The ball will roll down the ramp." |
+| **LLaVA-Next-Mistral-7B** | **L25** | **15-20** | **10/10** | line_blank_both × circle (0) | "The ball will bounce up." |
+| **Idefics2-8B** | **L25** | **20** | **10/10** | line_blank_none × circle (0) | "The tip of the arrow will hit the center of the circle." |
+| **Idefics2-8B** | **L20** | **20** | **10/10** | line_blank_none × circle (0) | (paper-quality physics commit) |
+| LLaVA-1.5-7B | L25 | (any 0-60) | **0/10** | line_blank_none × circle (0) | (NULL — 응답 변하지만 motion stem 안 잡힘) |
+| InternVL3-8B | — | — | (untestable) | n/a (baseline=1) | n/a |
+
+**LLaVA-1.5 NULL 의 의미**:
+- 응답은 의미 변화 — α=0 "The circle will be filled with a color" → α=20 "in the center" → α=60 "on the floor" — 그러나 PMR scorer 가 motion stem (falls/rolls/bounces) 매칭 못함.
+- α=60 "on the floor" 는 location 함의 (gravity) 만 — motion verb 부재.
+- 즉 *runtime steering 은 부분적으로 작동* 하지만 PMR 으로 측정 가능한 break 임계점에 못 도달.
+- 이는 §4.6 LLaVA-1.5 weak shortcut (L25 4/10) 와 일관된 *encoder bottleneck* 시그니처.
+
+**Idefics2 의 paper-changing 결과**:
+- Idefics2 L25 α=20: 10 stim 모두 동일 응답 — "The tip of the arrow will hit the center of the circle." → **regime-attractor**: sweet-spot α 에서 LM 이 *deterministic physics-mode attractor* 로 들어감.
+- 이는 M5a-ext 의 regime-axis finding 과 일관 — sufficient α 에서 regime 이 *forcibly selected*, visual content tracking 은 moderate α 에서.
+
+**Triangulation with M4 + §4.6 (Idefics2 case)**:
+
+| Test on Idefics2 | Result | Implication |
+|---|---|---|
+| M4 LM probe AUC (Slide 17b) | 0.995 across L5-L25 | 정보가 *LM 에 도달* |
+| **M5a runtime steering** | **L25 α=20 → 10/10 flip** | Forward-direction `v_L` 이 LM 에서 *작동* |
+| §4.6 픽셀-공간 gradient ascent (L5-L31) | 0/90 v_unit + 0/90 random | Inverse pixel→LM **routability 차단** |
+
+**Refined H-shortcut + perceiver-resampler 가설**:
+- Perceiver-resampler 는 physics-mode 신호를 *strip 하지 않음* — LM 이 정보 보유 (M4 0.995) + forward-hook 이 그 정보 활용 (M5a 10/10).
+- Perceiver 가 제거하는 것은 *픽셀-공간 gradient routability* — 즉 *역방향* (pixels → v_L direction) pathway 의 차단.
+- Bottleneck 은 *inverse* (픽셀-사이드) pathway 이지 *forward* (v_L direction → LM commitment) pathway 가 아님.
+- 이 refinement 가 §4.6 cross-model 결과를 정밀화 — paper-grade.
+
+**α dynamic range 가 모델별 다름**:
+- Qwen 40, LLaVA-Next 5-15, Idefics2 20.
+- α > sweet spot 시 모델별 *token degeneracy* 발생 — Qwen 은 "rock rock rock", LLaVA-Next 도 비슷, Idefics2 는 "tip tip tip tip...".
+- PMR scorer 가 repetition 의 motion stem 을 false-positive 로 잡을 수 있음 → α=40+ rates 는 pure flip 아닌 mixed 측정.
+
+**시사점**:
+- Causal localization 이 Qwen-only 에서 **3-model cross-model** 로 확장 (paper Contribution 2 강화).
+- LLaVA-1.5 의 NULL 은 encoder-bottleneck 시그니처 — *어떤 layer 에서도 LM-side direction 이 PMR break 임계점 도달 못함*.
+- Idefics2 forward-positive + inverse-negative dissociation 으로 perceiver-resampler 가설 정밀화.
+
+---
+
+### Slide 18c: M5b SAE intervention — encoder-side cross-model (round 2, 2026-04-28)
+
+**슬라이드 내용**: m5b_sae_intervention_cross_model.png drop curves + 5-model k-break 표.
+
+**핵심 메시지**: Qwen 의 M5b SAE intervention (top-20 ablation 으로 PMR break) 을 **5-model 로 확장**. **3 of 5 모델 (Qwen / Idefics2 / InternVL3) clean break, 2 of 5 LLaVA NULL**. Encoder-side feature localization 이 *architecture-conditional* — non-CLIP 클러스터에만 존재. **LLaVA-Next 의 M5a positive + M5b NULL dissociation** 로 *physics-mode commitment 가 LM-side direction 으로 라우팅* (encoder localization 없이도 LM 이 신호 보유) 임을 입증.
+
+**상세 설명**:
+
+**개요**:
+- M5b 의 핵심 질문: **encoder 가 LM 의 v_L direction 에 *국소화된 feature 표현* 을 가지는가?**
+- 측정 방법: encoder 의 마지막 (실제 사용) layer 의 hidden state 에서 *top-k physics-cue features 를 zero-out* (Bricken et al. 2023 trick); PMR drop 측정.
+- Random control: magnitude-matched 랜덤 features (3 sets) 로 비교 — direction-specificity 검증.
+
+**Round-1 → Round-2 methodological correction (2026-04-28)**:
+- Round 1 (오전): 5 모델 모두 `vision_hidden_23` 에서 SAE 학습. **그러나 LLaVA family 는 `vision_feature_layer=-2` convention 으로 layer 22 만 LM 에 전달 — layer 23 의 perturbation 은 downstream 에 도달하지 않음**. Idefics2 도 SigLIP-SO400M (27 layers) 의 last_hidden_state 가 layer 26 from `post_layernorm` — layer 23 은 mid-encoder.
+- Round 2 (저녁): **모델별 actually-consumed layer** 에서 fresh capture + SAE retrain + intervention.
+  - Qwen: L31 (last) — round 1 = round 2 (이미 정확).
+  - LLaVA-1.5 / LLaVA-Next: L22 (penultimate, `vision_feature_layer=-2`).
+  - Idefics2: L26 (last block of 27, `last_hidden_state` 직전).
+  - InternVL3-hf: L23 (last, `vision_feature_layer=-1`).
+
+**Setup (round 2)**:
+- 모델별 vision-only forward 로 layer-N capture (480 stim, ~5 min on H200, no LM forward — vision encoder activations 만).
+- 모델별 SAE retrain: 4× overcomplete (n_features = 4 × d_in), λ=1.0, 5K Adam steps. Saturated 모델 (LLaVA-Next / Idefics2 / InternVL3) 은 `--pmr-abs-threshold 0.5` 로 완화 (strict 0.333 에서 abs sample 부족).
+- Stim cell: per-model OPEN+circle baseline-PMR=1 cell 선택.
+  - Qwen: filled/blank/both (1.0).
+  - LLaVA-1.5: shaded/ground/cast_shadow (1.0).
+  - LLaVA-Next: shaded/blank/both (1.0).
+  - Idefics2: filled/blank/both (1.0).
+  - InternVL3: filled/blank/both (1.0).
+- k sweep: {5, 10, 20, 40, 80, 160}; LLaVA-1.5 추가로 {200, 300, 500, 800} 까지 high-k extension (NULL robustness check).
+- 3 mass-matched random feature sets per model.
+
+**Result — 5-model OPEN-uniform k-break table**:
+
+| Model | k=5 | k=10 | k=20 | k=40 | k=80 | k=160 | random | layer | n_features |
+|---|--:|--:|--:|--:|--:|--:|--:|---:|---:|
+| **Qwen2.5-VL-7B** | 1.00 | 1.00 | 1.00 | **0.00** | **0.00** | **0.00** | 1.00 | 31 | 5120 |
+| LLaVA-1.5-7B | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 22 | 4096 |
+| LLaVA-Next-7B | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 22 | 4096 |
+| **Idefics2-8B** | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | **0.00** | 1.00 | 26 | 4608 |
+| **InternVL3-8B** | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | **0.00** | 1.00 | 23 | 4096 |
+
+**LLaVA-1.5 high-k extension**: k=200/300/500/800 모두 1.0 (NULL). 4096 features 의 19.5% 까지 ablate 해도 break 없음 — **NULL 은 sample-size 또는 threshold artifact 가 아님**.
+
+**Qwen FC vs OPEN 비교**:
+- 원본 Qwen FC (forced-choice + label=circle): k=20 break.
+- Cross-model uniform OPEN: k=40 break.
+- 차이: FC 의 binary letter answer space 가 OPEN 의 free-text PMR scoring 보다 약간 빠른 break threshold. 정성적으로 동일 (random NULL, top-k clean break).
+
+**3 가지 발견**:
+
+1. **Encoder-side SAE physics-cue features 가 3 of 5 architectures 에서 causally bound**:
+   - Top-k ablation 이 PMR 을 1.0 → 0.0 로 cleanly drive, mass-matched random 은 1.0 retain.
+   - Feature selectivity 확인 (non-specific perturbation 이 아님).
+
+2. **Effect concentration 이 architecture 별로 다름**:
+   - Qwen: k=40 break (0.78% of 5120) — 가장 *concentrated*.
+   - Idefics2 / InternVL3: k=160 break (3.5-3.9% of features) — 더 *distributed*.
+   - 이 ladder 가 **M3 vision-encoder probe AUC ladder** 와 정렬: Qwen 0.99 > Idefics2 0.93 > InternVL3 0.89 > LLaVA 0.7-0.8.
+   - → 인코더 *discriminability 가 높을수록 SAE features 가 더 concentrated*.
+
+3. **CLIP-기반 LLaVA 모델 NULL — paper-grade dissociation**:
+   - LLaVA-Next 는 M5a 에서 LM-side L20+L25 10/10 flip (positive); 그러나 M5b encoder-side 는 NULL.
+   - 이 dissociation 은 mechanistic claim 을 정밀화: **CLIP family 의 physics-mode commitment 는 encoder-side localized features 가 아닌 LM-side residual-stream direction 으로 라우팅**.
+   - Non-CLIP cluster (Qwen / Idefics2 / InternVL3) 는 *둘 다* 라우팅 — encoder-side features + LM-side direction 모두 causal.
+
+**Triangulation with prior signatures**:
+
+| Architecture | M3 vision AUC | M5a LM-side flip | M5b encoder-side break | Encoder cluster |
+|---|--:|---|---|---|
+| Qwen2.5-VL | 0.99 | 10/10 (L10) | k=40 break | High-saturation, non-CLIP |
+| Idefics2 | 0.93 | 10/10 (L25) | k=160 break | Mid-saturation, non-CLIP, perceiver |
+| InternVL3 | 0.89 | n/a (saturated) | k=160 break | Mid-saturation, non-CLIP, MLP |
+| LLaVA-Next | 0.81 | 10/10 (L20+L25) | NULL | Low-saturation, CLIP+AnyRes |
+| LLaVA-1.5 | 0.73 | 0/10 (NULL) | NULL | Low-saturation, CLIP |
+
+**시사점**:
+- **두 번째 downstream 시그니처** for H-encoder-saturation (after M3 probe AUC + §4.6 pixel-encodability + M4 LM probe).
+- **Architecture-level reframe 강화**: shortcut localization 의 *위치* (encoder vs LM) 가 architecture-conditional. CLIP cluster 는 LM-only, non-CLIP 은 dual.
+- **Paper Contribution 2 확장**: Qwen-only causal localization 에서 5-model architecture-conditional decomposition 으로.
 
 ---
 
@@ -673,6 +900,80 @@ L10 α=40 (intervention):
 
 ---
 
+### Slide 21b: §4.8 — Qwen 7B vs 32B PMR scaling
+
+**슬라이드 내용**: Qwen 7B (M2 baseline) 와 Qwen 32B (M2 동일 stim) 의 PMR 비교 표 + cue-cell breakdown.
+
+**핵심 메시지**: **5× scale 증가가 PMR aggregate 를 거의 안 움직임** (0.931 → 0.926). 단 *cue=none* (가장 약한 cue) cell 에서 PMR 8.6 pp 하락 + abstract_reject 35× 증가 — *scaling 이 약-cue 에서만 제한적으로 도움*. H2 label gap 도 절반으로 약화 (+0.071 → +0.010), 그러나 dissolved 는 아님. **MechBench-style "scale doesn't fix grounding" 지지**.
+
+**상세 설명**:
+
+**Setup**:
+- 동일 M2 stim (480 stim × 3 labels = 1440 inferences), 동일 OPEN prompt.
+- Qwen2.5-VL-7B (M2 baseline) vs Qwen2.5-VL-32B (5× more parameters).
+- 32B inference: 1440 inferences in 16 min wall on H200 (single-GPU bf16, ~67 GB weight + 30 GB activation).
+- 동일 PMR scorer 사용.
+
+**Result — aggregate PMR**:
+
+| Model | Aggregate PMR | Δ vs 7B |
+|---|--:|--:|
+| Qwen2.5-VL-7B (baseline) | 0.931 | — |
+| Qwen2.5-VL-32B | **0.926** | **−0.005** (effectively zero) |
+
+**Per-cell breakdown — cue_level 별**:
+
+| cue_level | 7B PMR | 32B PMR | Δ |
+|---|--:|--:|--:|
+| both | 0.978 | 0.972 | −0.006 |
+| cast_shadow | 0.957 | 0.945 | −0.012 |
+| motion_arrow | 0.992 | 0.987 | −0.005 |
+| **none** | **0.797** | **0.711** | **−0.086** |
+
+→ **cue=none (가장 약한 cue) 에서만 의미있는 drop**. 즉 32B 는 *cue 부재 시* 약간 더 신중함 (덜 자동으로 physics-mode 안 함).
+
+**abstract_reject 변화** (response 가 explicit "이는 abstract shape 입니다" 패턴):
+
+| Cell | 7B abstract_reject | 32B abstract_reject | factor |
+|---|--:|--:|--:|
+| Aggregate | 0.002 | 0.065 | **35×** |
+| cue=none | 0.014 | 0.157 | 11× |
+
+→ **Scaling 이 abstract-reject 행동을 35× 증폭** — 32B 는 *명시적으로 abstract shape 으로 인지* 하는 frequency 가 매우 큼.
+
+**H2 label gap (`ball − circle` PMR delta)**:
+
+| Model | gap |
+|---|--:|
+| 7B | +0.071 |
+| 32B | **+0.010** |
+
+→ Label gap 이 절반 이하로 *축소*. H2 (label-prior dominance) 가 32B 에서 약화 — 그러나 *완전히 dissolved* 는 아님.
+
+**시사점**:
+
+1. **MechBench-style "scale doesn't fix grounding" 가 PMR 에서 재확인**:
+   - Aggregate PMR 변화 −0.005 는 noise 수준 — 5× parameters 가 overall PMR 천장을 못 깨뜨림.
+
+2. **약-cue 에서 작은 개선**:
+   - cue=none 에서 −8.6 pp drop + abstract_reject 11× 증가 → 32B 는 *cue 가 약할 때 더 abstract-mode 로 인식*.
+   - 즉 scaling 이 약 cue 에서 *visual prior 의 underweighting* 을 완화함 (visual-prior under-weighting 가설의 작은 confirmatory evidence).
+
+3. **H2 label gap 약화 — 절반**:
+   - 7B 의 +0.071 → 32B 의 +0.010 으로 약화.
+   - 그러나 0 으로 사라진 건 아님 — H2 dissolved 가 아님.
+
+4. **paper 함의**:
+   - "Scale doesn't help PMR aggregate" — non-trivial claim, MechBench analog.
+   - "약-cue cell 에서만 도움" — visual-prior under-weighting 가 saturation 의 *부분적* 메커니즘.
+   - 32B 는 7B 의 같은 architecture cluster (SigLIP + Qwen2-LM) 에 속함 — encoder-saturation 의 architecture 결정성 *유지*. Scaling 이 architecture cluster 를 안 바꿈.
+
+**Limitations**:
+- 단일 model family (Qwen). Cross-family (e.g., Llama4 Vision 8B vs 80B) 는 미실시.
+- 72B (Qwen 의 더 큰 버전) 도 후속 — 144 GB bf16 → dual-GPU 또는 quantization 필요. Predicted to land near 32B based on 32B/7B null pattern.
+
+---
+
 ### Slide 22: Multilingual labels
 
 **슬라이드 내용**: 5-model Korean vs English figure + 일본어 mechanism 차이 설명.
@@ -705,9 +1006,9 @@ L10 α=40 (intervention):
 
 ### Slide 23: Architecture-level reframe
 
-**슬라이드 내용**: 3 가지 saturation 시그니처 — PMR 천장 / 결정-안정성 천장 / 픽셀-인코드 가능성.
+**슬라이드 내용**: 5 가지 saturation 시그니처 — PMR 천장 / 결정-안정성 천장 / 픽셀-인코드 가능성 / LM probe AUC / encoder-side SAE intervention.
 
-**핵심 메시지**: 본 연구는 saturation 의 **3 가지 distinct 시그니처** 를 발견. 모두 같은 architectural property 의 다른 측면.
+**핵심 메시지**: 본 연구는 saturation 의 **5 가지 distinct downstream 시그니처** 를 발견 (2026-04-28 기준). 모두 같은 architectural property 의 다른 측면이며, 모두 *동일한 architecture 클러스터링* 을 만든다 — 비-CLIP 클러스터 (Qwen / Idefics2 / InternVL3) 와 CLIP 클러스터 (LLaVA-1.5 / LLaVA-Next) 분리.
 
 **상세 설명**:
 
@@ -727,41 +1028,65 @@ L10 α=40 (intervention):
 - **Perceiver-resampler 는 leading remaining mechanism candidate**: Idefics2 만 perceiver projector (다른 모델은 MLP). 5-model design 은 isolate 못함 — controlled projector-swap test (동일 encoder/LM 에서 perceiver↔MLP 교체 + 재학습) 필요.
 - → Saturation 의 *세 번째* signature: pixel-encodability 가 **encoder + projector design** 결합 속성. Encoder saturation 만으론 부족 (Idefics2 는 AUC 0.93 으로 LLaVA-Next 0.81 보다 saturated 인데도 0 shortcuts).
 
-**3 signature 의 통합 의미**:
+**Signature 4 — LM logit-lens probe AUC** (M4 cross-model, 2026-04-28 — Slide 17b):
+- 5-model × 5-layer LM hidden-state probe AUC ladder: Idefics2 0.995, Qwen 0.96, LLaVA-Next 0.79, LLaVA-1.5 0.76, InternVL3 untestable.
+- Vision encoder probe AUC ladder (Slide 17) 와 *동일한 architecture clustering*.
+- **Idefics2 LM AUC > vision AUC (0.995 > 0.93)** — perceiver-resampler 가 *정보를 stripping 하지 않고 압축으로 집중*.
+- → "정보 LM 도달" 시그니처 — encoder downstream 에서도 saturation cluster 가 유지됨.
+
+**Signature 5 — Encoder-side SAE intervention** (M5b cross-model round 2, 2026-04-28 — Slide 18c):
+- 모델별 actually-consumed encoder layer 에서 SAE retrain + top-k feature ablation.
+- **3 of 5 모델 break PMR**: Qwen k=40 (0.78%), Idefics2 k=160 (3.5%), InternVL3 k=160 (3.9%).
+- **2 LLaVA 모델 NULL** at k ≤ 800 (LLaVA-1.5 high-k extension).
+- → encoder 에 *국소화된 physics-cue feature 표현* 이 비-CLIP 클러스터에만 존재. Random control 모두 1.0 (specificity 확인).
+- LLaVA-Next 의 M5a positive (LM-side 10/10 flip) + M5b NULL dissociation → CLIP 클러스터의 commitment 가 *LM-side direction 으로만 라우팅*.
+
+**5 signature 의 통합 의미**:
 - 모두 *동일한 architecture-level saturation 속성* 의 다른 표현.
 - "encoder representational capacity 만으로 결정" 이라는 단순 인코더 가설은 disconfirm.
 - joint encoder + LM + **projector design** (architecture 수준) 이 결정자.
 - **2026-04-28 update**: projector design (MLP vs perceiver) 이 disambiguating axis 로 추가 노출. encoder + LM 만으로는 Idefics2 의 0-shortcut 패턴을 설명 못함.
-- 본 연구의 paper 의 가장 큰 single contribution — 단순 행동 통계가 아닌 *3 차원 mechanism-level 정렬* 이 architecture-level reframe 을 강화.
+- **2026-04-28 evening update**: encoder-side localization (M5b) + LM probe AUC (M4) 가 추가 시그니처로 합류 → architecture clustering 의 *5-fold redundancy* — 단일 architecture-level property 가 5 가지 distinct downstream signature 로 표현됨.
+- 본 연구의 paper 의 가장 큰 single contribution — 단순 행동 통계가 아닌 *5 차원 mechanism-level 정렬* 이 architecture-level reframe 을 강화.
+
+**3-cluster decomposition (5 signature 모두에서 일관)**:
+
+| Cluster | Models | M3 vision AUC | M9 PMR ceiling | §4.6 pixel-flip | M4 LM AUC | M5b SAE break |
+|---|---|--:|--:|---|--:|---|
+| **High-saturation** (non-CLIP, broad shortcut) | Qwen2.5-VL | 0.99 | 0.84 | 5 layers ≥ 80% | 0.96 | k=40 |
+| **Mid-saturation** (non-CLIP, distributed) | Idefics2, InternVL3 | 0.93 / 0.89 | 0.88 / 0.92 | 0/9 (Idefics2), n/a | 0.995 / n/a | k=160 / k=160 |
+| **Low-saturation** (CLIP) | LLaVA-1.5, LLaVA-Next | 0.73 / 0.81 | 0.18 / 0.70 | weak / 2 layers | 0.76 / 0.79 | NULL / NULL |
 
 ---
 
 ### Slide 24: 한계
 
-**슬라이드 내용**: 7 가지 한계 (2026-04-28 update — projector isolation, Cross-model SAE intervention, ST5 retire 추가).
+**슬라이드 내용**: 7 가지 한계 (2026-04-28 evening update — M5b cross-model intervention 완료, Qwen 72B 미실시, projector isolation 미검증).
 
 **핵심 메시지**: 본 연구의 결과를 *반증* 할 수 있는 후속 실험과 paper scope 결정을 솔직히 listing.
 
 **상세 설명**:
 
-1. **Projector isolation 미검증**: §4.6 5-model design 은 Idefics2 가 MLP-projector 모델들과 encoder + projector + AnyRes 동시에 다름. **Perceiver-resampler 가 leading remaining candidate** 이지만 controlled projector-swap test (동일 encoder/LM 에서 perceiver↔MLP 교체 + 재학습) 가 isolation 의 정통한 방법 — 재학습 비용으로 v1 paper out of scope. 9 LM layers (L5-L31) 에서 0 shortcuts 라는 negative result 가 가장 strong 한 currently available evidence.
+1. **Projector isolation 미검증**: §4.6 5-model design 은 Idefics2 가 MLP-projector 모델들과 encoder + projector + AnyRes 동시에 다름. **Perceiver-resampler 가 leading remaining candidate** 이지만 controlled projector-swap test (동일 encoder/LM 에서 perceiver↔MLP 교체 + 재학습) 가 isolation 의 정통한 방법 — 재학습 비용으로 v1 paper out of scope. 9 LM layers (L5-L31) 에서 0 shortcuts 라는 negative result 가 가장 strong 한 currently available evidence. **2026-04-28 evening 추가**: M4 cross-model + M5a cross-model + M5b cross-model 의 triangulation 으로 "perceiver 가 inverse pixel-routability 만 차단, forward 는 작동" 가 더 정밀한 가설로 정리됨.
 
-2. **LM-only counterfactual 부재**: LLaVA-1.5 → LLaVA-Next 의 0.52 PMR jump 가 4축 confound (AnyRes / projector / training / LM family). 동일 인코더 (CLIP-ViT-L) 에서 LM 만 swap 한 controlled experiment 가 paper-grade LM-modulation evidence 를 줌. 미실시.
+2. **LM-only counterfactual 부재**: LLaVA-1.5 → LLaVA-Next 의 0.52 PMR jump 가 4축 confound (AnyRes / projector / training / LM family). 동일 인코더 (CLIP-ViT-L) 에서 LM 만 swap 한 controlled experiment 가 paper-grade LM-modulation evidence 를 줌. 미실시. **부분적 evidence**: LLaVA-Next 의 M5a positive + M5b NULL dissociation 이 "CLIP cluster 의 commitment 가 LM-side direction 으로 라우팅" 을 시사하지만, controlled LM swap 으로만 fully isolated.
 
-3. **InternVL3 untestable** under §4.6 protocol: `line_blank_none_fall_*` baseline_pmr=1.0 이라 abstract-baseline 으로 못 쓰임. mvp_full label-free 에서 InternVL3 가 abstract-mode 로 응답하는 cell 이 없음. Alternative-baseline stim 탐색 필요 (다른 prompt 또는 다른 stim category).
+3. **InternVL3 §4.6 protocol untestable**: `line_blank_none_fall_*` baseline_pmr=1.0 이라 abstract-baseline 으로 못 쓰임. mvp_full label-free 에서 InternVL3 가 abstract-mode 로 응답하는 cell 이 없음. Alternative-baseline stim 탐색 필요 (다른 prompt 또는 다른 stim category). **단 M5b cross-model 에서는 InternVL3 의 baseline=1 stim 에서 top-160 ablation break 확인됨** — H-shortcut 의 alternative 시그니처로는 testable.
 
-4. **v_L10 은 1-d class-mean 축**: Class-mean diff 로 추출되는 단일 방향. **2026-04-28 cross-model SAE 4 모델 학습 완료** (LLaVA-1.5/LLaVA-Next/Idefics2/InternVL3); intervention runs (cross-model SAE feature ablation) 가 다음 단계 — "physics-cue features universal?" 확인. M5b SIP cross-model 은 LLaVA-1.5 만 가능 (Idefics2/InternVL3 saturated, SIP 후보 0).
+4. ~~**v_L10 은 1-d class-mean 축**~~: ✅ **M5b cross-model intervention 완료 (2026-04-28 evening)**. Per-model SAE retrain at actually-consumed layer (LLaVA L22 / Idefics2 L26 / InternVL3 L23 / Qwen L31) → 3 of 5 모델 break (Qwen k=40, Idefics2 k=160, InternVL3 k=160), 2 LLaVA NULL even at k=800 (19.5% of features). Encoder-side feature localization 이 architecture-conditional 임을 입증. **Multi-axis SAE / non-linear feature decomposition** 은 v2 paper scope.
 
-5. **Single-task evaluation**: "next-state-prediction" 만 검증. 다른 shortcut 행동 (counting / spatial / causality) 미검증.
+5. **Qwen 72B PMR scaling 미실시**: §4.8 에서 Qwen 7B (PMR 0.931) vs 32B (PMR 0.926) 비교 완료. 72B (~144 GB bf16, dual-GPU 또는 quantization 필요) 는 confirmatory 역할 — 32B/7B null pattern 으로부터 72B 도 ~0.93 가까이 land 예측. 시간 + 자원 비용 trade-off 로 v1 paper out of scope.
 
-6. **Human baseline 미수집**: M7 Prolific (20 raters × 50 stim) paper-blocking. 다음 단계.
+6. **Single-task evaluation**: "next-state-prediction" 만 검증. 다른 shortcut 행동 (counting / spatial / causality) 미검증.
 
-7. **ST5 prompt-steering retire**: 원래 project scope (Gavrikov 2024 식 explicit "treat as abstract / treat as physical" prompt steering) 은 paper 에서 retire. **Reframe**: prompt-variation axis 는 §4.3 KO/JA + label-free + open vs FC 로 cover 됨 — Gavrikov 의 명시적 instantiation 은 reviewer 에게 직접 referrable.
+7. **Human baseline 미수집**: M7 Prolific (20 raters × 50 stim) paper-blocking. 다음 단계.
+
+**ST5 prompt-steering retire**: 원래 project scope (Gavrikov 2024 식 explicit "treat as abstract / treat as physical" prompt steering) 은 paper 에서 retire. **Reframe**: prompt-variation axis 는 §4.3 KO/JA + label-free + open vs FC 로 cover 됨 — Gavrikov 의 명시적 instantiation 은 reviewer 에게 직접 referrable.
 
 **솔직성의 의의**:
-- 본 연구의 강점은 5-model × 3-stim × bootstrap CI 의 *robustness* + **9-layer Idefics2 disambiguation 으로 wrong-relative-depth 가설 falsified**.
-- 약점은 **single-task**, **LM-only counterfactual 부재**, **projector axis isolation 미검증**.
-- Future work clearly identified — controlled projector-swap, cross-model SAE intervention, M7 Prolific.
+- 본 연구의 강점은 5-model × 3-stim × bootstrap CI 의 *robustness* + **9-layer Idefics2 disambiguation** + **5-model M5b cross-model SAE intervention** 의 *5-fold downstream signature alignment*.
+- 약점은 **single-task**, **LM-only counterfactual 부재**, **projector axis isolation 미검증** (forward/inverse dissociation 으로 가설 정밀화는 완료).
+- Future work clearly identified — controlled projector-swap, controlled LM-swap, multi-axis SAE decomposition, M7 Prolific human baseline.
 
 ---
 
@@ -780,10 +1105,12 @@ L10 α=40 (intervention):
 - 2-CLIP-point insight (LLaVA-1.5 vs LLaVA-Next) 가 가장 깨끗한 disconfirmer.
 - **paper-grade defensible**.
 
-**기여 2 — 인과 localization**:
-- Qwen2.5-VL 의 LM L10 단일 선형 방향 v_L10 이 forward-hook 으로 행동을 인과적으로 뒤집음 (10/10 α=40).
-- M5a-ext: v_L10 은 regime axis (+ kinetic / − static), binary toggle 아님.
-- **paper-grade defensible** (Qwen 한정 — 이게 한계인 동시에 *cleanly localized* finding).
+**기여 2 — 인과 localization (LM-side + encoder-side cross-model, 2026-04-28 update)**:
+- **M5a runtime steering**: Qwen L10 α=40 + LLaVA-Next L20+L25 + Idefics2 L25 의 *3 of 4 testable models* 가 10/10 PMR flip — *Qwen-only 에서 cross-model 로 확장*. LLaVA-1.5 NULL (encoder-bottleneck), InternVL3 untestable (saturated baseline=1).
+- **M5b SAE encoder-side intervention (round 2)**: 모델별 actually-consumed layer (LLaVA L22 / Idefics2 L26 / InternVL3 L23 / Qwen L31) 에서 SAE retrain + top-k feature ablation. *3 of 5 break* (Qwen k=40, Idefics2 k=160, InternVL3 k=160), *2 LLaVA NULL* at k≤800.
+- **LLaVA-Next 의 M5a positive + M5b NULL dissociation**: physics-mode commitment 가 *CLIP cluster 에서는 LM-side direction 으로만 라우팅*, *non-CLIP cluster 에서는 둘 다 (encoder feature + LM direction) 사용*. 단순 "Qwen-only" 결과보다 mechanistic claim 정밀화.
+- M5a-ext: v_L 은 regime axis (+ kinetic / − static), binary toggle 아님 — Qwen-only 결과로 유지.
+- **paper-grade defensible cross-model**.
 
 **기여 3 — Pixel encodability 는 architecture-conditional**:
 - Qwen ε=0.05 픽셀 perturbation 으로 5/5 PMR flip + 매칭 random 0/15.

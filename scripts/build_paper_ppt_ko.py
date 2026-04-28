@@ -114,16 +114,21 @@ def slide_04_contributions(prs):
          "bootstrap CI 로, 행동 PMR ceiling 이 *encoder representational "
          "capacity 만으로* 결정되지 않음을 disconfirm. 결정자는 "
          "**joint encoder + LM (architecture 수준)**.", 16),
-        ("**Causal localization**: Qwen2.5-VL 의 LM layer 10 에 단일 선형 "
-         "방향 `v_L10` 이 존재. forward-hook 으로 +α=40 더하면 line/blank/none "
-         "stim 의 10/10 이 \"D: abstract\" → \"B: stays still\" flip. "
-         "다른 layer 는 같은 α 로 안 움직임.", 16),
+        ("**Causal localization (LM-side + encoder-side cross-model)**: "
+         "**M5a runtime steering** 으로 Qwen L10 + LLaVA-Next L20+L25 + "
+         "Idefics2 L25 의 *3 of 4 testable* 가 10/10 PMR flip. "
+         "**M5b SAE encoder-side intervention** 로 *3 of 5* 모델이 "
+         "top-k feature ablation 에서 break (Qwen k=40, Idefics2 k=160, "
+         "InternVL3 k=160). LLaVA family 는 encoder-NULL 이지만 LM-side "
+         "POSITIVE → CLIP cluster 의 commitment 는 *LM-side direction 만* "
+         "사용. v_L 은 regime axis (M5a-ext).", 14),
         ("**Pixel encodability — architecture-conditional**: 픽셀-공간 "
          "gradient ascent 가 **5 모델 중 3 모델 testable** 에서 PMR flip "
          "가능 (Qwen / LLaVA-Next / LLaVA-1.5). **Idefics2 9 레이어 "
          "(L5-L31) 모두 0 shortcuts → wrong-relative-depth falsified, "
-         "perceiver-resampler 후보**. InternVL3 protocol-saturated. "
-         "상세 설명은 Slide 19-20 참조.", 16),
+         "perceiver-resampler 후보** (M4 + M5a + §4.6 의 forward/inverse "
+         "dissociation 으로 정밀화). InternVL3 protocol-saturated. "
+         "상세 설명은 Slide 17b/18b/18c/19/20 참조.", 14),
     ], font_name=FONT)
     return s
 
@@ -333,29 +338,45 @@ def slide_12_capture_probe(prs):
 
 def slide_13_causal_intervention(prs):
     s = new_slide(prs)
-    y = add_title_bar(s, "인과 개입 — VTI steering + §4.6 픽셀 ascent",
+    y = add_title_bar(s, "인과 개입 — 3 가지 보완적 method (LM-side / pixel-side / encoder-side)",
                       font_name=FONT)
-    add_text_box(s, Inches(0.5), y + Inches(0.1), Inches(12.3), Inches(0.5),
-                 "M5a — runtime VTI steering (forward hook)",
-                 size=18, bold=True, color=ACCENT, font_name=FONT)
-    add_bullets(s, Inches(0.5), y + Inches(0.6), Inches(12.3), Inches(2.0), [
+    add_text_box(s, Inches(0.5), y + Inches(0.05), Inches(12.3), Inches(0.4),
+                 "M5a — LM-side runtime VTI steering (forward hook)",
+                 size=15, bold=True, color=ACCENT, font_name=FONT)
+    add_bullets(s, Inches(0.5), y + Inches(0.5), Inches(12.3), Inches(1.4), [
         ("**v_L 추출**: v_L = mean(h_L | PMR=1) − mean(h_L | PMR=0); "
-         "v_unit_L = v_L / ||v_L||.", 13),
-        ("**개입**: model.model.language_model.layers[L] 의 forward "
-         "출력 hidden_states 에 `α · v_unit_L` 더함 (모든 token position 균일).", 13),
-        ("L ∈ {10, 15, 20, 25}, α ∈ {0, 5, 10, 20, 40, −α}, T=0.", 13),
+         "v_unit_L = v_L / ||v_L||.", 11),
+        ("**개입**: `model.language_model.layers[L]` (또는 `text_model.layers[L]` "
+         "for Idefics2) 의 forward 출력 hidden_states 에 `α · v_unit_L` 더함.", 11),
+        ("L ∈ {10, 15, 20, 25}, α ∈ {0, 5, 10, 20, 40, −α}, T=0.", 11),
     ], font_name=FONT)
-    add_text_box(s, Inches(0.5), Inches(4.2), Inches(12.3), Inches(0.5),
-                 "§4.6 — pixel-space gradient ascent",
-                 size=18, bold=True, color=ACCENT, font_name=FONT)
-    add_bullets(s, Inches(0.5), Inches(4.7), Inches(12.3), Inches(2.5), [
+    add_text_box(s, Inches(0.5), Inches(2.8), Inches(12.3), Inches(0.4),
+                 "§4.6 — pixel-space gradient ascent (inverse direction)",
+                 size=15, bold=True, color=ACCENT, font_name=FONT)
+    add_bullets(s, Inches(0.5), Inches(3.2), Inches(12.3), Inches(1.4), [
         ("**최적화 변수**: post-processor `pixel_values` tensor "
-         "(Qwen: T_patches × 1176; LLaVA-1.5: 1×3×336×336).", 13),
-        ("**목적함수**: `<mean(h_L10[visual]), v_L10>` 최대화. "
-         "Adam, lr=1e-2, n_steps=200. float32 leaf → bf16 cast 로 "
-         "vision tower → projector → LM 0..10 미분 가능.", 13),
-        ("**제약**: L_∞-bounded (`δ.clamp_(-eps, eps)`) ε ∈ {0.05, 0.1, "
-         "0.2} or unconstrained. Random unit-direction control 매칭 ε=0.1.", 13),
+         "(Qwen: T_patches × 1176; LLaVA: 1×3×336×336; Idefics2: 5-tile; "
+         "InternVL3: 1×3×448×448).", 11),
+        ("**목적함수**: `<mean(h_L10[visual]), v_L10>` 최대화. Adam, lr=1e-2, "
+         "n_steps=200. float32 leaf → bf16 cast 로 vision tower → projector "
+         "→ LM 0..10 미분 가능.", 11),
+        ("**제약**: L_∞-bounded ε ∈ {0.05, 0.1, 0.2} or unconstrained. "
+         "Random unit-direction control 매칭 ε=0.1.", 11),
+    ], font_name=FONT)
+    add_text_box(s, Inches(0.5), Inches(5.5), Inches(12.3), Inches(0.4),
+                 "M5b — encoder-side SAE feature ablation (Bricken et al. 2023 trick)",
+                 size=15, bold=True, color=ACCENT, font_name=FONT)
+    add_bullets(s, Inches(0.5), Inches(5.9), Inches(12.3), Inches(1.5), [
+        ("**SAE 학습**: 4× overcomplete (n_features = 4 × d_in), λ=1.0 L1, "
+         "5K Adam steps, input z-score, tied weights. **Feature ranking by "
+         "Cohen's d** (= delta / pooled_std, high-baseline outlier 필터링).", 11),
+        ("**Hook layer 모델별** (LM 이 *실제* 소비하는 layer): Qwen L31 / "
+         "LLaVA L22 (`vision_feature_layer=-2`) / Idefics2 L26 (last) / "
+         "InternVL3 L23 (`-1`). **개입**: top-k features 의 *raw-scale "
+         "contribution* 을 빼기 — 다른 features + reconstruction residual 은 "
+         "bit-identical 유지 (Bricken trick).", 11),
+        ("**Random control (3 sets)**: high-mass non-top-k pool 에서 추출, "
+         "[0.7×, 2×] top-k mass window 매칭 — direction-specificity 검증.", 11),
     ], font_name=FONT)
     return s
 
@@ -444,9 +465,38 @@ def slide_17_encoder_probes(prs):
     return s
 
 
+def slide_17b_m4_lm_probe_cross(prs):
+    s = new_slide(prs)
+    y = add_title_bar(s, "결과 (4b) — M4 LM logit-lens cross-model AUC ladder",
+                      subtitle="encoder probe AUC ladder 와 동일 클러스터링 — Idefics2 LM AUC 0.995 > vision 0.93 (perceiver-resampler 가 정보 strip 안 함)",
+                      font_name=FONT)
+    add_figure(s, FIG_DIR / "m4_lm_probing_cross_model.png",
+               Inches(0.3), y + Inches(0.1), w=Inches(8.0))
+    rows = [
+        ["Model", "L5", "L10", "L15", "L20", "L25", "M3 vis"],
+        ["Idefics2-8B", "0.995", "0.995", "0.995", "0.995", "0.995", "0.93"],
+        ["Qwen2.5-VL", "0.965", "0.965", "0.962", "0.959", "0.957", "0.99"],
+        ["LLaVA-Next", "0.732", "0.762", "0.751", "0.786", "0.791", "0.81"],
+        ["LLaVA-1.5", "0.758", "0.760", "0.762", "0.763", "0.768", "0.73"],
+        ["InternVL3", "n/a", "n/a", "n/a", "n/a", "n/a", "0.89"],
+    ]
+    add_table(s, Inches(8.5), y + Inches(0.1), Inches(4.7), Inches(2.5), rows,
+              header_color=ACCENT, font_size=11, font_name=FONT)
+    add_bullets(s, Inches(0.3), Inches(5.7), Inches(12.7), Inches(1.5), [
+        ("**LM AUC ladder = encoder AUC ladder** — H-encoder-saturation 이 "
+         "downstream LM 으로 propagate (2nd downstream signature).", 12),
+        ("**Idefics2 LM (0.995) > vision (0.93)**: perceiver-resampler 가 "
+         "정보 strip 안 함, 오히려 *physics-mode 신호 집중*. §4.6 Idefics2 "
+         "0/9 픽셀-공간 0 shortcut 과의 dissociation → \"정보 LM 도달 ≠ "
+         "픽셀-공간 routability\".", 12),
+        ("InternVL3 untestable (n_neg=1 → probe degenerate).", 12),
+    ], font_name=FONT)
+    return s
+
+
 def slide_18_m5a_steering(prs):
     s = new_slide(prs)
-    y = add_title_bar(s, "결과 (5) — M5a VTI causal steering: L10 only flips",
+    y = add_title_bar(s, "결과 (5) — M5a VTI causal steering (Qwen): L10 only flips",
                       subtitle="line/blank/none 10/10 baseline → L10 α=40 만에서 \"D: abstract\" → \"B: stays still\"",
                       font_name=FONT)
     add_text_box(s, Inches(0.5), y + Inches(0.1), Inches(7.5), Inches(0.5),
@@ -474,6 +524,77 @@ def slide_18_m5a_steering(prs):
                Inches(8.5), y + Inches(0.6), w=Inches(4.0))
     add_caption(s, Inches(8.5), Inches(4.0), Inches(4.0),
                 "Steered 자극: line/blank/none.", font_name=FONT)
+    return s
+
+
+def slide_18b_m5a_cross_steering(prs):
+    s = new_slide(prs)
+    y = add_title_bar(s, "결과 (5b) — M5a runtime steering cross-model: 3 of 4 flip",
+                      subtitle="모델별 v_L injection 으로 line × circle baseline=0 → 10/10 PMR flip; LLaVA-1.5 NULL",
+                      font_name=FONT)
+    rows = [
+        ["Model", "Layer", "α sweet", "PMR flip", "응답"],
+        ["Qwen2.5-VL", "L10", "40", "10/10", "\"ball is falling down due to gravity\""],
+        ["LLaVA-Next-Mistral", "L20", "10", "10/10", "\"ball will roll down the ramp\""],
+        ["LLaVA-Next-Mistral", "L25", "15-20", "10/10", "\"ball will bounce up\""],
+        ["**Idefics2-8B**", "**L25**", "**20**", "**10/10**", "\"tip of arrow will hit center of circle\""],
+        ["LLaVA-1.5-7B", "L25", "0-60", "**0/10**", "(NULL — motion stem 안 잡힘)"],
+        ["InternVL3-8B", "—", "—", "untestable", "baseline=1 (saturated)"],
+    ]
+    add_table(s, Inches(0.3), y + Inches(0.1), Inches(12.7), Inches(2.8), rows,
+              header_color=ACCENT, font_size=11, font_name=FONT)
+    add_bullets(s, Inches(0.3), Inches(4.6), Inches(12.7), Inches(2.5), [
+        ("**Idefics2 의 paper-changing 결과**: M4 LM AUC 0.995 (정보 LM "
+         "도달) + M5a 10/10 (forward 작동) + §4.6 0/9 (inverse 픽셀-공간 "
+         "차단) 의 triangulation → **perceiver-resampler 는 inverse "
+         "pathway 만 차단**.", 12),
+        ("LLaVA-1.5 NULL: 응답 의미 변화 (\"filled with color\" → "
+         "\"on the floor\") 하지만 motion stem (falls/rolls/bounces) "
+         "안 잡힘 → encoder bottleneck 시그니처. §4.6 LLaVA-1.5 weak "
+         "shortcut (4/10) 와 일관.", 12),
+        ("Sweet-spot α 의 *regime-attractor*: Idefics2 L25 α=20 의 10 "
+         "stim 모두 동일 응답 → physics-mode 의 *deterministic attractor* "
+         "(M5a-ext regime-axis finding 과 일관).", 12),
+        ("**Causal localization 이 Qwen-only 에서 cross-model 로 확장** "
+         "— paper Contribution 2 강화.", 12),
+    ], font_name=FONT)
+    return s
+
+
+def slide_18c_m5b_sae_cross(prs):
+    s = new_slide(prs)
+    y = add_title_bar(s, "결과 (5c) — M5b SAE intervention cross-model (round 2): 3 of 5 break, 2 LLaVA NULL",
+                      subtitle="모델별 actually-consumed layer (LLaVA L22 / Idefics2 L26 / InternVL3 L23 / Qwen L31) — encoder-side feature localization architecture-conditional",
+                      font_name=FONT)
+    add_figure(s, FIG_DIR / "m5b_sae_intervention_cross_model.png",
+               Inches(0.3), y + Inches(0.1), w=Inches(7.5))
+    rows = [
+        ["Model", "Layer", "k=20", "k=40", "k=80", "k=160", "rand"],
+        ["**Qwen2.5-VL**", "31", "1.00", "**0.00**", "**0.00**", "**0.00**", "1.00"],
+        ["LLaVA-1.5", "22 (-2)", "1.00", "1.00", "1.00", "1.00", "1.00"],
+        ["LLaVA-Next", "22 (-2)", "1.00", "1.00", "1.00", "1.00", "1.00"],
+        ["**Idefics2-8B**", "26", "1.00", "1.00", "1.00", "**0.00**", "1.00"],
+        ["**InternVL3-hf**", "23", "1.00", "1.00", "1.00", "**0.00**", "1.00"],
+    ]
+    add_table(s, Inches(8.0), y + Inches(0.1), Inches(5.2), Inches(2.5), rows,
+              header_color=ACCENT, font_size=10, font_name=FONT)
+    add_bullets(s, Inches(0.3), Inches(5.7), Inches(12.7), Inches(1.7), [
+        ("**Round-1 → Round-2 layer-mismatch fix**: round-1 모두 layer 23 "
+         "에서 SAE 학습했지만 LLaVA `vision_feature_layer=-2` (L22 사용), "
+         "Idefics2 `last_hidden_state` (L26 사용) → round-2 에서 actually-"
+         "consumed layer 에서 fresh capture + retrain.", 12),
+        ("**Effect concentration 이 M3 vision AUC ladder 와 정렬**: Qwen "
+         "0.99 → k=40 (0.78 % features), Idefics2 0.93 + InternVL3 0.89 → "
+         "k=160 (3.5-3.9 %), LLaVA 0.7-0.8 → NULL. 인코더 *discriminability 가 "
+         "높을수록 SAE features 더 concentrated*.", 12),
+        ("**LLaVA-1.5 high-k extension** (k=200/300/500/800) 모두 1.0 — "
+         "NULL 은 sample-size/threshold artifact 가 아님 (4096 features 의 "
+         "19.5% 까지 ablate 해도 break 없음).", 12),
+        ("**LLaVA-Next M5a positive + M5b NULL dissociation**: CLIP "
+         "cluster 의 commitment 가 *LM-side direction 으로만 라우팅*; "
+         "non-CLIP 은 *encoder + LM 둘 다*. → *5 가지 downstream signature* "
+         "가 5-fold redundant 하게 같은 architecture clustering 표현.", 12),
+    ], font_name=FONT)
     return s
 
 
@@ -557,6 +678,45 @@ def slide_21_external_validity(prs):
     return s
 
 
+def slide_21b_pmr_scaling(prs):
+    s = new_slide(prs)
+    y = add_title_bar(s, "결과 (8b) — §4.8 Qwen 7B vs 32B PMR scaling: scale doesn't fix grounding",
+                      subtitle="동일 M2 stim, 동일 OPEN prompt — aggregate PMR 0.931 → 0.926 (effectively zero); cue=none 에서만 8.6 pp drop",
+                      font_name=FONT)
+    rows1 = [
+        ["", "Qwen 7B", "Qwen 32B", "Δ"],
+        ["Aggregate PMR", "0.931", "**0.926**", "−0.005"],
+        ["abstract_reject", "0.002", "**0.065**", "**35×**"],
+        ["H2 label gap (ball−circle)", "+0.071", "+0.010", "−0.061"],
+    ]
+    add_table(s, Inches(0.5), y + Inches(0.1), Inches(6.5), Inches(2.0), rows1,
+              header_color=ACCENT, font_size=12, font_name=FONT)
+    rows2 = [
+        ["cue_level", "7B PMR", "32B PMR", "Δ"],
+        ["both", "0.978", "0.972", "−0.006"],
+        ["cast_shadow", "0.957", "0.945", "−0.012"],
+        ["motion_arrow", "0.992", "0.987", "−0.005"],
+        ["**none (weakest cue)**", "**0.797**", "**0.711**", "**−0.086**"],
+    ]
+    add_table(s, Inches(7.5), y + Inches(0.1), Inches(5.5), Inches(2.0), rows2,
+              header_color=ACCENT, font_size=12, font_name=FONT)
+    add_bullets(s, Inches(0.5), Inches(4.3), Inches(12.5), Inches(2.5), [
+        ("**\"Scale doesn't help PMR aggregate\"**: 5× parameters 가 "
+         "전체 PMR 천장을 못 깨뜨림 (MechBench-style finding).", 12),
+        ("**약-cue 에서만 작은 개선**: cue=none 에서 −8.6 pp + "
+         "abstract_reject 11× 증가 → 32B 는 *cue 약할 때 더 abstract-mode "
+         "로 인식*. visual-prior under-weighting 가 saturation 의 *부분적* "
+         "메커니즘.", 12),
+        ("**H2 label gap 약화 — 절반**: +0.071 → +0.010 (dissolved 는 "
+         "아님). Scaling 이 label-prior 의존을 줄이지만 완전히 제거 못함.", 12),
+        ("**Scaling 이 architecture cluster 를 안 바꿈**: 32B 는 7B 와 "
+         "같은 SigLIP+Qwen2 family — encoder-saturation 의 architecture "
+         "결정성 유지. 72B (~144 GB bf16, dual-GPU 필요) 는 confirmatory "
+         "역할로 v1 paper out of scope.", 12),
+    ], font_name=FONT)
+    return s
+
+
 def slide_22_multilingual(prs):
     s = new_slide(prs)
     y = add_title_bar(s, "결과 (9) — Multilingual labels (§4.3): 5 모델 × 한·일 언어",
@@ -580,57 +740,72 @@ def slide_22_multilingual(prs):
 
 def slide_23_architecture_reframe(prs):
     s = new_slide(prs)
-    y = add_title_bar(s, "Discussion (1) — Architecture-level reframe",
-                      subtitle="3가지 saturation 시그니처가 동일 architectural 속성의 다른 측면",
+    y = add_title_bar(s, "Discussion (1) — Architecture-level reframe (5 downstream signatures)",
+                      subtitle="5 가지 saturation 시그니처가 동일 architectural 속성을 5-fold redundant 하게 표현",
                       font_name=FONT)
-    add_bullets(s, Inches(0.5), y + Inches(0.2), Inches(12.3), Inches(5.5), [
+    add_bullets(s, Inches(0.5), y + Inches(0.1), Inches(12.3), Inches(6.0), [
         ("**Signature 1 — PMR ceiling** (M9 paper Table 1): 행동 PMR 이 "
          "non-CLIP cluster [0.80, 0.92] 와 CLIP cluster [0.14, 0.37] 로 "
-         "분리. 사진에서는 [0.18, 0.67] 로 수렴.", 16),
+         "분리. 사진에서는 [0.18, 0.67] 로 수렴.", 13),
         ("**Signature 2 — Decision-stability ceiling** (§4.7): non-CLIP "
-         "모델 (Qwen / Idefics2 / InternVL3) 이 cue 발화 시 5 seed "
-         "모두 같은 PMR call 로 수렴 (RC ≈ 1.0). CLIP-기반 모델은 강한 "
-         "cue 에서도 seed-level variance 보유.", 16),
-        ("**Signature 3 — Pixel encodability** (§4.6 5-model n=10 layer "
-         "sweep + Idefics2 9-layer disambiguation): **3 of 5 testable** "
-         "architectures 가 픽셀-공간 gradient ascent 로 PMR flip (Qwen "
-         "broad, LLaVA-Next L20+L25, LLaVA-1.5 L25 weak). Idefics2 는 "
-         "L5-L31 9 레이어 모두 0 — **perceiver-resampler bottleneck 후보** "
-         "(projector isolation 미검증). InternVL3 protocol-saturated.", 15),
-        ("3가지 signature 가 **동일한 architecture-level saturation 속성** "
-         "의 다른 표현. \"encoder representational capacity 만으로 결정\" "
-         "이라는 단순 인코더 가설은 disconfirm — joint encoder + LM + "
-         "**projector design** (MLP vs perceiver) 이 결정자.", 15),
+         "모델 (Qwen/Idefics2/InternVL3) 이 cue 발화 시 5 seed 모두 같은 PMR "
+         "call 로 수렴 (RC ≈ 1.0). CLIP-기반은 강한 cue 에서도 seed variance.", 13),
+        ("**Signature 3 — Pixel encodability** (§4.6 + Idefics2 9-layer): "
+         "**3 of 5 testable** 가 픽셀 ascent 로 flip (Qwen broad / LLaVA-"
+         "Next L20+L25 / LLaVA-1.5 L25 weak). Idefics2 0/9 → **perceiver-"
+         "resampler bottleneck 후보**. InternVL3 protocol-saturated.", 13),
+        ("**Signature 4 — LM logit-lens probe AUC** (M4 cross-model, "
+         "Slide 17b): 5-model × 5-layer LM probe AUC 가 encoder probe AUC "
+         "ladder 와 동일 클러스터링. **Idefics2 LM 0.995 > vision 0.93** — "
+         "perceiver 가 정보 strip 안 하고 *집중*; §4.6 0/9 와의 dissociation "
+         "→ \"정보 LM 도달 ≠ 픽셀-공간 routability\".", 13),
+        ("**Signature 5 — Encoder-side SAE intervention** (M5b cross-"
+         "model round 2, Slide 18c): per-model actually-consumed layer 에서 "
+         "top-k feature ablation. **3 of 5 break** (Qwen k=40, Idefics2/"
+         "InternVL3 k=160) + **2 LLaVA NULL** (k≤800). 인코더에 *국소화된 "
+         "physics-cue feature 표현* 이 비-CLIP 클러스터에만 존재.", 13),
+        ("5 signature **모두 동일한 3-cluster decomposition 만듦** "
+         "(High-saturation Qwen / Mid-saturation Idefics2-InternVL3 / "
+         "Low-saturation LLaVA family). 단일 architectural property 가 "
+         "5-fold redundant 하게 표현 — \"encoder capacity 만\" 단순 가설 "
+         "disconfirm; joint encoder + LM + **projector design** 이 결정자.", 13),
     ], font_name=FONT)
     return s
 
 
 def slide_24_limitations(prs):
     s = new_slide(prs)
-    y = add_title_bar(s, "Discussion (2) — 한계 및 미해결 질문", font_name=FONT)
+    y = add_title_bar(s, "Discussion (2) — 한계 및 미해결 질문 (2026-04-28 evening update)", font_name=FONT)
     add_bullets(s, Inches(0.5), y + Inches(0.2), Inches(12.3), Inches(5.5), [
-        ("**Projector isolation 미검증**: §4.6 5-model design 은 Idefics2 가 "
-         "MLP-projector 모델들과 encoder + projector + AnyRes 동시에 다름. "
-         "Perceiver-resampler 가 leading remaining candidate 이지만 controlled "
-         "projector-swap test (동일 encoder/LM 에서 perceiver↔MLP) 은 "
-         "재학습 필요 — out of scope.", 14),
+        ("**Projector isolation 미검증**: §4.6 + M5b 결과로 Idefics2 가 "
+         "MLP-projector 모델들과 4축 confound. Perceiver-resampler 가 leading "
+         "candidate 이지만 controlled projector-swap (encoder/LM 동일 + "
+         "perceiver↔MLP) 은 재학습 필요 — out of scope. M4+M5a+§4.6 의 "
+         "forward/inverse dissociation 으로 가설은 정밀화됨.", 13),
         ("**LM-only counterfactual 부재**: LLaVA-1.5 → LLaVA-Next 의 0.52 "
-         "PMR jump 는 4축 confound (AnyRes / projector / training / LM family). "
-         "동일 인코더 LM-swap 은 future work.", 14),
-        ("**InternVL3 untestable** under §4.6 protocol: `line_blank_none_fall_*` "
-         "baseline_pmr=1.0. Alternative-baseline stim 탐색 필요.", 14),
-        ("**v_L10 은 1-d class-mean 축**: SAE / multi-axis decomposition 으로 "
-         "pixel-encodable 한 *다른* 방향이 있을 수 있음. **2026-04-28 Cross-"
-         "model SAE 4 모델 학습 완료** (LLaVA-1.5/Next/Idefics2/InternVL3); "
-         "intervention runs 가 다음 단계.", 13),
+         "PMR jump 는 4축 confound. M5a positive + M5b NULL dissociation 이 "
+         "\"LM-side direction 으로 라우팅\" 시사하지만 controlled LM swap 만 "
+         "fully isolated. Future work.", 13),
+        ("**InternVL3 §4.6 untestable**: `line_blank_none_fall_*` "
+         "baseline_pmr=1.0. M5b 에서는 baseline=1 stim 의 top-160 ablation "
+         "break 으로 testable.", 13),
+        ("~~**v_L 1-d class-mean axis**~~: ✅ **M5b cross-model intervention "
+         "round 2 완료**: 모델별 actually-consumed layer (LLaVA L22 / "
+         "Idefics2 L26 / InternVL3 L23 / Qwen L31) 에서 SAE retrain + top-k "
+         "ablation. **3 of 5 break** (Qwen k=40, Idefics2/InternVL3 k=160), "
+         "**2 LLaVA NULL** at k≤800. Multi-axis SAE / non-linear decomposition 은 "
+         "v2 paper scope.", 12),
+        ("**Qwen 72B PMR scaling 미실시**: 7B (0.931) vs 32B (0.926) 완료. "
+         "72B (~144 GB bf16, dual-GPU 또는 quantization 필요) 는 confirmatory "
+         "역할 — 32B/7B null pattern 으로 72B 도 ~0.93 예측. 자원 비용 "
+         "trade-off 로 v1 out of scope.", 13),
         ("**Single-task evaluation**: \"next-state-prediction\" 만 검증. "
-         "다른 shortcut 행동 (counting / spatial / causality) 은 미검증.", 14),
+         "Counting / spatial / causality 등 다른 shortcut 미검증.", 13),
         ("**Human baseline 미수집**: M7 Prolific (20 raters × 50 stim) "
-         "paper-blocking, 다음 단계.", 14),
-        ("**ST5 prompt-steering (Gavrikov 2024)**: 명시적 \"abstract / "
-         "physical\" prompt steering 은 **paper scope 에서 retire** — "
-         "prompt-variation axis 는 §4.3 KO/JA + label-free + open vs FC "
-         "로 cover.", 13),
+         "paper-blocking, 다음 단계.", 13),
+        ("**ST5 prompt-steering retire** (Gavrikov 2024): 명시적 \"abstract/"
+         "physical\" prompt steering 은 paper scope 에서 retire — §4.3 KO/JA "
+         "+ label-free + open vs FC 가 prompt-variation axis 를 cover.", 12),
     ], font_name=FONT)
     return s
 
@@ -639,28 +814,40 @@ def slide_24_limitations(prs):
 
 def slide_25_conclusion(prs):
     s = new_slide(prs)
-    y = add_title_bar(s, "결론 — 3 가지 paper-grade 기여",
-                      subtitle="VLM 의 추상→물리 shortcut 을 행동 / 인과 / 픽셀 3차원으로 localize",
+    y = add_title_bar(s, "결론 — 3 가지 paper-grade 기여 (2026-04-28 evening update)",
+                      subtitle="VLM 의 추상→물리 shortcut 을 행동 / 인과 / 픽셀 3차원으로 cross-model localize",
                       font_name=FONT)
-    add_bullets(s, Inches(0.5), y + Inches(0.2), Inches(12.3), Inches(5.5), [
+    add_bullets(s, Inches(0.5), y + Inches(0.1), Inches(12.3), Inches(6.0), [
         ("**[기여 1] Architecture-level reframe**. 5 모델 × 3 stim source × "
          "bootstrap CI 로, 행동 PMR ceiling 이 encoder representational "
          "capacity *만으로* 결정되지 않음을 disconfirm. 2-CLIP-point insight "
-         "(LLaVA-1.5 vs LLaVA-Next) 가 가장 깨끗한 disconfirmer.", 16),
-        ("**[기여 2] 인과 localization**. Qwen2.5-VL 의 LM L10 단일 선형 "
-         "방향 v_L10 이 forward-hook 으로 행동을 인과적으로 뒤집음 (10/10 "
-         "α=40). M5a-ext: v_L10 은 regime axis (+ kinetic / − static), "
-         "binary toggle 아님.", 16),
+         "(LLaVA-1.5 vs LLaVA-Next) 가 가장 깨끗한 disconfirmer. **5-fold "
+         "downstream signature** 가 동일 architectural property 의 5 가지 표현.", 13),
+        ("**[기여 2] 인과 localization (LM-side + encoder-side cross-model)**. "
+         "**M5a runtime steering**: Qwen L10 + LLaVA-Next L20+L25 + Idefics2 "
+         "L25 의 *3 of 4 testable* 가 10/10 PMR flip — Qwen-only → cross-"
+         "model 확장. **M5b SAE encoder-side intervention**: 모델별 actually-"
+         "consumed layer 에서 *3 of 5 break* (Qwen k=40, Idefics2/InternVL3 "
+         "k=160), *2 LLaVA NULL*. **LLaVA-Next 의 M5a-positive + M5b-NULL "
+         "dissociation** 으로 \"CLIP cluster 의 commitment 가 LM-side direction "
+         "만 사용, 비-CLIP 은 encoder + LM 둘 다\" mechanistic claim. v_L 은 "
+         "regime axis (M5a-ext).", 12),
         ("**[기여 3] Pixel encodability — architecture-conditional**. "
          "5-model n=10 layer sweep + Idefics2 9-layer disambiguation: "
-         "**3 of 5 testable architectures** 가 픽셀-공간 gradient ascent "
-         "로 PMR flip 가능 (Qwen broad / LLaVA-Next L20+L25 / LLaVA-1.5 "
-         "L25 weak). Idefics2 는 L5-L31 9 레이어 모두 0 → **wrong-relative-"
-         "depth falsified, perceiver-resampler 후보** (projector isolation 은 "
-         "controlled swap 필요, out of scope). InternVL3 protocol-saturated. "
+         "**3 of 5 testable** 가 픽셀 ascent 로 flip (Qwen broad / LLaVA-"
+         "Next L20+L25 / LLaVA-1.5 L25 weak). Idefics2 0/9 (L5-L31) → "
+         "**wrong-relative-depth falsified, perceiver-resampler 후보**; "
+         "M4 LM AUC 0.995 + M5a 10/10 + §4.6 0/9 의 triangulation 으로 "
+         "**\"perceiver 가 inverse pixel-routability 만 차단, forward 는 "
+         "작동\"** 으로 가설 정밀화. InternVL3 protocol-saturated. "
          "Random 1/250 in aggregate. M9 PMR-ceiling / §4.7 결정-안정성 "
-         "ceiling 과 평행한 **세 번째 architecture-level signature**, "
-         "**projector design 을 추가 disambiguating axis** 로 노출.", 14),
+         "ceiling / M4 LM AUC / M5b SAE 와 평행한 **architecture-level "
+         "signature** 5 개 (5-fold redundancy).", 12),
+        ("**Big picture**: VLM shortcut 은 단순 \"model quirk\" 가 아니라 "
+         "*architecture-level saturation 의 다차원 표현*. 5 가지 downstream "
+         "시그니처가 단일 architectural property 의 *redundant manifestation*. "
+         "**Future work**: controlled projector-swap, controlled LM-swap, "
+         "multi-axis SAE decomposition, M7 Prolific human baseline.", 12),
     ], font_name=FONT)
     return s
 
@@ -709,10 +896,14 @@ def main():
         ("H1 ramp", slide_15_h1_ramp),
         ("H2 paired", slide_16_h2_paired),
         ("Encoder probes", slide_17_encoder_probes),
-        ("M5a steering", slide_18_m5a_steering),
+        ("M4 LM probe cross-model", slide_17b_m4_lm_probe_cross),
+        ("M5a steering (Qwen)", slide_18_m5a_steering),
+        ("M5a cross-model steering", slide_18b_m5a_cross_steering),
+        ("M5b SAE cross-model", slide_18c_m5b_sae_cross),
         ("§4.6 Qwen", slide_19_sec46_qwen),
         ("§4.6 cross-model null", slide_20_sec46_cross_null),
         ("M8 external validity", slide_21_external_validity),
+        ("§4.8 PMR scaling", slide_21b_pmr_scaling),
         ("§4.3 multilingual", slide_22_multilingual),
         ("Discussion 1 — reframe", slide_23_architecture_reframe),
         ("Discussion 2 — limits", slide_24_limitations),
