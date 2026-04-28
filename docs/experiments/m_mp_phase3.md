@@ -79,11 +79,27 @@ the response. The model continues to say "Yes" (baseline) even when
 the encoder's physics-cue features are ablated or the LM residual is
 steered.
 
-**Refined claim (Qwen-specific)**: In **Qwen**, the physics-mode commitment
-mechanism operates on **generative language production** (kinetic
-prediction + descriptive language) but does NOT gate **meta-categorization**
-(yes/no judgment). The yes/no decision in Qwen goes through different LM
-circuitry that the encoder-side features don't gate.
+**Refined claim (Qwen-specific, audit 2026-04-28 evening update)**: The MCQ
+follow-up (`docs/insights/m_mp_phase3_followup_2026-04-28.md`) shows that
+at Qwen × MCQ the M5a and M5b methods give different verdicts (cross-method
+split), rather than the original unified "generative-vs-categorical" boundary:
+- **M5a-side**: MCQ matches yesno (0/10 flip vs describe 10/10 flip). The
+  categorical-task structure (explicit options, discrete letter answer)
+  blocks LM-side steering in both categorical prompts tested.
+- **M5b-side**: MCQ matches describe (10/10 break at top_k=20 vs yesno NO
+  break). Yes/no is the **single (n=1) categorical prompt where M5b
+  doesn't break** — described as **yes/no-prompt-specific** until more
+  categorical-binary prompts (paraphrased yes/no, true/false) test whether
+  the load-bearing axis is response format or this specific prompt.
+
+Audit-defensible empirical claim: at Qwen × MCQ, M5a method nulls and M5b
+method breaks — cross-method dissociation at one cell. The "two separable
+mechanisms" interpretation (LM-side categorical-blockade vs encoder-side
+yes/no-format-immunity) is a hypothesis consistent with the data but not
+demonstrated; the audit follow-up doc lists alternative interpretations
+including Option A verbosity confound. The original "generative-prompt-
+conserved + categorical-blocked" framing is partially preserved (M5a) and
+partially split (M5b).
 
 **Architecture-level scope (audit 2026-04-28)**: This dissociation is
 demonstrated **only in Qwen**. Idefics2 describe is null/null on M5a + M5b
@@ -173,7 +189,7 @@ finding for the broader claim.
 
 ## Follow-ups (for paper writeup)
 
-1. **Test Qwen M5a + M5b on a 4th cognitive task**: e.g. *"What kind of object is this — a ball, a planet, or a circle?"* (multi-choice categorization, NOT yes/no). Tests whether the categorical blockage is yes/no-specific or all-categorization. **(Audit 2026-04-28)**: this is now load-bearing for the "Generative vs Categorical" claim. The current Phase 3 design has 2 generative prompts (open + describe) + 1 categorical prompt (yesno) — the asymmetry means we can't dissociate "categorical task" from "yes/no binary format". Recommended priority: high. Cheap (one new prompt variant + 5-model × 1-cell run).
+1. **Test Qwen M5a + M5b on a 4th cognitive task**: e.g. *"What kind of object is this — a ball, a planet, or a circle?"* (multi-choice categorization, NOT yes/no). Tests whether the categorical blockage is yes/no-specific or all-categorization. **(Audit 2026-04-28)**: this is now load-bearing for the "Generative vs Categorical" claim. The current Phase 3 design has 2 generative prompts (open + describe) + 1 categorical prompt (yesno) — the asymmetry means we can't dissociate "categorical task" from "yes/no binary format". Recommended priority: high. Cheap (one new prompt variant + 5-model × 1-cell run). **STATUS (2026-04-28 evening)**: ✅ Done. Results refine the dissociation into two separable mechanisms — see `docs/insights/m_mp_phase3_followup_2026-04-28.md`. Headline: M5a categorical-blockade is task-driven (MCQ 0/10 flip matches yesno 0/10 flip), but M5b "no-break" is yes/no-FORMAT-specific (MCQ at top_k=20 breaks 10/10 like describe, NOT like yesno).
 2. **Test with `meta_phys_yesno` re-worded** to make it more generative ("Explain whether this is a real-world physical event"). Tests whether the yes/no blockage is the *binary format* or the *meta-cognitive task*.
 3. **LLaVA / LLaVA-Next / InternVL3 M5a × describe_scene**: extends the architecture-conditional claim. (Stretch — not in the Required scope.) **(Audit)**: Currently the cross-method-agreement claim leans on 1 positive cell; adding a 3rd model with M5a+M5b positive on describe (e.g. InternVL3) would strengthen from n=1 to n=2.
 4. **Audit-driven**: re-run M5a on `shaded/ground/both ball` and M5b on `line/blank/none circle` if any model has dynamic range that allows both directions to be tested in *the same cell*. If feasible, M5a/M5b agreement on a single cell × prompt = a stronger cross-method signature than the current matched-prompt agreement.
