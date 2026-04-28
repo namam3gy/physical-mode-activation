@@ -77,6 +77,20 @@ to validate that prompts produce parseable / differentiable outputs at all.
 If the model outputs are degenerate (e.g., LLaVA's "A" bias on FC), pivot
 to alternative prompt wording before Phase 2.
 
+**Scorer-vs-hand-agreement gate (locked 2026-04-28, post-advisor)**: before
+running Phase 2 at full 4320-inference scale, validate `score_pmr_describe`
+on N=50 hand-labeled outputs per model. Required threshold: **scorer-vs-hand
+agreement ≥ 0.85 (Cohen's κ ≥ 0.70)**. `describe_scene` outputs are
+ambiguous (e.g., *"the ball is on the ground"* — physics-mode? is it
+*describing rest* (static) or *physics-mode*? — needs adjudication rule).
+If agreement < 0.85, the failure modes are:
+1. Scorer too permissive → tighten lexicon (drop "ground", "below" matches without action verbs).
+2. Scorer too strict → broaden physics-cue stems (add "rest", "settled", "support").
+3. Prompt itself ambiguous → revise wording (e.g., add *"focus on what physical state the object is in"*).
+
+Block Phase 2 full run until the gate passes. `meta_phys_yesno` does not
+need this gate (yes/no parse is unambiguous); `open` already validated.
+
 ---
 
 ## 5. Configs
@@ -118,33 +132,79 @@ each of the 5 models. Lightweight, no scoring extensions yet.
 ### Phase 3 — Cross-prompt M5a / M5b re-runs (week 3)
 
 **Goal**: test whether the same `v_L10` direction / SAE features fire across
-prompts, not just behavioral PMR correlation.
+prompts, not just behavioral PMR correlation. **Phase 3 is the only phase
+that actually tests "task-agnostic mechanism"; Phases 1+2 alone produce
+behavioral correlations which are a weaker form of evidence (could just be
+model-specific response-style consistency).**
+
+#### Minimum-viable Phase 3 scope (locked 2026-04-28, post-advisor)
+
+To avoid Phase 3 ballooning past week 3 of `submission_plan.md`, the
+required deliverable is restricted to 2 models × 2 interventions:
+
+| Required (Required) | Stretch (Time-permitting) |
+|---|---|
+| **Qwen** M5a runtime steering on 3 prompts | LLaVA-Next M5a (LM-side) on 3 prompts |
+| **Qwen** M5b SAE intervention on 3 prompts | LLaVA-1.5 M5a + M5b on 3 prompts |
+| **Idefics2** M5a runtime steering on 3 prompts | InternVL3 M5b on 3 prompts |
+| **Idefics2** M5b SAE intervention on 3 prompts | |
+
+Why **Qwen + Idefics2**: these two have the cleanest M5a + M5b signals in
+current 5-model results. Qwen is the canonical case (M5a 10/10 flip on
+`open`; M5b k=20 break). Idefics2 is the cleanest cross-architecture
+confirmation (M5a 10/10 flip at L25; M5b k=160 break) AND has the
+forward/inverse-pathway dissociation that makes its multi-prompt result
+maximally informative. Other models go to stretch column.
+
+**Phase 3 minimum success criterion (Required)**: at least Qwen + Idefics2 ×
+3 prompts × M5a + M5b complete with quantified flip-rate / break-rate
+table. Stretch models add to §6 confirmation breadth but are not on the
+critical path.
+
+#### Implementation
 
 1. Extend `scripts/06_vti_steering.py` and `scripts/sae_intervention.py` with
    `--prompt-variant {open, describe_scene, meta_phys_yesno}` flag.
-2. Re-run M5a steering on Qwen + LLaVA-Next + Idefics2 (3 models that flipped
-   on `open`) using the new prompts. Same `v_L`, same α.
-3. Re-run M5b SAE intervention on Qwen + Idefics2 + InternVL3 (3 models that
-   broke PMR on `open`). Same SAE features, same k.
+2. Re-run M5a steering on **Qwen + Idefics2** (Required) using the new
+   prompts. Same `v_L`, same α as `open`-tuned values (Qwen L10 α=40, Idefics2 L25 α=20).
+3. Re-run M5b SAE intervention on **Qwen + Idefics2** (Required) using the
+   new prompts. Same SAE features, same k (Qwen k=20, Idefics2 k=160).
 4. Tabulate cross-prompt M5a flip rates + cross-prompt M5b break-rates.
+5. (Stretch) extend to LLaVA-Next + LLaVA-1.5 + InternVL3 if week-3 bandwidth allows.
 
 **Acceptance criteria**:
 
-- **Strong**: same `v_L` flips PMR-equivalent on all 3 prompts × ≥ 3 models → mechanism is task-agnostic. Paper claim stands; multi-prompt becomes §6 confirmation.
-- **Mixed**: same direction works on 2 of 3 prompts → claim refined to *"physics-mode commitment under prediction-loaded prompts"*.
-- **Weak (pivot)**: only kinetic prediction fires → claim narrows to *"next-state-prediction-mode commitment"*. Multi-prompt becomes the *principled boundary* of the claim.
+- **Strong (Required Qwen + Idefics2 success)**: same `v_L` / SAE features flip behavior-equivalent on all 3 prompts × 2 models → mechanism is task-agnostic in the canonical (Qwen) and cleanest cross-arch (Idefics2) case. Paper claim stands; multi-prompt becomes §6 confirmation. Stretch results extend breadth.
+- **Mixed**: same direction works on 2 of 3 prompts (or only 1 of 2 required models) → claim refined to *"physics-mode commitment under prediction-loaded prompts (open + meta_phys_yesno)"* if `describe_scene` is the failure mode, or *"physics-mode commitment in saturated-encoder regime"* if Idefics2 fails but Qwen succeeds. Each refinement is publishable but narrower.
+- **Weak (pivot)**: only kinetic prediction fires on both required models → claim narrows to *"next-state-prediction-mode commitment"*. Multi-prompt becomes the *principled boundary* of the claim. Still a publishable result; framing weakens but world-model angle survives because next-state prediction is itself a core world-model primitive.
 
 ---
 
 ## 7. Implementation TODO
 
-- [x] Add `describe_scene` and `meta_phys_yesno` to `prompts.py` (DONE 2026-04-28).
-- [x] Update `PromptVariant` Literal in `config.py` (DONE 2026-04-28).
-- [x] Create 5 multi-prompt configs (DONE 2026-04-28).
-- [ ] Phase 1 smoke runs (5 models × ~5 min each).
-- [ ] Phase 2 scorer extensions (`score_pmr_describe`, `score_pmr_meta_yesno`).
-- [ ] Phase 2 full inference (5 models × ~30-45 min each).
-- [ ] Phase 3 M5a / M5b cross-prompt scripts.
+Phase 0 — design (DONE 2026-04-28):
+- [x] Add `describe_scene` and `meta_phys_yesno` to `prompts.py`.
+- [x] Update `PromptVariant` Literal in `config.py`.
+- [x] Create 5 multi-prompt configs.
+
+Phase 1 — sanity check (week 1, in queue):
+- [ ] Phase 1 smoke runs (5 models × ~5 min each on H200).
+- [ ] Visual inspection of 60 outputs (5 × 3 × 4 stim sample).
+- [ ] Decision gate: do P2 / P3 produce non-degenerate outputs?
+
+Phase 2 — full multi-prompt PMR (week 2, blocked on Phase 1):
+- [ ] Implement `score_pmr_describe` and `score_pmr_meta_yesno` extensions.
+- [ ] **Scorer-vs-hand-agreement gate** for `describe_scene`: hand-label N=50 per model, require ≥0.85 agreement / Cohen's κ ≥ 0.70 before full run.
+- [ ] Phase 2 full inference (5 models × 4320 inferences × ~30-45 min each).
+- [ ] Per-(model, prompt) PMR table.
+
+Phase 3 — cross-prompt M5a / M5b re-runs (week 3, blocked on Phase 2):
+- [ ] Extend `06_vti_steering.py` and `sae_intervention.py` with `--prompt-variant` flag.
+- [ ] **Required**: Qwen + Idefics2 × M5a + M5b × 3 prompts.
+- [ ] (Stretch) LLaVA-Next + LLaVA-1.5 + InternVL3 if bandwidth allows.
+- [ ] Cross-prompt flip / break-rate table.
+
+Paper-side:
 - [ ] Paper §6.1 multi-prompt PMR table.
 - [ ] `notebooks/m_mp_multi_prompt.ipynb` reproduction notebook.
 
