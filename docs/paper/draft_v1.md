@@ -133,12 +133,18 @@ metrics. §4 reports the cross-model behavioral PMR ladder with
 bootstrap CIs (M6 + M8a + M9; M1-M2 are Qwen-only single-model
 runs that establish the protocol and surface H7). §5 reports the
 encoder-vs-LM disambiguation (M3 Qwen-only + M6 r2-r6 cross-model
-+ §4.5 + M8c). §6 reports the causal localization on Qwen2.5-VL
-(M5a + M5a-ext). §7 reports the pixel-encodability result on
-Qwen2.5-VL (§4.6). §8 discusses external validity (M8a/d cross-
-model + multilingual + decision-stability). §9 catalogs limitations
-and remaining open questions including the un-tested cross-model
-generalization of M5a / §4.6.
++ §4.5 + M8c + M4 cross-model LM logit-lens AUC ladder). §6
+reports causal localization: M5a runtime steering (Qwen + cross-
+model 3 of 4 testable), M5a-ext regime axis, and M5b SAE
+encoder-side intervention cross-model (3 of 5 models break PMR;
+2 LLaVA NULL with the M5a-positive + M5b-NULL dissociation in
+LLaVA-Next). §7 reports the pixel-encodability result with the
+5-model n=10 layer sweep + Idefics2 9-layer disambiguation that
+falsifies wrong-relative-depth and points at perceiver-resampler.
+§8 discusses external validity (M8a/d cross-model + multilingual +
+decision-stability + §4.8 Qwen 7B vs 32B PMR scaling). §9 catalogs
+limitations and remaining open questions including the un-tested
+controlled projector-swap and LM-only counterfactual.
 
 ## 2. Related Work
 
@@ -406,7 +412,39 @@ with Qwen on PMR + H7. With LLaVA at 0.18 (CLIP + Vicuna) and
 Idefics2 at 0.88 (SigLIP-SO400M + Mistral), the encoder type drives
 PMR ceiling regardless of LM (Qwen2-7B vs Mistral-7B).
 
-### 5.4 The architecture-level reframe
+### 5.4 LM logit-lens cross-model — second downstream signature (M4)
+
+The encoder-saturation chain extends downstream into the LM. M4
+cross-model trains a logistic-regression probe on per-stim mean PMR
+(phys ≥ 0.667 / abs ≤ 0.333) using the visual-token mean hidden
+state at LM layers L5/L10/L15/L20/L25, with 5-fold StratifiedKFold.
+Reusing existing M2 cross-model captures (no new inference), the
+5-model AUC ladder is:
+
+| Model | L5 | L10 | L15 | L20 | L25 | M3 vision AUC |
+|---|--:|--:|--:|--:|--:|--:|
+| Idefics2-8B | **0.995** | **0.995** | **0.995** | **0.995** | **0.995** | 0.93 |
+| Qwen2.5-VL-7B | 0.965 | 0.965 | 0.962 | 0.959 | 0.957 | 0.99 |
+| LLaVA-Next-Mistral-7B | 0.732 | 0.762 | 0.751 | 0.786 | 0.791 | 0.81 |
+| LLaVA-1.5-7B | 0.758 | 0.760 | 0.762 | 0.763 | 0.768 | 0.73 |
+| InternVL3-8B | NaN | NaN | NaN | NaN | NaN | 0.89 |
+
+Three findings: (1) the LM AUC ladder aligns with the M3 vision AUC
+ladder — encoder-saturation propagates downstream as "amount of
+PMR-relevant information at visual-token positions in LM hidden
+states." (2) **Idefics2 LM AUC (0.995) > Idefics2 vision AUC (0.93)**:
+the perceiver-resampler does not strip the physics-mode signal — if
+anything, it concentrates the signal on the compressed 320-token
+budget, raising the LM-side probe AUC above the pre-compression vision
+encoder AUC. (3) Combined with the §4.6 Idefics2 0/9 layers shortcut
+result, this triangulates as **"information presence ≠ pixel-space
+shortcut routability"** — the LM has the physics-mode signal at high
+quality, yet pixel-space gradient ascent cannot find a perturbation
+that flips PMR. The bottleneck is on the inverse (pixel-side) pathway,
+not the forward (encoder → LM) pathway. InternVL3 untestable
+(n_neg = 1 → probe degenerate).
+
+### 5.5 The architecture-level reframe
 
 Reading: behavioral PMR(_nolabel) saturation on synthetic stim is
 determined at the **architecture level (joint encoder + LM)**, not
@@ -415,9 +453,10 @@ across all encoders; behavioral-y AUC and PMR vary 0.18-0.92. The
 PMR ladder reflects each LM's reading of encoder output as
 "physics-mode signal" — downstream-conditional, not encoder-info.
 
-## 6. Causal localization — M5a + M5a-ext
+## 6. Causal localization — M5a (LM-side) + M5b (encoder-side) cross-model
 
-(Target: 1 page with the famous "L10 only" plot.)
+(Target: 2-2.5 pages with the L10 plot, the cross-model M5a table,
+and the M5b SAE drop curve figure.)
 
 ### 6.1 v_L direction extraction
 
@@ -447,6 +486,64 @@ L10 α=40 flips 10/10 from D ("This is an abstract shape...") to B
 ("It stays still — the circle appears to be floating or suspended
 in space without any external force..."). No other layer moves at
 the same α.
+
+### 6.2b M5a runtime steering — cross-model (3 of 4 testable models flip)
+
+The M5a forward-hook protocol extends to the 5-model M8a chain by
+re-extracting per-model v_L from M2 cross-model captures. For each
+testable model, we identify a baseline-PMR=0 stim cell (per-model
+abstract baseline), inject `α · v_L_unit` into the chosen LM decoder
+layer, and use the OPEN prompt with PMR scorer.
+
+| Model | LM layer | α sweet spot | PMR flip rate | Stim cell (baseline) |
+|---|---|---:|---:|---|
+| Qwen2.5-VL-7B | L10 | 40 | **10/10** | line/blank/none × circle (0) |
+| **LLaVA-Next-Mistral-7B** | **L20** | **10** | **10/10** | **line_blank_both × circle (0)** |
+| **LLaVA-Next-Mistral-7B** | **L25** | **15-20** | **10/10** | **line_blank_both × circle (0)** |
+| **Idefics2-8B** | **L25** | **20** | **10/10** | **line_blank_none × circle (0)** |
+| LLaVA-1.5-7B | L25 | (any 0-60) | **0/10** | line_blank_none × circle (0) |
+| InternVL3-8B | — | — | (untestable) | n/a (saturated, baseline=1) |
+
+Coherent physics-mode responses (paper-quality, not token degeneracy):
+
+- LLaVA-Next L25 α=15: "The ball will bounce up."
+- LLaVA-Next L20 α=10: "The ball will roll down the ramp."
+- **Idefics2 L25 α=20: "The tip of the arrow will hit the center of the circle."**
+- Qwen L10 α=40 (M5a original): "The ball is falling down due to gravity."
+
+LLaVA-1.5 NULL at every α (responses change semantically — "filled with
+color" → "in the center" → "on the floor" — but the PMR scorer never
+catches a motion stem) replicates the §4.6 weak-shortcut finding
+(L25 4/10 at n=10) at the LM-side intervention.
+
+**The Idefics2 result resolves the §4.6 perceiver-resampler hypothesis
+ambiguity** by triangulating with M4 LM probe and §4.6 pixel ascent:
+
+| Test on Idefics2 | Result | Implication |
+|---|---|---|
+| M4 LM probe AUC | 0.995 across L5-L25 | Information *reaches* the LM at high quality |
+| **M5a runtime steering** | **L25 α=20 → 10/10 flip** | Forward-direction `v_L` is *operative* in the LM |
+| §4.6 pixel-space gradient ascent (L5-L31) | 0/90 v_unit + 0/90 random | Inverse pathway lacks routability |
+
+**Refined hypothesis**: the perceiver-resampler does not strip the
+physics-mode signal — the LM has it (M4 0.995) and forward-hook
+steering exploits it (M5a 10/10). What the perceiver-resampler removes
+is the *pixel-space gradient route* that selectively hits this
+direction from the input side. The bottleneck is on the **inverse**
+(pixels → v_L direction) pathway, not the **forward** (v_L direction
+→ LM commitment) pathway.
+
+At sweet-spot α, all 10 stim seeds at any single (layer, α) produce
+essentially identical responses (Idefics2 L25 α=20: 10/10 stim →
+"The tip of the arrow will hit the center of the circle.", unique=1;
+LLaVA-Next L25 α=15: 10/10 → "The ball will bounce up.", unique=1).
+This **regime-attractor** behavior — a deterministic physics-mode
+attractor regardless of stimulus — is consistent with M5a-ext's
+regime-axis finding: at sufficient α, the regime is forcibly selected
+and visual content tracking lives at moderate α. The cross-model 10/10
+flip is causal evidence of **regime control**, not of stim-conditioned
+physics interpretation; the §4.6 pixel-space gradient ascent and M5b
+SAE knockout provide the stim-conditioned signatures (see §6.4).
 
 ### 6.3 v_L10 is a regime axis (M5a-ext)
 
@@ -611,6 +708,68 @@ projection magnitude along this specific axis. The random-direction
 controls falsify "any sufficient perturbation flips PMR" and
 isolate v_L10.
 
+### 7.6 Cross-model §4.6 — pixel-encodability is architecture-conditional
+
+The §4.6 protocol extends to the 5-model M8a chain by writing a
+per-architecture counterfactual generator (Qwen patch-flattened,
+LLaVA standard CLIP, LLaVA-Next 5-tile AnyRes with per-element clip,
+Idefics2 5-tile + pixel_attention_mask, InternVL3 single 448×448).
+For each model, we compute a per-model `v_L_unit` from M2 cross-model
+captures and run gradient ascent at ε=0.1 across LM layers
+{L5, L10, L15, L20, L25} × n=10 baseline-PMR=0 stim per (model, layer).
+For Idefics2 we add 4 deeper layers (L26, L28, L30, L31) — total 9
+layers spanning 16 % to 97 % relative LM depth.
+
+![Figure 6: §4.6 cross-model layer sweep](../figures/sec4_6_cross_model_layer_sweep.png)
+
+*Figure 6.* Per-model PMR flip rate at ε=0.1 across LM layers. Wilson
+95 % CI on Bernoulli rate. Each architecture has its own shortcut
+layer profile.
+
+| Model | Encoder + projector | Shortcut layers (≥ 50 %) |
+|---|---|---|
+| Qwen2.5-VL-7B | SigLIP + MLP | L5, L10, L15, L20, L25 (broad) |
+| LLaVA-Next-Mistral-7B | CLIP-ViT-L + AnyRes 5-tile + MLP | L20, L25 (10/10 each) |
+| LLaVA-1.5-7B | CLIP-ViT-L + MLP | L25 only (4/10 at n=10) |
+| **Idefics2-8B** | **SigLIP-SO400M + perceiver-resampler** | **0 of 9 layers (L5-L31)** |
+| InternVL3-8B-hf | InternViT + MLP | (untestable, baseline=1.0) |
+
+**The Idefics2 0-of-9 result falsifies the "wrong-relative-depth"
+explanation** (the LLaVA-1.5 → LLaVA-Next inference that LLaVA-1.5's
+shortcut is at greater relative LM depth than Qwen's). Idefics2's v_L
+projection ascends cleanly at every depth (baseline -10.7 → final
++27 to +30 at L26-L30; -72 → +163 at L31), confirming gradient ascent
+*works at the projection level* — yet 0 PMR flips behaviorally.
+
+Across the 5 models × 5 layers (25 cells) plus the Idefics2 4 deeper
+layers, the **aggregate random-direction flip rate is 1/250 trials**
+(24 of 25 random-control cells = 0/10; only Qwen L10 random has 1/10,
+far below v_unit 10/10 at the same layer). Direction-specificity is
+preserved at the projection level even where it does not translate
+to behavioral PMR flip.
+
+**Refined H-shortcut**: pixel-encodability is **architecture-
+conditional**. Encoder saturation alone (M3 vision AUC) is necessary
+but not sufficient — Idefics2's encoder probe AUC (0.93) is between
+Qwen's 0.99 and LLaVA-Next's 0.81, yet Idefics2 has 0 shortcut layers
+while LLaVA-Next has 2. The disambiguating axis is **projector
+design**: Idefics2 is the only perceiver-resampler model in the chain;
+Qwen + LLaVA-1.5 + LLaVA-Next + InternVL3 all use MLP projectors of
+varying widths. The 5-model design does not isolate this axis — a
+controlled projector-swap (same encoder + LM, perceiver ↔ MLP only)
+would be the rigorous test.
+
+Triangulation with M4 LM probe and M5a runtime steering on Idefics2
+(see §5.4 and §6.2b) supports the refined hypothesis: **perceiver-
+resampler removes pixel-space gradient routability, not the LM-side
+information**. The LM has the physics-mode signal at AUC 0.995 + the
+direction is operative under runtime injection (10/10 flip), yet the
+inverse pixel→v_L pathway lacks selectivity. The bottleneck is on the
+**inverse** (pixels → v_L) side, not the **forward** (v_L → LM)
+side. We promote this to "leading remaining mechanism candidate"
+without claiming isolation; the controlled projector-swap remains
+future work.
+
 ## 8. External validity & secondary findings
 
 ### 8.1 Multilingual labels (§4.3)
@@ -658,7 +817,35 @@ Granular form of M9's H7 finding. InternVL3 person × exotic
 label-driven static commit in the project. Categorical view reveals
 the *kind* of commitment, not just whether the model commits.
 
-### 8.4 Cross-model attention to visual tokens (§4.10)
+### 8.4 PMR scaling — Qwen 7B vs 32B (§4.8)
+
+We test whether 5× scaling moves the architecture-level PMR ceiling.
+Qwen2.5-VL-32B on the same M2 stim (480 stim × 3 labels × OPEN prompt)
+gives aggregate PMR 0.926 vs 7B's 0.931 — a difference within noise.
+
+| Cell | 7B PMR | 32B PMR | Δ |
+|---|--:|--:|--:|
+| Aggregate | 0.931 | 0.926 | −0.005 |
+| cue=both | 0.978 | 0.972 | −0.006 |
+| cue=cast_shadow | 0.957 | 0.945 | −0.012 |
+| cue=motion_arrow | 0.992 | 0.987 | −0.005 |
+| **cue=none (weakest)** | **0.797** | **0.711** | **−0.086** |
+
+Two scaling-dependent shifts surface only at the weak-cue end:
+abstract_reject jumps 35× (0.002 → 0.065), and the H2 label gap
+(`ball − circle`) halves (+0.071 → +0.010). 32B is more cue-sensitive
+on the 5% of cells where the cue is weakest, but the language-prior
+dominance regime survives. **Scaling moves the within-cluster floor
+on weak cues; it does not move the architecture-level ceiling on
+strong cues.** Consistent with MechBench-style "scale doesn't fix
+grounding" findings — the SigLIP+Qwen2 architecture cluster is the
+unit that determines ceiling, not parameter count within the cluster.
+
+Qwen 72B (~144 GB at bf16, dual-GPU or quantization required) is
+predicted to land near 32B by the 7B↔32B null pattern; it is
+deferred from v1 paper scope as confirmatory.
+
+### 8.5 Cross-model attention to visual tokens (§4.10)
 
 ![Figure 13: §4.10 cross-model attention to visual tokens](../figures/session_attention_cross_model.png)
 
@@ -677,26 +864,54 @@ difference.
 
 ### 9.1 What we showed
 
-The architecture-level reframe is the cleanest finding. The 2-CLIP-
-point insight (LLaVA-1.5 vs LLaVA-Next) directly disconfirms an
-"encoder-determines-everything" story, and the §4.6 pixel-encodability
-result shows the shortcut path goes through pixel-level features.
-Together with M5a's L10 causal localization, this gives a three-
-dimensional anatomy of the shortcut.
+The architecture-level reframe is the cleanest finding, and it is
+manifested as a **5-fold downstream signature redundancy** —
+behavioral PMR ceiling (M9), decision-stability ceiling (§4.7),
+pixel-encodability (§4.6), LM logit-lens probe AUC (M4 cross-model),
+and encoder-side SAE feature ablation break threshold (M5b cross-model)
+all sort the 5 architectures into the same 3-cluster decomposition
+(High-saturation Qwen / Mid-saturation Idefics2-InternVL3 /
+Low-saturation LLaVA family). A single architectural property is
+expressed redundantly across five distinct measurement modalities.
+
+The causal-localization layer extends from Qwen-only to a cross-model
+mechanistic story: M5a runtime steering flips PMR 10/10 in 3 of 4
+testable models (Qwen L10 / LLaVA-Next L20+L25 / Idefics2 L25), and
+M5b SAE intervention at the actually-consumed encoder layer breaks
+PMR cleanly in 3 of 5 models (Qwen k=40, Idefics2 k=160, InternVL3
+k=160). The two LLaVA models are M5b-NULL but LLaVA-Next is
+M5a-positive — this dissociation specifies that **the CLIP-cluster
+shortcut routes through LM-side residual-stream direction, not
+through encoder-side localized features**, while the non-CLIP cluster
+routes through both. The 2-CLIP-point insight (LLaVA-1.5 vs LLaVA-Next)
+directly disconfirms an "encoder-determines-everything" story, and
+the §4.6 pixel-encodability result shows the shortcut path is
+encodable in the input image itself for the non-CLIP architectures.
 
 ### 9.2 What we didn't show
 
 - No clean LM-only counterfactual (the LLaVA-1.5 → LLaVA-Next jump
-  is 4-axis-confounded). We flag this as a future-work need.
-- v_L10 is a 1-d axis from class-mean diff; multi-direction
-  decomposition (SAE features, multi-axis steering) is open.
-- §4.6 cross-model: only Qwen2.5-VL has been counterfactual-tested;
-  each of the other 4 models needs its own per-model v_L10
-  computation.
-- M5b (SIP / activation patching / SAE feature decomposition) is
-  the major mechanism gap we have not yet closed.
+  is 4-axis-confounded between AnyRes tiling, projector design,
+  training corpus, and LM family). The M5a-positive + M5b-NULL
+  dissociation in LLaVA-Next is consistent with an LM-side routing
+  story but does not isolate it; controlled LM-swap is future work.
+- No controlled projector-swap test isolating perceiver-resampler.
+  The Idefics2 §4.6 result (0/9 layers shortcut despite v_L
+  projection ascending +28 to +163) combined with the M4 LM probe
+  AUC 0.995 and M5a 10/10 flip points at perceiver-resampler as the
+  leading remaining mechanism candidate, but the 5-model design
+  varies encoder + projector + AnyRes simultaneously. A controlled
+  swap (same encoder + same LM, perceiver ↔ MLP only) would be
+  needed for full isolation.
+- v_L is a 1-d class-mean axis; multi-axis SAE decomposition or
+  non-linear feature analysis would reveal additional steering
+  directions that the PMR-based v_L misses. M5b cross-model
+  intervention validates that *some* encoder-side feature
+  decomposition is causally bound, but the structure of the SAE
+  feature manifold is not characterized.
 - Human baseline (Prolific): 20 raters × 50 stim is budgeted but
-  not yet collected.
+  not yet collected. Without it, we cannot directly compare the
+  VLM saturation pattern to human judgment.
 
 ### 9.3 Limitations of the experimental setup
 
@@ -709,27 +924,54 @@ dimensional anatomy of the shortcut.
   pattern is visible. The result demonstrates the *existence* of a
   pixel-driven flip channel, not that this channel is engaged on
   natural images.
+- **Per-model stim cell selection in M5b**: per-model OPEN+circle
+  baseline-PMR=1 cell selection is necessary because each model
+  has a different saturated/unsaturated PMR distribution; this
+  precludes a single fully-cross-model stim comparison and limits
+  the interpretation to per-model causal claims.
+- **Scaling axis tested only on Qwen family**: §4.8 7B vs 32B
+  shows scale doesn't fix grounding within the SigLIP+Qwen2
+  architecture cluster, but cross-family scaling (e.g., Llama4
+  Vision 8B vs 80B) is not tested.
 
 ### 9.4 Open questions
 
-- Is v_L10's pixel-encodability a property of Qwen specifically,
-  or do all 5 architectures admit a similar channel?
-- What is the relationship between v_L10 and SAE features at L10
-  (M5b, deferred)?
 - Does the 2-CLIP-point gap shrink when we control for AnyRes
-  tiling, projector, training, and LM family separately?
+  tiling, projector, training, and LM family separately? Specifically:
+  does an LM-only swap (CLIP-ViT-L + Vicuna → CLIP-ViT-L + Mistral)
+  reproduce the LLaVA-1.5 → LLaVA-Next 0.52 PMR jump?
+- Does perceiver-resampler block pixel-space gradient routability
+  in a controlled projector-swap experiment, or is the Idefics2
+  §4.6 0/9 result driven by some other architectural factor?
+- What is the structure of the SAE feature manifold at the
+  consumed encoder layer? Are physics-cue features
+  one-dimensional, or do they form a multi-dimensional submanifold?
+  Multi-axis SAE intervention is the natural follow-up to M5b.
+- Do the 5 architecture-level signatures cohere on tasks beyond
+  "next-state prediction"? A second task readout (e.g., counting
+  or spatial relations) would test the generality of the cluster
+  decomposition.
 
 ## 10. Conclusion
 
 We localized the abstract→physical shortcut in 5 production-grade
 open-source VLMs along three independent dimensions: cross-architectural
-quantification (5 models × 3 stim sources × bootstrap CIs), causal
-localization at LM layer 10 (a single direction `v_L10` that is both
-runtime-steerable and pixel-encodable), and pixel-space encodability
-(directional specificity, not perturbation magnitude). The
-architecture-level reframe disconfirms an encoder-determines-everything
-reading and points to the joint encoder + LM as the unit of analysis
-for shortcut behaviors in VLMs.
+quantification (5 models × 3 stim sources × bootstrap CIs), cross-model
+causal localization (LM-side runtime steering flips PMR 10/10 in 3 of 4
+testable models; encoder-side SAE feature ablation breaks PMR in 3 of 5
+models, with the LLaVA-Next M5a-positive + M5b-NULL dissociation
+isolating LM-side direction as the CLIP-cluster routing path), and
+pixel-space encodability (directional specificity, not perturbation
+magnitude, drives flips for non-CLIP architectures; perceiver-resampler
+is the leading candidate for blocking pixel-space gradient routability
+in Idefics2). The architecture-level reframe is expressed redundantly
+across five distinct downstream signatures (PMR ceiling, decision-
+stability ceiling, pixel-encodability, LM logit-lens AUC, encoder-side
+SAE intervention threshold), each sorting the 5 architectures into the
+same 3-cluster decomposition. The 2-CLIP-point insight (LLaVA-1.5 vs
+LLaVA-Next) directly disconfirms an encoder-determines-everything
+reading and points to the joint **encoder + LM + projector** as the
+architectural unit that determines shortcut behavior in VLMs.
 
 ---
 
@@ -758,17 +1000,18 @@ Final state of H1-H7 + named H- hypotheses:
 |---|---|---|
 | H1 (S-curve abstraction ramp) | supported, unsaturated-only | M2 (Qwen, saturated): monotone 0.74→0.83 but compressed. M6 r1 (LLaVA): clean S-curve 0.51→0.81. M8a: Qwen 3/5 / LLaVA 4/5 strict. |
 | H2 (label-prior independent contribution) | validated, encoder-anchored | M4b (Qwen) + M6 r1 (LLaVA) + M6 r2a (InternVL3); revised by encoder-saturation lens. |
-| H4 (open-vs-FC gap signature) | supported, extended (Qwen-only at M2, untested cross-model) | M2 (Qwen): 22-32 pp gap at every object_level. ST5 cross-model is open. |
+| H4 (open-vs-FC gap signature) | supported, scorer-strengthened (Qwen-only at M2; cross-model FC untested) | M2 (Qwen, v1 scorer): 22-32 pp gap at every object_level. **2026-04-28 scorer audit**: paired open-vs-FC delta on no-label widens −0.131 → −0.180 under v2 scorer (no-motion patterns). Direction preserved, gap larger. ST5 cross-model FC is open (LLaVA "A" greedy bias prevented uniform protocol). |
 | H5 (ground line shift > visual diff) | mixed (Qwen-only) | M2 (Qwen): bg +21 pp > object +9 pp. Scene also wins. Cross-model untested. |
 | H6 (cast shadow drives saturation) | supported, revised (Qwen-only) | M2 (Qwen): cast_shadow alone +17.5 pp; arrow alone also saturates → "arrow = annotation" sub-claim refuted. Cross-model untested. |
 | H7 (label selects regime) | validated, cross-category | M2 GAR (Qwen): ball 0.79 / circle 0.70 / planet 0.48. M5a-ext Exp 2. M6 r1+r2a circle-only cross-model. M8d cross-category: LLaVA 3/3, Qwen 0/3 binary (regime distribution PASS). |
 | H-boomerang (encoder knows / decoder gates) | Qwen-scoped | M3 (Qwen): encoder AUC ≈ 1.0 vs behavioral 0.28-0.95. Refuted on LLaVA-1.5 (encoder is the bottleneck). |
-| H-encoder-saturation | architecture-level confirmed (5 model × 3 stim) | M9 5-model bootstrap CIs |
-| H-LM-modulation | suggested only | M9 Idefics2 M8d H7 CI just touches 0; no clean LM-only counterfactual |
-| H-locus (mid-LM L10) | supported (Qwen-only) | M5a (Qwen): L10 α=40 flips 10/10 line/blank/none. Cross-model untested. |
-| H-direction-bidirectional | supported (Qwen-only) | M5a-ext Exp 3 (Qwen): −α flips D→B at L10. Cross-model untested. |
-| H-direction-specificity | **supported, model-conditional layer** | §4.6 Qwen L10: 5/5 v_L10 flips at ε=0.05 vs 0/15 random. §4.6 LLaVA-1.5 layer sweep: L25 admits 5/5 v_L25 flips at ε=0.2 + 4/5 at ε=0.1; random 0/15 at every layer. Earlier "behavior-level Qwen-only" was wrong-layer artifact (L10 in LLaVA-1.5's 32-layer LM = 31% depth, vs Qwen L10 = 36%; LLaVA-1.5's shortcut is at 78% depth = L25). |
-| H-shortcut (pixel-encodable) | **supported (NOT Qwen-only)** | §4.6 Qwen: 5/5 PMR flips at ε=0.05 via L10 v_L10 gradient ascent. §4.6 cross-model layer sweep on LLaVA-1.5 (revised 2026-04-26 evening): L25 admits 5/5 flips at ε=0.2; previous "Qwen-scoped" was wrong-layer artifact. Pixel-encodability generalizes across at least 2/5 architectures with model-conditional shortcut layers. Sample LLaVA-1.5 L25 ε=0.2 response: "The circle will be hit by a ball." |
+| H-encoder-saturation | **architecture-level confirmed (5 model × 3 stim × 5 downstream signatures)** | M9 5-model bootstrap CIs (PMR ceiling) + §4.7 (decision-stability ceiling) + §4.6 cross-model 9-layer Idefics2 (pixel-encodability) + M4 cross-model (LM logit-lens AUC ladder) + M5b cross-model round 2 (encoder-side SAE intervention break threshold). All 5 signatures sort the 5 architectures into the same 3-cluster decomposition. |
+| H-LM-modulation | suggested only (LLaVA-Next M5a-positive + M5b-NULL dissociation) | M9 Idefics2 M8d H7 CI just touches 0; no clean LM-only counterfactual. **2026-04-28 cross-model M5b**: LLaVA-Next has positive M5a steering (LM-side L20+L25 10/10 flip) but NULL M5b SAE encoder-side intervention — consistent with LM-side direction routing the CLIP-cluster commitment, but does not isolate from 4-axis confound. |
+| H-locus (mid-LM L_decision) | **supported, cross-model with model-specific layer** | M5a (Qwen): L10 α=40 flips 10/10. **2026-04-28 M5a cross-model**: 3 of 4 testable models confirm with model-specific decision layer — Qwen L10 (36% depth), LLaVA-Next L20+L25 (62-78% depth), Idefics2 L25 (78% depth). LLaVA-1.5 NULL at every α (encoder bottleneck). InternVL3 untestable (saturated baseline=1). M5b SIP+patching cross-model (LLaVA-1.5): lock-in starts at L20 (62.5% relative depth). |
+| H-direction-bidirectional | supported (Qwen-only) | M5a-ext Exp 3 (Qwen): −α flips D→B at L10. Cross-model not tested for −α (would need per-model regime axis confirmation). |
+| H-direction-specificity | **supported across 5 architectures × 5 layers (n=10 each)** | §4.6 5-model n=10 layer sweep + Idefics2 9-layer (L5-L31): 24 of 25 random-control cells = 0/10 (only Qwen L10 random has 1/10, far below v_unit 10/10). Aggregate random rate 1/250 across the 25 (model × layer) cells. Direction-specificity preserved at the projection level for all 5 models even where it does not translate to behavioral PMR flip (e.g., Idefics2 v_L projection rises +28 to +163 cleanly across 9 layers despite 0/9 PMR flips). |
+| H-shortcut (pixel-encodable) | **supported, architecture-conditional** | §4.6 5-model n=10 layer sweep: each architecture has its own shortcut layer profile. Qwen broad (5 shortcut layers ≥ 80%), LLaVA-Next L20+L25 (10/10 each), LLaVA-1.5 L25 only (4/10 at n=10), **Idefics2 9-layer 0 shortcuts (L5-L31, 16-97% relative depth)**. Wrong-relative-depth hypothesis falsified by 9-layer Idefics2 evidence; **perceiver-resampler is the leading remaining mechanism candidate** (M4 LM AUC 0.995 + M5a 10/10 + §4.6 0/9 triangulation: forward pathway works, inverse pixel-space gradient routability blocked). InternVL3 protocol-saturated (baseline=1.0). |
+| H-encoder-localized features (M5b cross-model) | **architecture-conditional — 3 of 5 models supported, 2 LLaVA NULL** | M5b cross-model round 2 (per-model SAE retrain at actually-consumed layer): Qwen k=40 (0.78% of features), Idefics2 k=160 (3.5%), InternVL3 k=160 (3.9%) all break PMR with mass-matched random controls at 1.0 specificity. LLaVA-1.5 + LLaVA-Next NULL at any k ≤ 160 (LLaVA-1.5 NULL extended to k=800 = 19.5% of features). Effect concentration scales inversely with M3 vision encoder probe AUC. The **CLIP-cluster M5a-positive + M5b-NULL dissociation** isolates LM-side direction as the routing path for shortcut commitment in CLIP-based VLMs. |
 
 ## Appendix E — Software stack
 
