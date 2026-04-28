@@ -35,6 +35,35 @@ Ran Idefics2 M5b × describe_scene at k ∈ {160, 320, 500} on `shaded/ground/bo
 
 **Critical interpretation**: SAE intervention DOES change the output ("falling down" → "in the air"). But both outputs are physics-mode (both contain physics tokens — "fall" stem + "in the air" phrase). The intervention **shifts the physics-mode framing from kinetic to suspended** rather than breaking it.
 
+### Framing-shift quantification (audit 2026-04-28)
+
+To check whether the "framing shift" is anecdotal or systematic, all 10 baseline +
+30 intervention (k ∈ {160, 320, 500}) + 10 random-control texts were programmatically
+counted for kinetic-verb tokens (`fall|drop`) vs suspended-frame tokens
+(`in the air|suspended|hover`):
+
+| Group | n | contains `fall\|drop` | contains `in the air\|suspended\|hover` |
+|---|---|---|---|
+| Baseline (k=0) | 10 | **10/10** | 0/10 |
+| Intervention k=160 | 10 | 0/10 | **10/10** |
+| Intervention k=320 | 10 | 0/10 | **10/10** |
+| Intervention k=500 | 10 | 0/10 | **10/10** |
+| Random control (mass-matched, k≈300) | 10 | **10/10** | 0/10 |
+
+The framing shift is **categorical and complete**: kinetic-verb production drops to
+0% under top-k SAE ablation across 3 k values × 10 stim (30 outputs), and the random
+control retains kinetic verbs at 10/10 — the shift is not a generic "suspended-frame
+attractor" the model defaults to under any ablation.
+
+**Caveat**: low output diversity (baseline = 2 unique strings, intervention = 1
+unique string "The ball is in the air."). The model is highly deterministic on
+this cell, so this is a clean test of the kinetic-vs-suspended dimension at the
+expense of testing only one cell's lexical surface. The claim is restricted to:
+"on the `shaded/ground/both` ball cell, the top-k Idefics2 SAE features ablation
+removes kinetic-verb production and the model falls back to a suspended-frame
+expression." Generalization to other cells / other suspended frames is untested
+under the current Phase 3 minimum-viable scope.
+
 **Conclusion**: NULL result is robust. The SAE features encode **specific kinetic-verb production** (falling, dropping) rather than **general physics-mode commitment**. Ablating them removes the kinetic frame, but the model has alternative physics-mode framings ("in the air") to fall back on.
 
 ## Sanity check 3 — SAE feature quality comparison
@@ -61,9 +90,9 @@ Original framing (`m_mp_phase3.md`):
 
 > Qwen's encoder features encode **general physics-mode commitment** (Cohen's d ≈ 0.78, top features). Ablation breaks PMR uniformly across `open` and `describe_scene`.
 >
-> Idefics2's encoder features encode **kinetic-verb production specifically** (Cohen's d ≈ 0.35, weak top features). Ablation **shifts the physics-mode framing** from kinetic (falling) to suspended ("in the air"), but does NOT break PMR — the model has alternative physics-mode expressions.
+> Idefics2's encoder features, *on the one tested cell* (`shaded/ground/both` ball), encode **kinetic-verb production** (Cohen's d ≈ 0.35, weak top features). Ablation **shifts the physics-mode framing** from kinetic ("A ball is falling down.") to suspended ("The ball is in the air."), but does NOT break PMR — the model has alternative physics-mode expressions on that cell.
 
-This refinement is **stronger and more nuanced** than "Idefics2 mechanism is narrower" — it explains *why* (encoder feature weakness) and *what happens* (framing shift, not break).
+This refinement is **stronger and more nuanced** than "Idefics2 mechanism is narrower" — it explains *what happens on this cell* (framing shift, not break) and *suggests why* (encoder feature weakness, Cohen's d 0.35 vs Qwen 0.78). **Generalization caveat (audit 2026-04-28)**: the framing-shift claim covers exactly *one* (cell × intervention) — `shaded/ground/both` ball under top-k SAE ablation. The 30/30 quantification covers 10 stim × 3 k values of that cell with 1 unique intervention text ("The ball is in the air."), not 30 independent stimuli. The claim "Idefics2's encoder features encode kinetic-verb production specifically" is therefore **suggestive within this cell**, not architecture-level — confirming on a 2nd cell (e.g. `textured/ground/cast_shadow` ball) is required for an architecture-level claim. Currently scoped narrowly in paper writeup.
 
 For the paper:
 - Qwen serves as the canonical "encoder features as physics-mode commitment" case.
