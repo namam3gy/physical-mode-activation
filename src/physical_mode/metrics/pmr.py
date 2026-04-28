@@ -105,14 +105,16 @@ _DESCRIBE_PHYSICS_STEMS: frozenset[str] = frozenset({
     "fall", "fell", "fallen", "drop", "dropp", "tumbl", "rolling", "roll",
     "bounc", "collid", "land", "hit", "hits", "moving", "move", "moves",
     "moved", "slid", "slide", "swung", "swing", "swings", "pull", "push",
-    "descend", "ascend",
+    "descend", "ascend", "impact",
     # State / pose verbs implying physical context
     "suspend", "hover", "float", "rest", "settl", "leans",
     # Physics nouns / phrases
     "gravit", "momentum", "mass", "weight", "weigh", "veloci",
     "trajector", "force", "motion", "kinetic",
     # Object-with-physical-context phrases (multi-word)
-    "in mid-air", "midair", "in the air",
+    "in mid-air", "midair", "in the air", "about to fall", "about to hit",
+    "about to impact", "about to land", "about to drop", "about to bounce",
+    "is about to", "going to fall", "going to hit",
 })
 
 # Abstract markers: phrases that explicitly *frame* the input as non-physical.
