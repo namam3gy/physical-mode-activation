@@ -103,6 +103,21 @@ def get_vision_layer(model, block_idx: int = -1):
     return blocks[idx], n
 
 
+def get_post_projection_layer(model):
+    """Resolve the post-projection (merger / projector) module to hook on.
+
+    Qwen2.5-VL: model.model.visual.merger (Qwen2_5_VLPatchMerger). Output dim
+    = LM embedding dim (3584 for 7B). Other architectures may need different
+    paths; for now Qwen-only is supported.
+    """
+    if hasattr(model, "model") and hasattr(model.model, "visual") and hasattr(model.model.visual, "merger"):
+        return model.model.visual.merger, 1
+    raise RuntimeError(
+        "Could not resolve post-projection module — this script's --hook-target merger "
+        "currently supports Qwen2.5-VL (model.model.visual.merger) only."
+    )
+
+
 @torch.no_grad()
 def run_with_hook(model, processor, pil, prompt, hook_module, hook_fn, device,
                   system_prompt: str | None = None, max_new_tokens: int = 32):
@@ -196,6 +211,12 @@ def main() -> None:
                    "Idefics2 (SigLIP-SO400M, 27 blocks) trained vision_hidden_23 "
                    "→ pass 23 (NOT last). Qwen / LLaVA-* / InternVL3 trained on "
                    "the last block.")
+    p.add_argument("--hook-target", choices=["block", "merger"], default="block",
+                   help="block=hook a vision-encoder block (pre-projection, default; "
+                   "matches the original M5b SAE protocol). merger=hook the "
+                   "post-projection projector (Qwen2.5-VL only). The SAE must be "
+                   "trained on the matching activations (post-projection SAE = "
+                   "merger output activations of dim 3584 for Qwen).")
     p.add_argument("--tag", default=None,
                    help="output subdirectory name (default: <sae-dir>.name + ranking + ts)")
     args = p.parse_args()
@@ -318,9 +339,13 @@ def main() -> None:
         args.model_id, torch_dtype=torch.bfloat16, device_map=args.device,
     )
     model.eval()
-    last_vis_layer, n_vis_layers = get_vision_layer(model, args.vision_block_idx)
-    eff_idx = args.vision_block_idx if args.vision_block_idx >= 0 else n_vis_layers + args.vision_block_idx
-    print(f"  Hooking vision encoder block {eff_idx} of {n_vis_layers}.")
+    if args.hook_target == "merger":
+        last_vis_layer, _ = get_post_projection_layer(model)
+        print(f"  Hooking post-projection module (Qwen merger output, LM-space).")
+    else:
+        last_vis_layer, n_vis_layers = get_vision_layer(model, args.vision_block_idx)
+        eff_idx = args.vision_block_idx if args.vision_block_idx >= 0 else n_vis_layers + args.vision_block_idx
+        print(f"  Hooking vision encoder block {eff_idx} of {n_vis_layers}.")
 
     rows = []
     t_start = time.time()
