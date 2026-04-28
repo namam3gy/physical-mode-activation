@@ -17,6 +17,9 @@ outputs/
 *.parquet
 *.npz
 
+# Hand-label sheets (user-specific; agreement results go in docs, not raw labels)
+describe_label_sheet*.csv
+
 # OS / editor
 .DS_Store
 .idea/
