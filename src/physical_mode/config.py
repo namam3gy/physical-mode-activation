@@ -52,6 +52,7 @@ PromptVariant = Literal[
     "forced_choice_no_label",
     "describe_scene",
     "meta_phys_yesno",
+    "meta_phys_mcq",
 ]
 
 

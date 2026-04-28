@@ -7,6 +7,7 @@ Variants:
   - `forced_choice_no_label`: 4-way MCQ with "the depicted object" antecedent, no label token. Companion to `open_no_label` for FC-side H2 null-hypothesis testing.
   - `describe_scene`: free-form scene description with a `{label}` referent (Track B Pillar A, M-MP). Tests whether physics-mode commitment fires under non-prediction prompts.
   - `meta_phys_yesno`: meta-categorization yes/no probe with a `{label}` referent (Track B Pillar A, M-MP). Direct probe of whether the model treats the input as a real-world physical event.
+  - `meta_phys_mcq`: meta-categorization 4-way MCQ probe with a `{label}` referent (Track B Pillar A audit follow-up). Same categorical task as `meta_phys_yesno` but in MCQ-letter format — dissociates "categorical task" from "yes/no binary format" in the gen-vs-cat finding.
 
 The `{label}` slot carries axis D of the factorial (circle / ball / planet /
 shape). The two `_no_label` variants are label-free by design; their `label`
@@ -66,6 +67,15 @@ META_PHYS_YESNO_TEMPLATE = (
     "The image shows a {label}. Is this a depiction of a real-world physical event "
     "(an object subject to gravity, mass, momentum, or other physical forces)? "
     "Answer with 'yes' or 'no', followed by a brief justification."
+)
+
+META_PHYS_MCQ_TEMPLATE = (
+    "The image shows a {label}. Which option best describes what this image depicts?\n"
+    "A) A real-world physical event (an object subject to gravity, mass, or momentum).\n"
+    "B) A geometric figure or abstract shape with no physical context.\n"
+    "C) A symbol, icon, or schematic diagram.\n"
+    "D) None of the above.\n"
+    "Answer with a single letter (A, B, C, or D), then briefly justify."
 )
 
 FC_CHOICES: tuple[str, ...] = ("A", "B", "C", "D")
@@ -167,5 +177,13 @@ def render(variant: str, label: str) -> RenderedPrompt:
             system=SYSTEM_PROMPT_OPEN,
             user=META_PHYS_YESNO_TEMPLATE.format(label=label),
             choice_letters=None,
+        )
+    if variant == "meta_phys_mcq":
+        return RenderedPrompt(
+            variant="meta_phys_mcq",
+            label=label,
+            system=SYSTEM_PROMPT_FC,
+            user=META_PHYS_MCQ_TEMPLATE.format(label=label),
+            choice_letters=FC_CHOICES,
         )
     raise ValueError(f"unknown prompt variant: {variant}")

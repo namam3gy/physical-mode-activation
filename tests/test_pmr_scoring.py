@@ -10,6 +10,7 @@ from physical_mode.metrics.pmr import (
     score_for_variant,
     score_gar,
     score_hold_still,
+    score_meta_phys_mcq,
     score_meta_yesno,
     score_pmr,
 )
@@ -227,3 +228,64 @@ def test_score_for_variant_open_no_label():
     """open_no_label variant routes to score_pmr."""
     assert score_for_variant("It falls.", "open_no_label") == 1
     assert score_for_variant("This is a static circle.", "open_no_label") == 0
+
+
+# ---------------------------------------------------------------------------
+# score_meta_phys_mcq — categorical MCQ probe (audit follow-up)
+# ---------------------------------------------------------------------------
+
+
+MCQ_A = [
+    "A",
+    "A.",
+    "A) A real-world physical event.",
+    "(A)",
+    "Answer: A",
+    "Answer: A) The ball is subject to gravity.",
+    "a) The image depicts a falling ball.",
+    "A: physical event",
+]
+
+MCQ_NOT_A = [
+    "B",
+    "B) A geometric figure.",
+    "(B)",
+    "C",
+    "C) A symbol or diagram.",
+    "Answer: D",
+    "D) None of the above.",
+    "b) abstract shape",
+    "(D) it's just a circle",
+]
+
+MCQ_UNPARSEABLE = [
+    "",
+    "I think this depicts...",
+    "The image shows a falling ball.",
+    "Maybe option B but I'm not sure",
+    "12345",
+    "Z) some other letter",
+]
+
+
+@pytest.mark.parametrize("text", MCQ_A)
+def test_meta_phys_mcq_option_a_returns_one(text):
+    assert score_meta_phys_mcq(text) == 1, f"Expected option A → 1 for: {text!r}"
+
+
+@pytest.mark.parametrize("text", MCQ_NOT_A)
+def test_meta_phys_mcq_other_options_return_zero(text):
+    assert score_meta_phys_mcq(text) == 0, f"Expected non-A option → 0 for: {text!r}"
+
+
+@pytest.mark.parametrize("text", MCQ_UNPARSEABLE)
+def test_meta_phys_mcq_unparseable_returns_minus_one(text):
+    assert score_meta_phys_mcq(text) == -1, f"Expected unparseable → -1 for: {text!r}"
+
+
+def test_score_for_variant_mcq_treats_unparseable_as_zero():
+    """meta_phys_mcq variant returns 1/0; -1 (unparseable) → 0."""
+    assert score_for_variant("A) physical event", "meta_phys_mcq") == 1
+    assert score_for_variant("B) abstract shape", "meta_phys_mcq") == 0
+    assert score_for_variant("Maybe", "meta_phys_mcq") == 0  # unparseable → 0
+    assert score_for_variant("", "meta_phys_mcq") == 0

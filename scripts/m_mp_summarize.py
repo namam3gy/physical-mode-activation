@@ -36,7 +36,12 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from physical_mode.metrics.pmr import score_describe, score_meta_yesno, score_pmr  # noqa: E402
+from physical_mode.metrics.pmr import (  # noqa: E402
+    score_describe,
+    score_meta_phys_mcq,
+    score_meta_yesno,
+    score_pmr,
+)
 
 
 MODEL_NAMES = ("Qwen", "LLaVA-1.5", "LLaVA-Next", "Idefics2", "InternVL3")
@@ -64,6 +69,7 @@ def _score_all(df: pd.DataFrame) -> pd.DataFrame:
     out["score_open"] = out["raw_text"].apply(score_pmr)
     out["score_describe"] = out["raw_text"].apply(score_describe)
     out["score_yesno"] = out["raw_text"].apply(score_meta_yesno)
+    out["score_mcq"] = out["raw_text"].apply(score_meta_phys_mcq)
     return out
 
 
@@ -74,6 +80,8 @@ def _resolve_pmr_for_prompt(row) -> int:
         return int(row["score_describe"])
     if row["prompt_variant"] == "meta_phys_yesno":
         return int(row["score_yesno"]) if row["score_yesno"] != -1 else 0
+    if row["prompt_variant"] == "meta_phys_mcq":
+        return int(row["score_mcq"]) if row["score_mcq"] != -1 else 0
     return 0
 
 

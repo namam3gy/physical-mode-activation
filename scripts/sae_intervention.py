@@ -52,6 +52,7 @@ PROMPT_MODE_TO_VARIANT = {
     "open": "open",
     "describe_scene": "describe_scene",
     "meta_phys_yesno": "meta_phys_yesno",
+    "meta_phys_mcq": "meta_phys_mcq",
 }
 
 
@@ -195,12 +196,13 @@ def main() -> None:
                    default="outputs/m5b_sip/manifest.csv",
                    help="FC mode: CSV with clean_sample_id column listing stim to use.")
     p.add_argument("--prompt-mode",
-                   choices=["fc", "open", "describe_scene", "meta_phys_yesno"],
+                   choices=["fc", "open", "describe_scene", "meta_phys_yesno", "meta_phys_mcq"],
                    default="fc",
                    help="fc=force-choice letter scoring (Qwen-original protocol); "
                    "open=free-text kinetic prediction + score_pmr; "
                    "describe_scene=free-form description + score_describe (Phase 3 cross-prompt); "
-                   "meta_phys_yesno=binary yes/no probe + score_meta_yesno (Phase 3 cross-prompt).")
+                   "meta_phys_yesno=binary yes/no probe + score_meta_yesno (Phase 3 cross-prompt); "
+                   "meta_phys_mcq=4-way categorical MCQ + score_meta_phys_mcq (Phase 3 audit follow-up).")
     p.add_argument("--stimulus-dir", type=Path, default=None,
                    help="OPEN mode: stimulus directory containing manifest.parquet + images/.")
     p.add_argument("--test-subset", default=None,
