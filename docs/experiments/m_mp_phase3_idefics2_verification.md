@@ -94,6 +94,44 @@ Original framing (`m_mp_phase3.md`):
 
 This refinement is **stronger and more nuanced** than "Idefics2 mechanism is narrower" — it explains *what happens on this cell* (framing shift, not break) and *suggests why* (encoder feature weakness, Cohen's d 0.35 vs Qwen 0.78). **Generalization caveat (audit 2026-04-28)**: the framing-shift claim covers exactly *one* (cell × intervention) — `shaded/ground/both` ball under top-k SAE ablation. The 30/30 quantification covers 10 stim × 3 k values of that cell with 1 unique intervention text ("The ball is in the air."), not 30 independent stimuli. The claim "Idefics2's encoder features encode kinetic-verb production specifically" is therefore **suggestive within this cell**, not architecture-level — confirming on a 2nd cell (e.g. `textured/ground/cast_shadow` ball) is required for an architecture-level claim. Currently scoped narrowly in paper writeup.
 
+### 2nd-cell test (audit follow-up 2026-04-28 evening)
+
+Cell selected: `textured/ground/cast_shadow ball` (audit recommendation).
+Result (`outputs/sae_intervention/idefics2_vis26_4608_2nd_cell/`):
+
+| Condition | n | kinetic (`fall|drop`) | suspended (`in the air`) | Unique outputs |
+|---|---|---|---|---|
+| baseline (k=0) | 10 | 0/10 | 10/10 | 1 |
+| top_k=160 | 10 | 0/10 | 10/10 | 1 |
+| top_k=320 | 10 | 0/10 | 10/10 | 1 |
+| top_k=500 | 10 | 0/10 | 10/10 | 1 |
+| random_0 (mass-matched) | 10 | **10/10** | 10/10 | 2 |
+
+**Unexpected baseline**: cell-2 produces "The ball is in the air." (suspended)
+at baseline, NOT a kinetic-verb output. The cell does not provide a fresh
+test of the cell-1 framing-shift claim — there are no kinetic verbs at
+baseline to ablate.
+
+**What cell-2 shows**:
+- **Top-k SAE ablation no-op**: removing the top-k physics-cue features has
+  zero observable effect on a baseline-suspended cell. This is **specificity
+  evidence**: the SAE features specifically target kinetic-verb production,
+  and when there's no kinetic verb to remove, ablation is silent.
+- **Random ablation introduces kinetic**: mass-matched random feature ablation
+  adds "and it is falling" to the baseline 10/10. This is the **opposite**
+  random-control pattern from cell-1 (where random retained kinetic baseline).
+  Random ablation may unlock a suppressed kinetic path on this physics-
+  ambiguous cell — interesting but not directly relevant to the cell-1 claim.
+
+**Architecture-level claim status**: ⚠️ partial. The 2nd cell does not
+demonstrate framing-shift on a fresh kinetic-baseline cell, so the cell-1
+finding remains scoped to that single cell × intervention. The 2nd cell
+DOES provide specificity evidence (SAE features are kinetic-verb-encoding
+rather than arbitrary perturbation). A full architecture-level lift would
+require a 3rd cell with kinetic baseline — left for Pillar B follow-up if
+needed. Audit follow-up doc:
+`docs/insights/m_mp_phase3_followup_2026-04-28.md`.
+
 For the paper:
 - Qwen serves as the canonical "encoder features as physics-mode commitment" case.
 - Idefics2 serves as a contrasting "encoder features as kinetic-verb-production" case.
