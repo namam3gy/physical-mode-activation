@@ -100,6 +100,43 @@ def score_meta_yesno(text: str) -> int:
     return -1
 
 
+# MCQ uses its own prefix regex that does NOT accept bare "a" as a prefix
+# (since "A" is a valid MCQ answer letter). Only "Answer:" / "Response:"
+# prefixes are stripped before letter parsing.
+_MCQ_PREFIX_RE = re.compile(r"^\s*(?:answer|response)\s*[:\-]\s*", re.IGNORECASE)
+_MCQ_LETTER_RE = re.compile(r"^\s*\(?([A-Da-d])(?:[\)\.\:]|\s|$)")
+
+
+def score_meta_phys_mcq(text: str) -> int:
+    """1 if option A (physical event); 0 if B/C/D; -1 if unparseable.
+
+    Used for the `meta_phys_mcq` prompt: "Which option best describes what
+    this image depicts? A) physical event ... B) geometric ... C) symbol ...
+    D) none." Companion to `meta_phys_yesno` — same categorical task, MCQ
+    format instead of yes/no binary. Used to dissociate "task type" from
+    "format" in the generative-vs-categorical finding (audit follow-up).
+
+    Parsing tolerates leading "Answer:" / "Response:" prefixes and "(A)" /
+    "A)" / "A." / "A:" forms before the letter.
+
+    A → 1 (physical event = physics-mode commitment)
+    B/C/D → 0 (geometric / symbol / none = no physics-mode commitment)
+    other / no leading letter → -1 (unparseable)
+    """
+    if not text:
+        return -1
+    stripped = _MCQ_PREFIX_RE.sub("", text.strip())
+    m = _MCQ_LETTER_RE.match(stripped)
+    if not m:
+        return -1
+    letter = m.group(1).upper()
+    if letter == "A":
+        return 1
+    if letter in ("B", "C", "D"):
+        return 0
+    return -1
+
+
 _DESCRIBE_PHYSICS_STEMS: frozenset[str] = frozenset({
     # Action verbs implying motion / dynamics
     "fall", "fell", "fallen", "drop", "dropp", "tumbl", "rolling", "roll",
@@ -172,8 +209,8 @@ def score_for_variant(text: str, variant: str) -> int:
     Returns 1/0 in all cases. Used by Phase 3 cross-prompt M5a/M5b runs
     where a single run uses one prompt and we want a uniform pmr column.
 
-    For `meta_phys_yesno`, unparseable (-1) is treated as 0 (no
-    physics-mode commitment) so the pmr column stays binary.
+    For `meta_phys_yesno` and `meta_phys_mcq`, unparseable (-1) is treated
+    as 0 (no physics-mode commitment) so the pmr column stays binary.
     """
     if variant in ("open", "open_no_label"):
         return score_pmr(text)
@@ -181,6 +218,9 @@ def score_for_variant(text: str, variant: str) -> int:
         return score_describe(text)
     if variant == "meta_phys_yesno":
         s = score_meta_yesno(text)
+        return s if s != -1 else 0
+    if variant == "meta_phys_mcq":
+        s = score_meta_phys_mcq(text)
         return s if s != -1 else 0
     # forced_choice / forced_choice_no_label rely on letter parsing,
     # not raw_text scoring; fall back to score_pmr for raw_text cases.
