@@ -1,6 +1,7 @@
 ---
 section: M2 cross-model (M6 r7)
 date: 2026-04-26
+v2_scorer_note: "2026-04-28 — Qwen M2 PMR is unaffected at the cross-model capture run (mvp_full_20260424 had v1 scorer; the cross-model captures m6_r7 from 2026-04-26 used current scorer). 5-model PMR ladder is robust."
 status: complete (5-model M2-stim coverage with bootstrap CIs + per-model v_L extraction)
 hypothesis: M2's H1/H2/H7 protocol generalizes across the 5-model chain in a way the architecture-level reframe predicts
 ---

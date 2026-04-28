@@ -36,7 +36,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_all_activations(activations_dir: Path, layer_key: str) -> tuple[torch.Tensor, list[str]]:
-    """Concatenate (n_visual_tokens × n_stim, d_in) activations across all stim."""
+    """Concatenate (n_visual_tokens × n_stim, d_in) activations across all stim.
+
+    Supports both 2D shape (single-tile: n_tokens, d_in) and 3D shape
+    (multi-tile: n_tiles, n_tokens, d_in) — multi-tile is flattened
+    to (n_tiles * n_tokens, d_in) per stim before concat.
+    """
     files = sorted(activations_dir.glob("*.safetensors"))
     print(f"Loading {len(files)} activation files for {layer_key}...")
     all_acts = []
@@ -45,11 +50,12 @@ def load_all_activations(activations_dir: Path, layer_key: str) -> tuple[torch.T
         d = st.load_file(f)
         if layer_key not in d:
             continue
-        # Use visual_token_mask if available to filter to visual tokens only.
-        # vision_hidden_* are already vision-token-only (1296 tokens, no LM positions).
-        all_acts.append(d[layer_key])
+        a = d[layer_key]
+        if a.dim() == 3:
+            a = a.reshape(-1, a.shape[-1])
+        all_acts.append(a)
         sample_ids.append(f.stem)
-    out = torch.cat(all_acts, dim=0).float()  # (N_total_tokens, d_in)
+    out = torch.cat(all_acts, dim=0).float()
     print(f"  → {out.shape[0]:,} tokens × {out.shape[1]} dim ({len(sample_ids)} stim).")
     return out, sample_ids
 
@@ -62,7 +68,10 @@ def split_phys_abstract(
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Aggregate per-sample mean PMR; return concat of activations from
     physics-mode (mean_pmr ≥ pmr_phys_threshold) and abstract (≤ pmr_abs_threshold) stim."""
-    df = pd.read_csv(predictions_csv)
+    if predictions_csv.suffix == ".parquet":
+        df = pd.read_parquet(predictions_csv)
+    else:
+        df = pd.read_csv(predictions_csv)
     sample_pmr = df.groupby("sample_id")["pmr"].mean()
     phys_ids = set(sample_pmr[sample_pmr >= pmr_phys_threshold].index)
     abs_ids = set(sample_pmr[sample_pmr <= pmr_abs_threshold].index)
@@ -77,6 +86,8 @@ def split_phys_abstract(
         if layer_key not in d:
             continue
         a = d[layer_key].float()
+        if a.dim() == 3:
+            a = a.reshape(-1, a.shape[-1])
         if sid in phys_ids:
             phys_acts.append(a)
         elif sid in abs_ids:
@@ -94,6 +105,11 @@ def main() -> None:
     p.add_argument("--layer-key", default="vision_hidden_31")
     p.add_argument("--n-features", type=int, default=5120,
                    help="SAE feature count (4x expansion for d=1280)")
+    p.add_argument("--pmr-phys-threshold", type=float, default=0.667,
+                   help="per-stim mean PMR threshold to label as physics-mode")
+    p.add_argument("--pmr-abs-threshold", type=float, default=0.333,
+                   help="per-stim mean PMR threshold to label as abstract; "
+                   "loosen to 0.5 for saturated models (LLaVA-Next / Idefics2)")
     p.add_argument("--n-steps", type=int, default=5000)
     p.add_argument("--batch-size", type=int, default=4096)
     p.add_argument("--lr", type=float, default=1e-3)
@@ -122,17 +138,25 @@ def main() -> None:
     print("Identifying physics-cue features...")
     phys_acts, abs_acts = split_phys_abstract(
         args.activations_dir, args.layer_key, sample_ids, args.predictions,
+        pmr_phys_threshold=args.pmr_phys_threshold,
+        pmr_abs_threshold=args.pmr_abs_threshold,
     )
     ranked = rank_physics_features(sae, phys_acts, abs_acts, top_k=50)
     rank_df = pd.DataFrame({
         "feature_idx": list(range(sae.d_features)),
         "mean_phys": ranked["mean_phys"].numpy(),
         "mean_abs": ranked["mean_abs"].numpy(),
+        "std_phys": ranked["std_phys"].numpy(),
+        "std_abs": ranked["std_abs"].numpy(),
+        "pooled_std": ranked["pooled_std"].numpy(),
         "delta": ranked["delta"].numpy(),
+        "cohens_d": ranked["cohens_d"].numpy(),
     }).sort_values("delta", ascending=False)
     rank_df.to_csv(out_dir / "feature_ranking.csv", index=False)
     print("\n=== Top 10 physics-cue features (by delta) ===")
     print(rank_df.head(10).to_string(index=False))
+    print("\n=== Top 10 physics-cue features (by Cohen's d) ===")
+    print(rank_df.sort_values("cohens_d", ascending=False).head(10).to_string(index=False))
 
     print(f"\nWrote SAE + metrics + ranking → {out_dir}")
 

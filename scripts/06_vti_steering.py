@@ -34,10 +34,11 @@ from physical_mode.probing.steering import load_steering_vectors
 
 def _resolve_lm_layers(model) -> list:
     inner = getattr(model, "model", model)
-    lm = getattr(inner, "language_model", None)
-    if lm is None:
-        raise RuntimeError("could not find language_model submodule")
-    return lm.layers
+    for attr in ("language_model", "text_model"):
+        lm = getattr(inner, attr, None)
+        if lm is not None and hasattr(lm, "layers"):
+            return lm.layers
+    raise RuntimeError("could not find language_model/text_model submodule with .layers")
 
 
 def make_hook(alpha: float, v: torch.Tensor):

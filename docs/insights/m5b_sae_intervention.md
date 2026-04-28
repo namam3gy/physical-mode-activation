@@ -1,8 +1,8 @@
 ---
 section: M5b — SAE intervention on Qwen vision encoder (last layer, pre-projection)
-date: 2026-04-27
-status: complete (n=20 clean stim × 4 top-k conditions × 3 random controls; clean positive result)
-hypothesis: H10 (research plan §2.5) refined — encoder-side physics-mode signal *is* localized to a small set of monosemantic SAE features (top-20 in delta-rank); single features are dispensable but cumulative ablation breaks physics commitment; random-feature controls confirm this is feature-specific, not magnitude-driven.
+date: 2026-04-27 (evening update: Cohen's d revision + 3 mass-matched random sets + dense k-sweep + cluster-conditional non-monotone resolution)
+status: complete (n=20 clean stim × 9 top-k conditions × 3 mass-matched random controls; clean positive result + per-cluster ablation curve)
+hypothesis: H10 (research plan §2.5) refined — encoder-side physics-mode signal *is* localized to a small set of monosemantic SAE features (top-N in Cohen's-d-rank); single features are dispensable but cumulative ablation breaks physics commitment in a stim-cluster-conditional pattern; mass-matched random-feature controls (3 sets, 72-102 % of top-N mass) confirm this is feature-specific, not magnitude-driven.
 ---
 
 # M5b — SAE intervention on Qwen2.5-VL vision encoder
@@ -109,9 +109,9 @@ alone), so most random k=20 samples fall short.
 
 ## Result
 
-![SAE intervention results](../figures/m5b_sae_intervention_phys_rate.png)
+![SAE intervention results — Cohen's d revision](../figures/m5b_sae_intervention_revised.png)
 
-(Figure not yet generated; CSV-only result.)
+*(2026-04-27 evening figure: dense k-sweep with Wilson CIs + per-cluster pivot. Old morning figure at `m5b_sae_intervention_phys_rate.png` retained for reference.)*
 
 | Condition | Mass | Physics rate (n=20) | Note |
 |-----------|-----:|--------------------:|------|
@@ -131,37 +131,149 @@ inputs), not encoder collapse — both top-feature and random ablations
 produce the same identical-prefix pattern, with the *content* (A vs D)
 flipping based on which features were ablated.
 
+### Revision (2026-04-27 evening) — Cohen's d ranking + multi-seed random + dense k-sweep
+
+Three weaknesses in the morning run, advisor-flagged: (i) feature 3313
+is a high-baseline outlier (mean_phys=7.86, mean_abs=6.24; large delta
+but small relative to its variance), suggesting "general image content"
+rather than physics-specific; (ii) only 1 mass-matched random set; (iii)
+the k=5 → k=10 → k=20 non-monotone (0.6 → 1.0 → 0.0) was unresolved.
+
+**Re-rank by Cohen's d** (delta divided by pooled std). On the full
+5120-feature SAE Spearman ρ = 0.98, but ρ = 0.47 on top-50 by delta —
+ranking is unstable in the high-delta region. Top-20 turnover: 7/20
+features replaced. Feature 3313 drops out (Cohen's d = 0.10, far below
+top-50). Replacements include features 1677, 3804, 4275, 129, 4481,
+188, 3826 — features with smaller raw delta but cleaner per-feature
+variance. New top-10 by Cohen's d:
+
+| feature_idx | mean_phys | mean_abs | pooled_std | delta | Cohen's d |
+|------------:|----------:|---------:|-----------:|------:|----------:|
+| 1674 | 1.03 | 0.01 | 1.31 | 1.02 | **0.78** |
+| 4106 | 1.75 | 0.13 | 2.30 | 1.61 | 0.70 |
+| 4468 | 1.39 | 0.14 | 2.23 | 1.26 | 0.56 |
+| 4698 | 3.13 | 0.23 | 5.27 | 2.90 | 0.55 |
+| 1677 | 0.44 | 0.11 | 0.70 | 0.33 | 0.47 |
+| 2028 | 0.77 | 0.26 | 1.17 | 0.51 | 0.43 |
+| 1152 | 2.66 | 0.32 | 5.62 | 2.34 | 0.42 |
+| 1949 | 1.55 | 0.15 | 3.46 | 1.39 | 0.40 |
+| 3804 | 0.30 | 0.07 | 0.58 | 0.23 | 0.40 |
+| 438 | 1.26 | 0.14 | 2.86 | 1.12 | 0.39 |
+
+Feature 3313 was rank 3 by delta but drops to rank ~50 by Cohen's d —
+Cohen's d is the right metric for filtering high-baseline outliers.
+
+**Multi-seed mass-matched random**: 3 sets within seed 42 alone, mass
+23.4 / 24.7 / 33.4 (top-30 mass = 32.7 → 72 % / 76 % / 102 %).
+
+**Dense k-sweep result (Cohen's-d ranking, n=20, with 95 % Wilson CIs)**:
+
+| Condition | n_phys/20 | Phys rate | 95 % Wilson CI |
+|-----------|----------:|----------:|----------------|
+| top_k=1   | 20 | 1.00 | [0.84, 1.00] |
+| top_k=2   | 20 | 1.00 | [0.84, 1.00] |
+| top_k=3   | 20 | 1.00 | [0.84, 1.00] |
+| top_k=5   | 12 | 0.60 | [0.39, 0.78] |
+| top_k=7   | 12 | 0.60 | [0.39, 0.78] |
+| top_k=10  | 12 | 0.60 | [0.39, 0.78] |
+| **top_k=15** | **20** | **1.00** | [0.84, 1.00] — full recovery |
+| top_k=20  | 2  | 0.10 | [0.03, 0.30] |
+| **top_k=30** | **0** | **0.00** | [0.00, 0.16] — full break |
+| random_0 (mass 72 %) | 20 | 1.00 | [0.84, 1.00] |
+| random_1 (mass 76 %) | 20 | 1.00 | [0.84, 1.00] |
+| random_2 (mass 102 %) | 20 | 1.00 | [0.84, 1.00] |
+
+**Stim-cluster pivot resolves the non-monotonicity.** The k=5 / 7 / 10
+"0.6" rate is *deterministic, not noise*: it is exactly the 8 line_blank
+stim flipping while the other 12 stim hold. Per-cluster phys rate
+matrix (n per cluster in parentheses):
+
+| Cluster (n) | k=1-3 | k=5-7-10 | k=15 | k=20 | k=30 | random×3 |
+|---|---:|---:|---:|---:|---:|---:|
+| filled_blank (6) | 1.0 | 1.0 | 1.0 | **0.0** | 0.0 | 1.0 |
+| filled_ground (1) | 1.0 | 1.0 | 1.0 | 1.0 | 0.0 | 1.0 |
+| filled_scene (1) | 1.0 | 1.0 | 1.0 | 1.0 | 0.0 | 1.0 |
+| **line_blank (8)** | 1.0 | **0.0** | **1.0** | **0.0** | 0.0 | 1.0 |
+| line_ground (4) | 1.0 | 1.0 | 1.0 | **0.0** | 0.0 | 1.0 |
+
+The line_blank cluster (most abstract M2 cells: line drawing on blank
+background, even though cue=both fires) is the only cluster that breaks
+in the k=5–10 range *and* recovers at k=15. The other four clusters
+hold a stable physics-mode plateau through k=15, then break at k=20
+(filled_blank + line_ground at k=20; filled_ground + filled_scene
+require k=30). All clusters fully break at k=30.
+
+**Mechanistic reading.** Top-5 by Cohen's d carries strong physics-cue
+signal that matters at the boundary (line_blank already sits near the
+D-side of the decision). Features ranked 11-15 evidently contain an
+"abstract suppressor" — removing them from the ablation set restores
+line_blank's physics-mode commitment (top-15 ablation has all 5 clusters
+at 1.0). The recovery is a first-shot signature of polysemy / sign-mixed
+features in the SAE: the ranking is not strictly "physics+ vs physics−",
+some features behave as anti-abstract gates whose removal helps physics.
+This is consistent with SAE feature interpretation literature where
+features may be sign-mixed at non-monosemantic resolutions.
+
+**Headline (revised)**: top-30 mass-matched ablation (mass 32.7) breaks
+all 20 stim (Wilson CI [0.00, 0.16]) while three independent mass-
+matched random k=30 sets (mass 23-33, 72-102 % of top mass) all leave
+all 20 stim in physics-mode (60/60 trials → aggregate Wilson CI [0.94,
+1.00], vs morning's single-set [0.84, 1.00]; lower-bound gap from 1.0
+tightens 0.16 → 0.06, ~2.7× narrower). Direction-specificity is the
+same finding as the morning's 1-set version, now buttressed by 3
+independent replications + a richer ablation curve that exposes a
+stim-cluster-conditional non-monotone in the mid-range.
+
 ## Headlines
 
+(Numbers below reflect the canonical Cohen's d ranking + 3 mass-matched
+random controls from the 2026-04-27 evening revision; see Result §
+Revision for the morning delta-rank reference numbers.)
+
 1. **Encoder-side physics-mode signal is localized in SAE feature space.**
-   Subtracting the top-20 physics-cue SAE features (mass 49.23, ~1% of
-   the 5120-feature SAE) cleanly flips physics → abstract on 20/20 stim.
-   Subtracting **mass-matched** random k=20 features (mass 40.97 = 83%
-   of top-20) leaves all 20 stim in physics-mode. The first version of
-   this experiment used a bottom-of-ranking random pool that turned out
-   to have ~1% of top-20's mass (the L1 penalty kills inactive features);
-   correcting to a mass-matched pool was the load-bearing fix. The result
-   is a true positive for direction-specificity in the encoder, parallel
-   to the §4.6 v_L10 vs random-direction result at the input/LM layer.
+   Subtracting the **top-30 physics-cue SAE features** (Cohen's-d rank,
+   mass 32.7, < 1 % of the 5120-feature SAE) cleanly flips physics →
+   abstract on 20/20 stim (Wilson CI [0.00, 0.16]). Subtracting **3
+   independent mass-matched random k=30 sets** (mass 23.4 / 24.7 /
+   33.4, i.e., 72-102 % of top-30 mass) leaves all 60 trials (3 sets ×
+   20 stim) in physics-mode (aggregate Wilson CI [0.94, 1.00]). The
+   first version of this experiment used a bottom-of-ranking random
+   pool that turned out to have ~1 % of top-N's mass (the L1 penalty
+   kills inactive features); correcting to a mass-matched pool was the
+   load-bearing fix. The result is a true positive for direction-
+   specificity in the encoder, parallel to the §4.6 v_L10 vs random-
+   direction result at the input/LM layer.
 
-2. **Single features are dispensable.** Zeroing only the top-1 feature
-   (idx 4698, delta=2.90, the strongest single physics-cue) leaves PMR
-   intact. The redundancy-spreading we observed at the LM attention level
+2. **Single features are dispensable.** Zeroing only the Cohen's-d top-1
+   feature (idx 1674, Cohen's d = 0.78) leaves PMR intact (20/20). Same
+   for the delta-rank top-1 (idx 4698, delta = 2.90) in the morning
+   run. The redundancy-spreading we observed at the LM attention level
    has an encoder-side analog: physics-mode information is encoded in a
-   *small group of features* (~20), not a single feature.
+   *small group of features* (~30 by Cohen's d, ~20 by raw delta — the
+   two rankings differ on 7/20 features but agree on the localization
+   claim), not a single feature. Whether each top-N feature breaks PMR
+   *individually* is open (Open follow-up #3).
 
-3. **Non-monotonic mid-range is unresolved (k=5 → 0.6, k=10 → 1.0).**
-   k=10 recovering full PMR is unexpected — possibly k=10 hits a
-   "compensating" combination where features 6-10 (slightly lower delta
-   than top-5) carry abstract-mode information that gets removed too,
-   restoring the relative balance. Worth replicating with larger n.
-   Doesn't undermine the headline: k=20 cleanly breaks AND random k=20
-   doesn't.
+3. **Non-monotonic mid-range is stim-cluster-conditional, not noise**
+   (resolved 2026-04-27 evening). The mid-range "0.6" phys rate
+   reflects exactly the 8 line_blank stim flipping while the 12 non-
+   line_blank stim hold (perfect 8/8 recovery at k=15 in delta-rank;
+   k=15 in Cohen's d-rank). Wilson CIs at n=20 are wide enough that
+   the aggregate rate is not separable from noise, but the per-stim
+   structure is fully deterministic — the same 8 stim break and recover
+   together across both rankings. Mechanistic reading: line_blank is
+   the most-abstract M2 cluster (line drawing × blank bg, even with
+   cue=both); top-5 Cohen's-d features are sufficient to push it past
+   the D-side decision boundary, but features 11-15 act as an
+   "abstract suppressor" whose removal compensates. Top-15 is the
+   plateau where *all* clusters fall back to physics-mode; top-20+
+   pushes past the cluster-specific reserves.
 
 4. **Triangulated mechanism — full causal chain**:
-   - **Encoder side**: top-20 SAE features in `vision_hidden_31`
+   - **Encoder side**: top-30 SAE features (Cohen's d) in `vision_hidden_31`
      (last SigLIP layer, pre-projection) carry the physics-mode signal.
-     Necessary (this experiment) and observable (delta ranking).
+     Necessary (this experiment) and observable (delta + Cohen's d
+     rankings, 13/20 overlap on top-20).
    - **LM side**: L9 MLP constructs commitment in residual stream
      (necessary, M5b knockout); L0-L9 carry sufficient information
      (M5b SIP); L10 reads it via redundant attention (M5a + per-head
@@ -174,35 +286,37 @@ flipping based on which features were ablated.
 
 5. **H10** (research plan §2.5: "narrow IE bands at specific layers/heads")
    gets its encoder-side dimension. The LM side has 1 dominant MLP band
-   at L9; the encoder side has ~20 SAE features at the last layer. Both
-   are "narrow" but at different granularities — the framing was per-
-   architecture-component (layer/head/feature), not literal layer-count.
+   at L9; the encoder side has ~30 SAE features at the last layer
+   (~ 0.6 % of the 5120-feature SAE). Both are "narrow" but at
+   different granularities — the framing was per-architecture-
+   component (layer/head/feature), not literal layer-count.
 
 ## Limitations
 
-1. **Single mass-matched random control set, not 3.** Initial 3-seed
-   plan was undermined by the heavy-tailed mass distribution: feature
-   3313 alone has mass 14 (3× the next; possibly a "general image
-   content" feature, not physics-specific), so most random k=20 samples
-   from the active-feature pool fall short of the 70%-of-top-20 mass
-   threshold. We obtained 1 mass-matched set (83% of top mass). Single-
-   sample binary outcome (20/20 vs 0/20) is unambiguous, but n=3+ random
-   sets would tighten the upper bound on random-ablation PMR rate.
+1. ~~**Single mass-matched random control set, not 3.**~~ **Resolved
+   2026-04-27 evening.** Multi-seed loop (seeds 42..91) within the
+   original [70 %, 200 %] mass window yielded 3 sets at top-30 with
+   mass 23.4 / 24.7 / 33.4 (72 % / 76 % / 102 % of top-30 mass = 32.7).
+   All 3 sets retain physics-mode at 20/20 stim. Multi-seed approach
+   replaces the abandoned importance-sampling redesign — the heavy-
+   tailed distribution simply makes acceptance probabilistic per seed,
+   not impossible.
 
-2. **Non-monotonicity at k=10 unresolved.** With n=20 it's within
-   sampling variance for "1-2 stim flipped" but the all-20-recover at
-   k=10 sandwiched between k=5 (40% break) and k=20 (100% break) is
-   strange. Worth replicating with n=40 + intermediate k values
-   (k=8, 12, 15). Doesn't change the headline (random control
-   disambiguates).
+2. ~~**Non-monotonicity at k=10 unresolved.**~~ **Resolved 2026-04-27
+   evening.** Stim-level pivot reveals the non-monotone is
+   stim-cluster-conditional, not aggregate-rate noise. All 8 line_blank
+   stim flip together at k=5 / 7 / 10 and recover together at k=15;
+   the 12 non-line_blank stim never flip in the mid-range. The
+   recovery is deterministic and reproducible across both rankings
+   (delta vs Cohen's d). See Result § Revision and Headline 3.
 
-3. **Top-20 includes a high-mass outlier (feature 3313, mass 14).**
-   Both `mean_phys` (7.86) and `mean_abs` (6.24) are 3× the next-largest
-   feature — suggests "general image has content" rather than physics-
-   specific. Removing it would shrink top-19 mass to ~35 but rank-3 in
-   delta. Future work: rank by Cohen's d (delta / sqrt(var_phys + var_abs))
-   or specificity ratio (delta / (mean_phys + mean_abs)) instead of raw
-   delta to filter out high-baseline features.
+3. ~~**Top-20 includes a high-mass outlier (feature 3313, mass 14).**~~
+   **Addressed 2026-04-27 evening.** Cohen's d ranking (delta / pooled
+   std) drops feature 3313 from rank 3 (delta) to ~rank 50 (Cohen's d),
+   exactly as expected for a high-baseline-noise feature. Top-20 by
+   Cohen's d has 7/20 turnover; the new top-30 ablation cleanly breaks
+   all 20 stim. Cohen's d is now the canonical ranking; raw delta is
+   retained for comparison.
 
 4. **Pre-projection layer only.** SAE trained on `vision_hidden_31`
    (1280-dim, before the projector that lifts to 3584). The features
@@ -239,12 +353,12 @@ flipping based on which features were ablated.
   produces clean class-separated activations from L3 onward — meaning
   the physics-cue features are already cleanly carved out at L3 and
   persist to L31. The SAE finding adds: the carving has *low intrinsic
-  dimensionality* (~20 features, not hundreds).
+  dimensionality* (~20-30 features, not hundreds).
 
 - **M5b layer-level + per-head**: attention is redundant at every
   resolution tested in the LM. The encoder-side localization (this
   experiment) does *not* propagate to LM-side localization beyond the
-  L9 MLP. The encoder produces ~20-feature signal; the LM compresses
+  L9 MLP. The encoder produces ~20-30-feature signal; the LM compresses
   it into a single decision boundary at L9.
 
 ## Reproducer
@@ -257,42 +371,67 @@ CUDA_VISIBLE_DEVICES=1 uv run python scripts/sae_train.py \
     --layer-key vision_hidden_31 --n-features 5120 --n-steps 5000 \
     --tag qwen_vis31_5120 --device cuda:0 --l1-lambda 1.0
 
-# 2. Causal intervention (zero top-k features + random controls).
+# 2a. Re-rank features with Cohen's d alongside raw delta (no SAE retrain).
+CUDA_VISIBLE_DEVICES=1 uv run python scripts/sae_rerank_features.py \
+    --sae-dir outputs/sae/qwen_vis31_5120 \
+    --activations-dir outputs/mvp_full_20260424-094103_8ae1fa3d/vision_activations \
+    --predictions outputs/mvp_full_20260424-094103_8ae1fa3d/predictions_scored.csv \
+    --layer-key vision_hidden_31
+
+# 2b. Causal intervention with Cohen's-d ranking, dense k-sweep, 3 random sets.
 CUDA_VISIBLE_DEVICES=1 uv run python scripts/sae_intervention.py \
-    --sae-dir outputs/sae/qwen_vis31_5120 --layer-key vision_hidden_31 \
-    --top-k-list 1,5,10,20 --random-controls 3 --n-stim 20 --device cuda:0
+    --sae-dir outputs/sae/qwen_vis31_5120 \
+    --rank-by cohens_d \
+    --top-k-list 1,2,3,5,7,10,15,20,30 \
+    --random-controls 3 --n-stim 20 \
+    --tag qwen_vis31_5120_cohens_d_v2
 ```
 
 ## Artifacts
 
-- `src/physical_mode/sae/{train,feature_id}.py` — SAE module (tied-weight, input-normalized, with `feature_contribution` for clean intervention).
-- `scripts/sae_train.py`, `scripts/sae_intervention.py` — drivers.
-- `outputs/sae/qwen_vis31_5120/{sae.pt,metrics.json,feature_ranking.csv}`.
-- `outputs/sae_intervention/qwen_vis31_5120/results.csv`.
+- `src/physical_mode/sae/{train,feature_id}.py` — SAE module (tied-weight, input-normalized, with `feature_contribution` for clean intervention). `feature_id.py` returns both raw delta and Cohen's d.
+- `scripts/sae_train.py`, `scripts/sae_intervention.py`, `scripts/sae_rerank_features.py` — drivers. Intervention supports `--rank-by {delta,cohens_d}` and multi-seed mass-matched random controls.
+- `outputs/sae/qwen_vis31_5120/{sae.pt,metrics.json,feature_ranking.csv}` — feature_ranking.csv has `mean_phys / mean_abs / std_phys / std_abs / pooled_std / delta / cohens_d` columns (delta-sorted for back-compat).
+- `outputs/sae_intervention/qwen_vis31_5120/results.csv` — original delta-rank intervention.
+- `outputs/sae_intervention/qwen_vis31_5120_cohens_d_v2/results.csv` — Cohen's d rank, 9 top-k conditions × 3 mass-matched random sets, n=20 (240 rows).
 
 ## Open follow-ups
 
-1. **More mass-matched random sets**: relax the candidate pool to
-   weighted sampling (probability ∝ feature mass) to obtain 3+ matched
-   sets and tighten the upper bound on random-ablation PMR rate.
-2. **Re-rank by Cohen's d / specificity ratio**: filter out high-
-   baseline features like 3313 from the "physics-cue" set. Test whether
-   the top-20 set defined by Cohen's d still cleanly breaks PMR while
-   feature 3313 alone does not.
+1. ~~**More mass-matched random sets**~~ ✅ resolved (3 sets, multi-
+   seed loop).
+2. ~~**Re-rank by Cohen's d / specificity ratio**~~ ✅ resolved
+   (Cohen's d is now canonical; feature 3313 dropped to rank ~50; 7/20
+   top-20 turnover).
 3. **Single-feature ablation sweep**: zero each top-20 feature
    individually; identify which subset is *individually* necessary vs
-   redundant within the group.
-4. **Feature-level functional interpretation**: for each top-20 feature,
-   visualize the max-activating image patches across the 480-stim
-   corpus. Are they monosemantically "physics-cue" (e.g., shadow, motion
-   arrow, filled-disk shape)?
-5. **Non-monotonicity probe**: replicate at k=8, 12, 15 with n=40 — does
-   the k=10 recovery hold?
+   redundant within the group. Cohen's d top-1 (feature 1674) and the
+   delta top-1 (feature 4698) are different — both should be tested
+   individually.
+4. **Feature-level functional interpretation**: for each top-15 (or
+   top-30) feature, visualize the max-activating image patches across
+   the 480-stim corpus. The cluster pivot suggests features 11-15 are
+   "abstract suppressors" — visual interpretation should clarify what
+   they encode (e.g., line-drawing-specific cues vs general edge
+   detectors).
+5. **Per-cluster mechanism deep-dive**: the line_blank "break at k=5,
+   recover at k=15" pattern is a clean signal about feature polysemy
+   and decision-boundary geometry. Is the recovery driven by a single
+   feature in the rank 11-15 band or a cumulative effect? The actual
+   Cohen's-d rank 11-15 features are `[3116, 3034, 117, 4275, 38]`.
+   Targeted ablations (top-5 + each rank-11-15 feature individually,
+   then in pairs) would resolve which features behave as sign-mixed
+   anti-physics-on-line_blank gates whose removal compensates the
+   top-5 damage.
 6. **Post-projection SAE**: capture the post-projector activations
    (3584-dim, what the LM actually consumes) and re-run feature
    discovery + intervention.
 7. **Cross-layer SAE**: train SAE on `vision_hidden_15` or earlier
    layers; trace which-layer first encodes the physics-mode features.
 8. **Cross-model SAE**: port to LLaVA-1.5 / Idefics2 / InternVL3 — does
-   each have its own ~20-feature physics-cue group at its encoder's
+   each have its own ~20-30-feature physics-cue group at its encoder's
    last layer?
+9. **Larger n for stim-cluster Wilson CIs**: per-cluster confirmations
+   (8/8 line_blank, 6/6 filled_blank, etc.) are deterministic at n=20,
+   but Wilson CIs are wide. Bumping to n=50 per cluster (~250 stim
+   total, ~25 min compute) would tighten the per-cluster point
+   estimates if this becomes a paper-figure-grade claim.

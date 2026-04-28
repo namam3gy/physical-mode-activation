@@ -1,5 +1,11 @@
 # M4b — Label-Free Prompt as H2 Null-Hypothesis Test
 
+> **2026-04-28 scorer update**: PMR numbers in this doc were computed
+> with the v1 scorer. Current scorer reclassifies 5/480 (1.0 %) Qwen
+> label-free rows as abstract; **overall Qwen no-label PMR 0.948 →
+> 0.938**. Paired (ball/circle/planet) deltas vs no-label preserved.
+> See `docs/insights/scorer_regression_audit_2026-04-28.md`.
+
 > **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
 >
 > - **H2** — The label (ball / circle / planet) independently raises PMR even on minimal stim — a language-prior contribution beyond the visual evidence.

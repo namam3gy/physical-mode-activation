@@ -1,5 +1,12 @@
 # M1 Pilot Insights
 
+> **2026-04-28 scorer update**: PMR numbers in this doc were computed
+> with the v1 scorer. Current scorer reclassifies 6/480 (1.3 %) pilot
+> Qwen rows as abstract; **overall Qwen pilot PMR 0.671 → 0.658**.
+> All H1/H2/H4/H5/H6 ramps and paired deltas preserved (same
+> direction, narrower amplitude). See
+> `docs/insights/scorer_regression_audit_2026-04-28.md`.
+
 > **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
 >
 > - **H1** — PMR rises in an S-shape along the abstraction axis (line → filled → shaded → textured); ground introduction adds the largest single jump.

@@ -118,12 +118,12 @@ def slide_04_contributions(prs):
          "방향 `v_L10` 이 존재. forward-hook 으로 +α=40 더하면 line/blank/none "
          "stim 의 10/10 이 \"D: abstract\" → \"B: stays still\" flip. "
          "다른 layer 는 같은 α 로 안 움직임.", 16),
-        ("**Pixel encodability — encoder-saturation 특이적**: Qwen 에서 "
-         "픽셀-공간 gradient ascent (ε=0.05) 로 5/5 PMR flip. 매칭 magnitude "
-         "random direction 은 0/15. **그러나 cross-model null**: 4 비-Qwen "
-         "모델에 transfer 안 되고, LLaVA-1.5 자체 v_L10 으로도 0/5 flip "
-         "(projection 은 Qwen 매칭). 픽셀-인코드 가능성은 saturated "
-         "architecture 의 속성.", 15),
+        ("**Pixel encodability — architecture-conditional**: 픽셀-공간 "
+         "gradient ascent 가 **5 모델 중 3 모델 testable** 에서 PMR flip "
+         "가능 (Qwen / LLaVA-Next / LLaVA-1.5). **Idefics2 9 레이어 "
+         "(L5-L31) 모두 0 shortcuts → wrong-relative-depth falsified, "
+         "perceiver-resampler 후보**. InternVL3 protocol-saturated. "
+         "상세 설명은 Slide 19-20 참조.", 16),
     ], font_name=FONT)
     return s
 
@@ -498,27 +498,34 @@ def slide_19_sec46_qwen(prs):
 
 def slide_20_sec46_cross_null(prs):
     s = new_slide(prs)
-    y = add_title_bar(s, "결과 (7) — §4.6 cross-model NULL: pixel-encodability 는 saturation 특이적",
-                      subtitle="LLaVA-1.5 자체 v_L10 으로도 0/5 PMR flip, projection 은 매칭",
+    y = add_title_bar(s, "결과 (7) — §4.6 cross-model layer sweep (n=10) + Idefics2 9-layer disambiguation",
+                      subtitle="3 of 5 testable architectures supports pixel-encodability; Idefics2 falsifies (L5-L31), perceiver-resampler 후보",
                       font_name=FONT)
-    rows = [
-        ["테스트", "v_L10 flip", "projection 변화", "해석"],
-        ["§4.6 (Qwen)", "5/5 at ε=0.05", "8 → ~100", "성공 — Qwen 은 픽셀 인코드 가능"],
-        ["Transfer (Qwen → LLaVA)", "0/5", "(transfer)", "Adversarial 모델별 — 일반적"],
-        ["Transfer (Qwen → LLaVA-Next)", "0/5", "(transfer)", "동일"],
-        ["Transfer (Qwen → Idefics2)", "0/5", "(transfer)", "동일"],
-        ["Transfer (Qwen → InternVL3)", "0/5 (음의 transfer)", "1.0 → 0.2 unconstrained", "큰 ε 가 saturated 출력 교란"],
-        ["**LLaVA-1.5 자체 v_L10**", "**0/5 모든 ε**", "**8 → 150-200 (Qwen 매칭)**", "**Projection vs Behavior 분리 — pixel-encodability 는 Qwen 만**"],
-    ]
-    add_table(s, Inches(0.3), y + Inches(0.1), Inches(12.7), Inches(4.0), rows,
-              header_color=ACCENT, font_size=11, font_name=FONT)
-    add_bullets(s, Inches(0.5), Inches(5.4), Inches(12.3), Inches(2.0), [
-        ("Gradient ascent 자체는 LLaVA-1.5 에서 정상 작동 — projection 8→200 "
-         "도달, gradient 흐름 검증됨. 하지만 LM 출력은 변하지 않음.", 13),
-        ("**해석**: Qwen 의 saturated SigLIP 이 LM 이 직접 읽는 픽셀-to-L10 "
-         "채널을 만듦. LLaVA-1.5 의 unsaturated CLIP 은 그 채널이 없음.", 13),
-        ("→ **H-shortcut** 은 Qwen-scoped. M9 PMR-천장 / §4.7 결정-안정성 "
-         "천장과 평행한 **세 번째 saturation 시그니처**.", 13),
+    add_figure(s, FIG_DIR / "sec4_6_cross_model_layer_sweep.png",
+               Inches(0.3), y + Inches(0.05), w=Inches(8.5))
+    add_caption(s, Inches(0.3), Inches(5.6), Inches(8.5),
+                "5 모델 × LM 레이어 별 PMR flip rate (n=10, ε=0.1, Wilson 95% CI). "
+                "Idefics2 panel 은 9 레이어 (L5-L31, 16-97% relative depth) 표시.",
+                font_name=FONT)
+    add_bullets(s, Inches(9.0), y + Inches(0.1), Inches(4.0), Inches(5.5), [
+        ("**Qwen** (SigLIP+Qwen2): broad shortcuts at L5/10/15/20/25 "
+         "(Wilson 하한 0.49–0.72).", 11),
+        ("**LLaVA-Next** (CLIP+AnyRes+Mistral): L20+L25 모두 10/10.", 11),
+        ("**LLaVA-1.5** (CLIP+Vicuna): L25 only, 4/10 (n=10 에서 약화).", 11),
+        ("**Idefics2** (SigLIP-SO400M + perceiver-resampler + Mistral): "
+         "**9 레이어 모두 0/10** (1 isolated noise hit at L28 on different "
+         "stim than L25). v_L projection 은 정상 ascending (-11→+28 at "
+         "L26-30, -72→+163 at L31). **Wrong-relative-depth falsified**.", 11),
+        ("**InternVL3**: protocol-saturated (baseline_pmr=1.0).", 11),
+        ("**Random controls**: 1/250 trials in aggregate.", 11),
+    ], font_name=FONT)
+    add_bullets(s, Inches(0.3), Inches(6.2), Inches(12.7), Inches(1.5), [
+        ("**해석**: pixel-encodability 는 architecture-conditional. **Encoder "
+         "saturation 만으로는 부족** — Idefics2 (SigLIP-SO400M, AUC 0.93) 는 "
+         "Qwen/LLaVA-Next 보다 saturated 된 인코더지만 0 shortcuts.", 12),
+        ("**Perceiver-resampler 후보**: Idefics2 만 perceiver projector "
+         "(다른 모델은 MLP). 5-model design 은 isolate 못함 (encoder + "
+         "projector + AnyRes 동시 다름) — controlled projector-swap 필요.", 12),
     ], font_name=FONT)
     return s
 
@@ -584,14 +591,16 @@ def slide_23_architecture_reframe(prs):
          "모델 (Qwen / Idefics2 / InternVL3) 이 cue 발화 시 5 seed "
          "모두 같은 PMR call 로 수렴 (RC ≈ 1.0). CLIP-기반 모델은 강한 "
          "cue 에서도 seed-level variance 보유.", 16),
-        ("**Signature 3 — Pixel encodability** (§4.6 cross-model, NEW): "
-         "Qwen 은 픽셀-공간 gradient ascent 로 PMR flip 가능 (ε=0.05 5/5). "
-         "LLaVA-1.5 는 projection 이 매칭되어도 0/5 flip — pixel-to-L10 "
-         "channel 이 없음.", 16),
+        ("**Signature 3 — Pixel encodability** (§4.6 5-model n=10 layer "
+         "sweep + Idefics2 9-layer disambiguation): **3 of 5 testable** "
+         "architectures 가 픽셀-공간 gradient ascent 로 PMR flip (Qwen "
+         "broad, LLaVA-Next L20+L25, LLaVA-1.5 L25 weak). Idefics2 는 "
+         "L5-L31 9 레이어 모두 0 — **perceiver-resampler bottleneck 후보** "
+         "(projector isolation 미검증). InternVL3 protocol-saturated.", 15),
         ("3가지 signature 가 **동일한 architecture-level saturation 속성** "
          "의 다른 표현. \"encoder representational capacity 만으로 결정\" "
-         "이라는 단순 인코더 가설은 disconfirm — joint encoder + LM 이 "
-         "결정자.", 15),
+         "이라는 단순 인코더 가설은 disconfirm — joint encoder + LM + "
+         "**projector design** (MLP vs perceiver) 이 결정자.", 15),
     ], font_name=FONT)
     return s
 
@@ -600,21 +609,28 @@ def slide_24_limitations(prs):
     s = new_slide(prs)
     y = add_title_bar(s, "Discussion (2) — 한계 및 미해결 질문", font_name=FONT)
     add_bullets(s, Inches(0.5), y + Inches(0.2), Inches(12.3), Inches(5.5), [
+        ("**Projector isolation 미검증**: §4.6 5-model design 은 Idefics2 가 "
+         "MLP-projector 모델들과 encoder + projector + AnyRes 동시에 다름. "
+         "Perceiver-resampler 가 leading remaining candidate 이지만 controlled "
+         "projector-swap test (동일 encoder/LM 에서 perceiver↔MLP) 은 "
+         "재학습 필요 — out of scope.", 14),
         ("**LM-only counterfactual 부재**: LLaVA-1.5 → LLaVA-Next 의 0.52 "
          "PMR jump 는 4축 confound (AnyRes / projector / training / LM family). "
          "동일 인코더 LM-swap 은 future work.", 14),
+        ("**InternVL3 untestable** under §4.6 protocol: `line_blank_none_fall_*` "
+         "baseline_pmr=1.0. Alternative-baseline stim 탐색 필요.", 14),
         ("**v_L10 은 1-d class-mean 축**: SAE / multi-axis decomposition 으로 "
-         "pixel-encodable 한 *다른* 방향이 있을 수 있음 — LLaVA 에서도.", 14),
-        ("**§4.6 cross-model 부분 검증**: LLaVA-Next / Idefics2 / InternVL3 "
-         "는 M2 stim 위 v_L10 이 class-imbalanced (n_neg = 9, 5, 1) 라 "
-         "per-model gradient ascent 안 함. 더 어려운 stim (M8a / M8c) 으로 "
-         "검증 가능.", 14),
-        ("**M5b 보류**: SIP / activation patching / SAE 메커니즘 분석 — "
-         "다음 paper-section gap.", 14),
+         "pixel-encodable 한 *다른* 방향이 있을 수 있음. **2026-04-28 Cross-"
+         "model SAE 4 모델 학습 완료** (LLaVA-1.5/Next/Idefics2/InternVL3); "
+         "intervention runs 가 다음 단계.", 13),
         ("**Single-task evaluation**: \"next-state-prediction\" 만 검증. "
          "다른 shortcut 행동 (counting / spatial / causality) 은 미검증.", 14),
-        ("**Human baseline 미수집**: M7 Prolific (20 raters × 50 stim) 예산 "
-         "있음, 미실시.", 14),
+        ("**Human baseline 미수집**: M7 Prolific (20 raters × 50 stim) "
+         "paper-blocking, 다음 단계.", 14),
+        ("**ST5 prompt-steering (Gavrikov 2024)**: 명시적 \"abstract / "
+         "physical\" prompt steering 은 **paper scope 에서 retire** — "
+         "prompt-variation axis 는 §4.3 KO/JA + label-free + open vs FC "
+         "로 cover.", 13),
     ], font_name=FONT)
     return s
 
@@ -635,11 +651,16 @@ def slide_25_conclusion(prs):
          "방향 v_L10 이 forward-hook 으로 행동을 인과적으로 뒤집음 (10/10 "
          "α=40). M5a-ext: v_L10 은 regime axis (+ kinetic / − static), "
          "binary toggle 아님.", 16),
-        ("**[기여 3] Pixel encodability — saturation 특이적**. Qwen "
-         "ε=0.05 픽셀 perturbation 으로 5/5 PMR flip + 매칭 random 0/15. "
-         "**§4.6 cross-model null**: 픽셀-인코드 가능성은 Qwen 의 saturated "
-         "SigLIP 의 속성. M9 PMR-ceiling / §4.7 결정-안정성 ceiling 과 "
-         "평행한 **세 번째 saturation 시그니처**.", 16),
+        ("**[기여 3] Pixel encodability — architecture-conditional**. "
+         "5-model n=10 layer sweep + Idefics2 9-layer disambiguation: "
+         "**3 of 5 testable architectures** 가 픽셀-공간 gradient ascent "
+         "로 PMR flip 가능 (Qwen broad / LLaVA-Next L20+L25 / LLaVA-1.5 "
+         "L25 weak). Idefics2 는 L5-L31 9 레이어 모두 0 → **wrong-relative-"
+         "depth falsified, perceiver-resampler 후보** (projector isolation 은 "
+         "controlled swap 필요, out of scope). InternVL3 protocol-saturated. "
+         "Random 1/250 in aggregate. M9 PMR-ceiling / §4.7 결정-안정성 "
+         "ceiling 과 평행한 **세 번째 architecture-level signature**, "
+         "**projector design 을 추가 disambiguating axis** 로 노출.", 14),
     ], font_name=FONT)
     return s
 

@@ -1,12 +1,18 @@
-"""§4.6 — VTI-reverse counterfactual stimulus generation driver.
+"""§4.6 cross-model — LLaVA-Next-Mistral-7B per-model gradient ascent driver.
 
-Runs `gradient_ascent` on each baseline stim × each (mode, eps)
-configuration. Saves: per-seed reconstructed PNGs, per-config delta
-tensors, projection trajectories, and a config manifest. Inference
-re-evaluation (PMR pre/post) is delegated to scripts/sec4_6_summarize.py.
+Mirrors `scripts/sec4_6_counterfactual_stim_llava.py` for LLaVA-Next. Uses
+`physical_mode.synthesis.counterfactual_llava_next` for the AnyRes
+multi-tile preprocessing variant. Loads LLaVA-Next's own steering vectors
+from `outputs/cross_model_llava_next_capture_*/probing_steering/steering_vectors.npz`
+(extracted by `scripts/m2_extract_per_model_steering.py`).
+
+Same configuration sweep as Qwen / LLaVA-1.5 §4.6: 5 baseline circle stim
+× {bounded ε ∈ {0.05, 0.1, 0.2}, unconstrained, random ε=0.1 × 3} ×
+200 Adam steps lr=1e-2.
 
 Usage:
-    uv run python scripts/sec4_6_counterfactual_stim.py
+    uv run python scripts/sec4_6_counterfactual_stim_llava_next.py \
+        --layer 25 --steering-key v_unit_25
 """
 
 from __future__ import annotations
@@ -21,18 +27,26 @@ import torch
 from PIL import Image
 from transformers import AutoModelForImageTextToText, AutoProcessor
 
-from physical_mode.synthesis.counterfactual import (
-    gradient_ascent,
-    pixel_values_from_pil,
-    reconstruct_pil,
+from physical_mode.synthesis.counterfactual_llava_next import (
+    gradient_ascent_llava_next,
+    reconstruct_pil_llava_next,
 )
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASELINE_DIR = PROJECT_ROOT / "inputs/mvp_full_20260424-093926_e9d79da3/images"
-DEFAULT_STEERING_NPZ = PROJECT_ROOT / "outputs/mvp_full_20260424-094103_8ae1fa3d/probing_steering/steering_vectors.npz"
-DEFAULT_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
+DEFAULT_MODEL = "llava-hf/llava-v1.6-mistral-7b-hf"
 DEFAULT_PROMPT = "What will happen to the circle in the next moment? Answer in one short sentence."
+
+
+def _latest_steering_vectors() -> Path:
+    cands = sorted(PROJECT_ROOT.glob(
+        "outputs/cross_model_llava_next_capture_*/probing_steering/steering_vectors.npz"))
+    if not cands:
+        raise FileNotFoundError(
+            "No LLaVA-Next steering vectors. Run "
+            "scripts/m2_extract_per_model_steering.py first.")
+    return cands[-1]
 
 
 def _parse_args() -> argparse.Namespace:
@@ -40,22 +54,20 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--baseline-dir", type=Path, default=DEFAULT_BASELINE_DIR)
     p.add_argument("--baseline-pattern", default="line_blank_none_fall_*.png")
     p.add_argument("--n-seeds", type=int, default=5)
-    p.add_argument("--steering-npz", type=Path, default=DEFAULT_STEERING_NPZ)
+    p.add_argument("--steering-npz", type=Path, default=None,
+                   help="LLaVA-Next steering vectors. Default = latest.")
     p.add_argument("--steering-key", default="v_unit_10")
     p.add_argument("--layer", type=int, default=10)
     p.add_argument("--n-steps", type=int, default=200)
     p.add_argument("--lr", type=float, default=1e-2)
-    p.add_argument("--eps-list", default="0.05,0.1,0.2",
-                   help="comma-separated L_inf bounds for bounded mode")
+    p.add_argument("--eps-list", default="0.05,0.1,0.2")
     p.add_argument("--include-unconstrained", action=argparse.BooleanOptionalAction, default=True)
-    p.add_argument("--n-random-controls", type=int, default=3,
-                   help="number of random-direction controls (eps=0.1 fixed)")
+    p.add_argument("--n-random-controls", type=int, default=3)
     p.add_argument("--prompt", default=DEFAULT_PROMPT)
     p.add_argument("--model-id", default=DEFAULT_MODEL)
-    p.add_argument("--output-dir", type=Path, default=None,
-                   help="if None, autogenerates outputs/sec4_6_counterfactual_<ts>")
+    p.add_argument("--output-dir", type=Path, default=None)
     p.add_argument("--device", default="cuda:0")
-    p.add_argument("--seed", type=int, default=42, help="RNG seed for random-direction controls")
+    p.add_argument("--seed", type=int, default=42)
     return p.parse_args()
 
 
@@ -63,10 +75,13 @@ def main() -> None:
     args = _parse_args()
     if args.output_dir is None:
         ts = time.strftime("%Y%m%d-%H%M%S")
-        args.output_dir = PROJECT_ROOT / f"outputs/sec4_6_counterfactual_{ts}"
+        args.output_dir = PROJECT_ROOT / f"outputs/sec4_6_counterfactual_llava_next_{ts}"
     if not args.output_dir.is_absolute():
         args.output_dir = (PROJECT_ROOT / args.output_dir).resolve()
     args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.steering_npz is None:
+        args.steering_npz = _latest_steering_vectors()
 
     print(f"Loading model {args.model_id} on {args.device}...")
     processor = AutoProcessor.from_pretrained(args.model_id)
@@ -77,6 +92,7 @@ def main() -> None:
 
     v_unit = np.load(args.steering_npz)[args.steering_key]
     print(f"Steering: {args.steering_key} shape={v_unit.shape} norm={np.linalg.norm(v_unit):.6f}")
+    print(f"Steering file: {args.steering_npz}")
 
     rng = np.random.default_rng(args.seed)
     random_dirs = []
@@ -117,7 +133,7 @@ def main() -> None:
             eta_str = f" eta={eta/60:.1f}min" if eta else ""
             print(f"  [{run_idx}/{total_runs}] {sid} | {cfg['name']} (v={v_name}, "
                   f"mode={cfg['mode']}, eps={cfg['eps']}) elapsed={elapsed/60:.1f}min{eta_str}")
-            out = gradient_ascent(
+            out = gradient_ascent_llava_next(
                 model, processor, pil, v_arr,
                 layer=args.layer, n_steps=args.n_steps, lr=args.lr,
                 eps=cfg["eps"], mode=cfg["mode"], prompt=args.prompt,
@@ -132,8 +148,7 @@ def main() -> None:
             }, cfg_dir / "pixel_values.pt")
             traj_arr = np.array(out["projection_trajectory"], dtype=np.float64)
             np.save(cfg_dir / "trajectory.npy", traj_arr)
-            _, grid_thw = pixel_values_from_pil(pil, processor, args.prompt)
-            recon = reconstruct_pil(out["pixel_values_final"], grid_thw, processor)
+            recon = reconstruct_pil_llava_next(out["pixel_values_final"], processor)
             recon.save(cfg_dir / "synthesized.png")
             pil.save(cfg_dir / "baseline.png")
 

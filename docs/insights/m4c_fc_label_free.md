@@ -1,5 +1,15 @@
 # M4c — Forced-Choice Label-Free Prompt
 
+> **2026-04-28 scorer update**: PMR numbers in this doc were computed
+> with the v1 scorer. The current scorer (post-`9ec147e`, "no-motion
+> patterns") reclassifies 28/480 (5.8 %) FC label-free Qwen rows as
+> abstract instead of physics-mode (false-positive correction on
+> "remain stationary" / "B + abstract justification"). **FC PMR
+> 0.817 → 0.758**; **paired open-vs-FC delta widens from −0.131 to
+> −0.180** (H4 direction preserved, claim strengthened). See
+> `docs/insights/scorer_regression_audit_2026-04-28.md`. Authoritative
+> v2 numbers in `<run_dir>/predictions_scored_v2.csv`.
+
 > **Recap of codes used in this doc** (one-line each; full definitions in `references/roadmap.md` §1.3 + §2)
 >
 > - **H2** — The label (ball / circle / planet) independently raises PMR even on minimal stim — a language-prior contribution beyond the visual evidence.

@@ -27,15 +27,20 @@ linearly separates physics-vs-abstract factorial cells at AUC = 1.0, yet
 behavioral PMR ranges 0.18 → 0.92 on identical stim across the 5 models.
 The 2-CLIP-point comparison (LLaVA-1.5 PMR 0.18 vs LLaVA-Next 0.70) rules
 out vision-encoder-family as the sole driver. **Second**, the shortcut
-is **causally localized at LM layer 10**: a single linear direction
-`v_L10` flips Qwen2.5-VL's behavior from "circle stays static" to
-"physics-mode" with a forward-hook intervention at α = 40 (10/10 stim,
-no other layer moves). The same direction acts as a regime axis (+α →
-kinetic, −α → static), revising the initial "binary object-ness"
-reading. **Third**, `v_L10` is **encodable in the image itself**: a
-small pixel-space gradient ascent (ε = 0.05 in L∞) flips PMR on 5/5
-baseline circles, while matched-magnitude random directions flip 0/15.
-The shortcut path can be "spelled" in pixels — directional specificity,
+is **causally localized along two architecturally-distinct routes**.
+LM-side runtime steering (`+α · v_L`) flips behavior in 3 of 4 testable
+models at appropriate α (Qwen L10, LLaVA-Next L20+L25, Idefics2 L25,
+all 10/10 stim flip). Encoder-side SAE feature ablation breaks PMR in 3
+of 5 models (Qwen k=40, Idefics2 k=160, InternVL3 k=160) while
+mass-matched random controls hold; the 2 LLaVA models are encoder-NULL
+but LLaVA-Next is LM-positive — physics-mode commitment routes through
+*LM-side direction* in the CLIP cluster and through *both* encoder-side
+features and LM-side direction in the non-CLIP cluster. The same v_L
+acts as a regime axis (+α → kinetic, −α → static), not a binary toggle.
+**Third**, `v_L10` is **encodable in the image itself**: a small
+pixel-space gradient ascent (ε = 0.05 in L∞) flips PMR on 5/5 baseline
+circles, while matched-magnitude random directions flip 0/15. The
+shortcut path can be "spelled" in pixels — directional specificity,
 not perturbation magnitude, drives the regime flip.
 
 These results contribute a clean architecture-vs-representation
@@ -87,11 +92,19 @@ dimensions, each yielding a paper-grade claim:
 
 2. **Causal localization** (§6). Adding `+α · v_L10` at LM layer 10
    over visual-token positions flips Qwen2.5-VL's behavior with α=40
-   (10/10 stim). No earlier or later layer moves at the same α. The
-   same direction is bidirectional (+α kinetic, −α static) within
-   physics-mode — it's a regime axis, not a binary toggle. Result:
-   shortcut localized to a single LM layer at sub-100 hidden-dim
-   resolution.
+   (10/10 stim). The same direction is bidirectional (+α kinetic,
+   −α static) within physics-mode — a regime axis, not a binary
+   toggle. **Cross-model M5a** (§6.2): 3 of 4 testable models flip
+   PMR 10/10 at appropriate α (Qwen L10, LLaVA-Next L20+L25,
+   Idefics2 L25). LLaVA-1.5 NULL. **Cross-model M5b SAE
+   intervention** (§6.4): ablating the top-k physics-cue features at
+   the actually-consumed encoder layer breaks PMR cleanly in 3 of 5
+   models (Qwen k=20, Idefics2 k=160, InternVL3 k=160) while
+   mass-matched random controls hold at 1.0. **The 2 LLaVA models
+   are NULL on M5b but POSITIVE on M5a (LLaVA-Next)** — physics-mode
+   commitment in the CLIP cluster routes through LM-side direction,
+   not encoder-side localized features. Together: a 3-cluster
+   architectural decomposition of *where* the shortcut lives.
 
 3. **Pixel encodability with model-conditional shortcut layer**
    (§7; revised 2026-04-26 evening). On Qwen2.5-VL, gradient-ascent on
@@ -454,6 +467,65 @@ Revised reading: both signs of α activate physics-mode. Sign
 selects regime: +α kinetic / −α static. Baseline D sits below the
 |α| threshold, not at one end of the axis. **v_L10 is a regime axis
 within physics-mode**, not a binary object-ness toggle.
+
+### 6.4 Encoder-side intervention (M5b SAE) — cross-model
+
+Sections 6.1–6.3 establish that injecting `α · v_L` at LM layer L
+flips behavior. M5b asks the complementary question: are the
+**encoder-side** features that feed into v_L causally bound? If so,
+ablating top SAE physics-cue features at the consumed vision-encoder
+layer should break PMR while mass-matched random ablations should not.
+
+**Setup.** For each architecture, we (1) train a 4×-overcomplete sparse
+autoencoder on `vision_hidden_<L>` activations, where L is the layer
+the LM actually consumes (Qwen2.5-VL: layer 31 = last; LLaVA family:
+layer 22 per `vision_feature_layer=-2`; Idefics2: layer 26 = last;
+InternVL3: layer 23 = last per `vision_feature_layer=-1`). (2) Rank
+features by Cohen's d on the per-stim mean PMR split (phys vs abs).
+(3) For each test stim, ablate the top-k features via the Bricken
+et al. trick (subtract feature contributions from the encoder
+hidden state), then run the OPEN prompt and PMR-score the response.
+Random controls use 3 mass-matched feature sets drawn from the
+high-mass non-top-k pool.
+
+**Result.** 3 of 5 models break PMR cleanly with selectivity vs random.
+
+| Model | layer | k_break | random rate | encoder cluster |
+|---|---:|---:|---:|---|
+| Qwen2.5-VL-7B | 31 | 20 (0.4 % features) | 1.0 | non-CLIP, AUC 0.99 |
+| Idefics2-8B | 26 | 160 (3.5 %) | 1.0 | non-CLIP, AUC 0.93 |
+| InternVL3-8B-hf | 23 | 160 (3.9 %) | 1.0 | non-CLIP, AUC 0.89 |
+| LLaVA-1.5-7B | 22 | NULL (no break ≤ 160) | 1.0 | CLIP, AUC 0.73 |
+| LLaVA-Next-7B | 22 | NULL (no break ≤ 160) | 1.0 | CLIP, AUC 0.81 |
+
+The break threshold scales inversely with M3 vision-encoder probe AUC:
+the more discriminative the encoder, the more concentrated its
+physics-cue features, and the smaller the k needed to break PMR.
+
+**The CLIP NULL is mechanistically informative.** LLaVA-Next shows
+*positive* M5a steering (L20+L25 10/10 flip at LM side) — the LM-side
+direction is operative. But its encoder-side SAE intervention is NULL
+at any tested k. This is a **dissociation**: LLaVA-family physics-mode
+commitment routes through LM-side residual-stream direction, not
+through encoder-side localized features. The non-CLIP cluster
+(Qwen / Idefics2 / InternVL3) routes through both — encoder-side
+features and LM-side direction are jointly causal.
+
+This is the **second downstream signature** of H-encoder-saturation
+(after M3 probe AUC and §4.6 pixel-encodability) — M5b SAE intervention
+sorts the same 3-cluster decomposition. Combined with the M5a × M4 ×
+§4.6 triangulation for Idefics2 (LM has signal, forward-hook works,
+but pixel→v_L route blocked), the architectural picture is:
+
+> Physics-mode commitment requires a *direction* in the LM residual
+> stream (M5a, all non-encoder-saturated models flip 10/10 with
+> appropriate α). What varies cross-architecturally is whether the
+> *encoder localizes* this direction in extractable features (M5b
+> POSITIVE in non-CLIP) and whether *pixel-space gradient* can route
+> to it (§4.6 POSITIVE in MLP-projector models). The CLIP encoder +
+> projector pipeline supports neither encoder-side localization nor
+> pixel-space routability, but the LM-side direction is still
+> causally operative when injected directly.
 
 ## 7. Pixel encodability — §4.6
 

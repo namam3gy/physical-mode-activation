@@ -118,11 +118,12 @@ audience: 도메인 처음인 사람도 이해할 수 있게
 - 다른 layer (15, 20, 25) 는 같은 α 로 안 움직임 — *L10 에 특정* 한 causal locus.
 - M5a-ext: −α 도 D → B flip. v_L10 은 단방향 activator 가 아니라 *regime axis* (sign 이 +면 동적 / −면 정적).
 
-**기여 3 — Pixel encodability — encoder-saturation 특이적 (픽셀 차원)**:
-- Qwen 에서 픽셀-공간 gradient ascent (ε=0.05) 로 *5/5* PMR flip. 매칭 magnitude random direction 은 *0/15*. 직접적인 픽셀-인코드 가능성 시연.
-- **그러나 cross-model null**: 4 비-Qwen 모델에 transfer 안 되고, LLaVA-1.5 자체 v_L10 으로도 0/5 flip (projection 은 Qwen 매칭).
-- 픽셀-인코드 가능성은 *saturated architecture* 의 속성. Qwen 의 saturated SigLIP 이 LM 이 직접 읽는 thin pixel-to-L10 channel 을 만든다. LLaVA-1.5 의 unsaturated CLIP 은 그 채널이 없다.
-- **새로운 발견**: 이 "픽셀-인코드 가능성" 이 architecture-level saturation 의 *세 번째 시그니처* (M9 PMR-ceiling, §4.7 결정-안정성 ceiling 과 평행).
+**기여 3 — Pixel encodability — architecture-conditional (픽셀 차원)** (압축 high-level summary; Slide 19-20 에서 상세):
+- 픽셀-공간 gradient ascent 가 **5 모델 중 3 모델 testable** 에서 PMR flip 가능 (Qwen broad / LLaVA-Next L20+L25 / LLaVA-1.5 L25 weak).
+- **Idefics2 9 LM layers (L5-L31, 16-97% depth) 모두 0 shortcuts** → wrong-relative-depth falsified, **perceiver-resampler 가 leading remaining candidate**.
+- **InternVL3** protocol-saturated.
+- M9 PMR-ceiling / §4.7 결정-안정성 ceiling 과 평행한 *세 번째 architecture-level signature*, **projector design (MLP vs perceiver)** 를 disambiguating axis 로 노출.
+- 자세한 데이터 + figure + perceiver isolation 한계는 Slide 19-20 참조.
 
 ---
 
@@ -593,33 +594,52 @@ L10 α=40 (intervention):
 
 ---
 
-### Slide 20: §4.6 cross-model NULL
+### Slide 20: §4.6 cross-model layer sweep (n=10) + Idefics2 9-layer disambiguation
 
-**슬라이드 내용**: 6 행 표 (Qwen 성공 + transfer 실패 + LLaVA-1.5 자체 v_L10 실패) + 해석.
+**슬라이드 내용**: 5-panel figure (모델별 LM 레이어 vs PMR flip rate, Wilson 95% CI) + 우측 모델별 결과 + 하단 해석.
 
-**핵심 메시지**: §4.6 의 픽셀-인코드 가능성은 *Qwen 한정*. LLaVA-1.5 는 자체 v_L10 으로도 0/5 flip — projection 은 Qwen 매칭.
+**핵심 메시지**: 픽셀-인코드 가능성은 architecture-conditional. **5 모델 중 3 모델 testable** 가 지원 (Qwen / LLaVA-Next / LLaVA-1.5); **Idefics2 는 L5-L31 9 레이어 모두 falsifies** — wrong-relative-depth 가설은 falsified, **perceiver-resampler 가 leading remaining candidate** (5-model design 은 isolate 못함).
 
 **상세 설명**:
 
-**Two cross-model sub-tests**:
+**Layer sweep 핵심 결과 (n=10 stim, ε=0.1)**:
 
-**(A) Transfer test**: Qwen 의 합성 stim 을 다른 4 모델에 입력 → PMR 측정.
-- LLaVA-1.5 / LLaVA-Next / Idefics2: 모든 config 에서 baseline=synth=0. **Adversarial 은 모델별** — Qwen-derived perturbation 이 다른 모델 출력을 변경 안 함. 일반적인 adversarial 문헌과 일치.
-- InternVL3: 흥미로운 *음의 transfer*. baseline PMR=1.0 인데 ε=0.2 / unconstrained 에서 *PMR 떨어짐* (1.0 → 0.6 → 0.2). 큰 perturbation 이 saturated commitment 를 *교란*.
+| Model | Vision encoder | Projector | LM | Clean shortcut layers (Wilson lower > random upper) |
+|---|---|---|---|---|
+| Qwen2.5-VL | SigLIP | MLP | Qwen2-7B | L5/10/15/20/25 (5 layers, all ≥ 80%) |
+| LLaVA-Next | CLIP+AnyRes | MLP | Mistral-7B | L20+L25 (모두 10/10) |
+| LLaVA-1.5 | CLIP-ViT-L | MLP | Vicuna-7B | L25 only (4/10, weaker than n=5 morning suggested) |
+| **Idefics2** | SigLIP-SO400M | **perceiver** | Mistral-7B | **0 across L5-L31 (9 layers, 16-97% depth)** |
+| InternVL3 | InternViT | MLP | InternLM3-8B | (untestable — baseline_pmr=1.0) |
 
-**(B) LLaVA-1.5 per-model gradient ascent** (M2 만에서 class-balanced v_L10 가진 유일한 비-Qwen 모델):
-- 동일 protocol 을 LLaVA-1.5 에 적용. LLaVA-1.5 자체 v_L10 (M2 captures 에서 추출, n_pos=375 / n_neg=105) 사용.
-- **Result**: 0/5 v_L10 flip at every ε. 0/15 random.
-- **그러나 critical observation**: gradient ascent *자체는 성공* — projection 8 → 150-200 (Qwen 의 43-180 와 비슷한 magnitude). Random 은 projection 2-10 만.
+**Idefics2 9-layer disambiguation** (T1b from data audit, 2026-04-28):
+
+기존 5-model n=10 sweep (2026-04-27 night) 에서 Idefics2 L5/10/15/20/25 모두 0 clean shortcuts despite v_L projection rising +38. 두 가지 후보 가설:
+
+(a) **Wrong-relative-depth**: Mistral-7B 32 layers, 우리는 L25 (78% depth) 까지만 테스트. Idefics2 의 shortcut 이 L26-31 (81-97% depth) 에 있을 수 있음 — 이전 morning §4.6 의 LLaVA-1.5 L10 null 이 L25 에서 fix 된 것과 같은 layer-choice artifact?
+
+(b) **Perceiver-resampler bottleneck**: Idefics2 만 perceiver projector (다른 모델은 MLP). Perceiver 가 64 tile-tokens 를 fixed visual-token budget 으로 압축 — v_L-aligned information 이 LM 에 도달하기 전에 stripping 됐을 수 있음.
+
+**T1b 실험 (2026-04-28)**: 새 M2 LM activation capture at L26/28/30/31 → v_L 추출 (n_pos=470 / n_neg=10) → 80-run counterfactual sweep.
+
+**Result**:
+- L26: 0/10 v_unit, 0/10 random (proj -10.7 → +27.1)
+- L28: **1/10 v_unit** (line_blank_none_fall_006: "Appear." → "Move." PMR=1, isolated noise on different stim than L25 hit), 0/10 random (proj -10.6 → +28.1)
+- L30: 0/10 v_unit, 0/10 random (proj -10.9 → +30.3)
+- L31: 0/10 v_unit, 0/10 random (proj -72.0 → +163, larger v_L magnitude)
+
+**Aggregate Idefics2 9 layers**: 1/90 v_unit hit (Wilson [0.0025, 0.07]) + 0/90 random. v_L projection 은 정상 ascending at every depth — gradient ascent 은 mechanically 작동함, PMR 만 flip 안 함.
 
 **해석**:
-- Projection 은 매칭되는데 behavior 가 안 변함 → **projection 수준과 behavior 수준의 dissociation**.
-- LLaVA-1.5 의 L10 hidden state 에 v_L10 방향이 *존재* (class-mean diff 로 추출 가능), 그러나 *행동을 결정하는 axis 는 다른 곳에 있음*.
-- → Qwen 의 픽셀-인코드 가능성은 *saturated SigLIP* 이 만든 thin pixel-to-L10 channel 의 결과. LLaVA-1.5 의 unsaturated CLIP 은 그 채널이 없음.
+- (a) **Wrong-relative-depth 가설 falsified**: 9 layers 모두 0 → layer-choice artifact 아님.
+- (b) **Perceiver-resampler 는 leading remaining candidate**: encoder→LM 채널이 v_L-aligned info 를 strip 하는 게 9-layer 무시 패턴과 일관.
+- **5-model design isolation 한계**: Idefics2 는 MLP-projector 모델들과 encoder (SigLIP-SO400M vs CLIP/SigLIP/InternViT) + projector (perceiver vs MLP) + AnyRes (없음 vs 있음 in LLaVA-Next) **동시에** 다름. Projector axis 만 isolate 하려면 controlled projector-swap test (동일 encoder/LM 에서 perceiver↔MLP 교체 + 재학습) 필요 — out of scope for v1 paper.
 
 **시사점**:
-- **H-shortcut 은 Qwen-scoped**. "shortcut 은 이미지에 인코드 가능" 이라는 framing 은 saturated architecture 한정.
-- 이게 architecture-level saturation 의 **세 번째 시그니처**: M9 PMR-천장 (행동), §4.7 결정-안정성 천장, §4.6 cross-model pixel-encodability — 모두 같은 architectural property 의 다른 표현.
+- **H-shortcut framing 정정**: 픽셀-인코드 가능성은 architecture-conditional. **3 of 5 testable** (Qwen / LLaVA-Next / LLaVA-1.5) 가 지원, Idefics2 falsifies 9-layer evidence, InternVL3 untestable. **Encoder saturation 만으로는 부족** (Idefics2 AUC 0.93 > LLaVA-Next 0.81 인데 Idefics2 는 0 shortcuts) — projector design 이 disambiguating axis.
+- M9 PMR-천장 (행동), §4.7 결정-안정성 천장, §4.6 pixel-encodability — 3 architecture-level signature 가 동일한 architectural property 의 다른 표현이며, 이번 update 로 **projector design (MLP vs perceiver)** 이 추가 disambiguating axis 로 노출됨.
+
+**Random control**: 5 모델 합쳐 1/250 trials (49 of 50 random-control cells = 0/10; Qwen L10 random 1/10 만 non-zero, v_unit 10/10 보다 훨씬 낮음) — **방향 특이성 보존**.
 
 ---
 
@@ -701,43 +721,47 @@ L10 α=40 (intervention):
 - CLIP-기반 모델 (LLaVA-1.5 / LLaVA-Next) 은 강한 cue 에서도 seed-level variance 보유 (RC < 1).
 - → Saturation 이 단지 행동 천장만이 아니라 *결정-안정성 천장* — 같은 자극에 같은 답을 반복.
 
-**Signature 3 — Pixel encodability** (§4.6 cross-model, NEW):
-- Qwen 은 픽셀-공간 gradient ascent 로 PMR flip 가능 (ε=0.05 5/5).
-- LLaVA-1.5 는 projection 매칭되어도 0/5 flip — pixel-to-L10 channel 이 없음.
-- → Saturation 의 *세 번째* signature: 픽셀 공간에 LM 이 직접 읽는 *thin channel* 이 saturated 인코더에서만 형성.
+**Signature 3 — Pixel encodability** (§4.6 5-model n=10 layer sweep + Idefics2 9-layer disambiguation, 2026-04-28):
+- **3 of 5 testable architectures** 가 픽셀-공간 gradient ascent 로 PMR flip 가능: Qwen broad (5 layers ≥ 80%), LLaVA-Next L20+L25 (10/10), LLaVA-1.5 L25 weak (4/10).
+- **Idefics2 falsifies universal claim**: 9 LM layers (L5-L31, 16-97% relative depth) 모두 0 clean shortcuts despite v_L projection ascending +28~+163 cleanly. **Wrong-relative-depth 가설 falsified** by 9-layer evidence.
+- **Perceiver-resampler 는 leading remaining mechanism candidate**: Idefics2 만 perceiver projector (다른 모델은 MLP). 5-model design 은 isolate 못함 — controlled projector-swap test (동일 encoder/LM 에서 perceiver↔MLP 교체 + 재학습) 필요.
+- → Saturation 의 *세 번째* signature: pixel-encodability 가 **encoder + projector design** 결합 속성. Encoder saturation 만으론 부족 (Idefics2 는 AUC 0.93 으로 LLaVA-Next 0.81 보다 saturated 인데도 0 shortcuts).
 
 **3 signature 의 통합 의미**:
 - 모두 *동일한 architecture-level saturation 속성* 의 다른 표현.
 - "encoder representational capacity 만으로 결정" 이라는 단순 인코더 가설은 disconfirm.
-- joint encoder + LM (architecture 수준) 이 결정자.
+- joint encoder + LM + **projector design** (architecture 수준) 이 결정자.
+- **2026-04-28 update**: projector design (MLP vs perceiver) 이 disambiguating axis 로 추가 노출. encoder + LM 만으로는 Idefics2 의 0-shortcut 패턴을 설명 못함.
 - 본 연구의 paper 의 가장 큰 single contribution — 단순 행동 통계가 아닌 *3 차원 mechanism-level 정렬* 이 architecture-level reframe 을 강화.
 
 ---
 
 ### Slide 24: 한계
 
-**슬라이드 내용**: 6 가지 한계.
+**슬라이드 내용**: 7 가지 한계 (2026-04-28 update — projector isolation, Cross-model SAE intervention, ST5 retire 추가).
 
-**핵심 메시지**: 본 연구의 결과를 *반증* 할 수 있는 후속 실험을 솔직히 listing.
+**핵심 메시지**: 본 연구의 결과를 *반증* 할 수 있는 후속 실험과 paper scope 결정을 솔직히 listing.
 
 **상세 설명**:
 
-1. **LM-only counterfactual 부재**: LLaVA-1.5 → LLaVA-Next 의 0.52 PMR jump 가 4축 confound (AnyRes / projector / training / LM family). 동일 인코더 (CLIP-ViT-L) 에서 LM 만 swap 한 controlled experiment 가 paper-grade LM-modulation evidence 를 줌. 미실시.
+1. **Projector isolation 미검증**: §4.6 5-model design 은 Idefics2 가 MLP-projector 모델들과 encoder + projector + AnyRes 동시에 다름. **Perceiver-resampler 가 leading remaining candidate** 이지만 controlled projector-swap test (동일 encoder/LM 에서 perceiver↔MLP 교체 + 재학습) 가 isolation 의 정통한 방법 — 재학습 비용으로 v1 paper out of scope. 9 LM layers (L5-L31) 에서 0 shortcuts 라는 negative result 가 가장 strong 한 currently available evidence.
 
-2. **v_L10 은 1-d class-mean 축**: Class-mean diff 로 추출되는 단일 방향. SAE features 또는 multi-axis decomposition 으로 *다른 pixel-encodable 방향* 이 LLaVA-1.5 에도 있을 수 있음. 미검증.
+2. **LM-only counterfactual 부재**: LLaVA-1.5 → LLaVA-Next 의 0.52 PMR jump 가 4축 confound (AnyRes / projector / training / LM family). 동일 인코더 (CLIP-ViT-L) 에서 LM 만 swap 한 controlled experiment 가 paper-grade LM-modulation evidence 를 줌. 미실시.
 
-3. **§4.6 cross-model 부분 검증**: LLaVA-Next / Idefics2 / InternVL3 는 M2 stim 위 v_L10 이 class-imbalanced (n_neg = 9 / 5 / 1). Per-model gradient ascent 안 함. 더 어려운 stim (M8a / M8c) 으로 v_L10 추출이 가능하면 검증 가능.
+3. **InternVL3 untestable** under §4.6 protocol: `line_blank_none_fall_*` baseline_pmr=1.0 이라 abstract-baseline 으로 못 쓰임. mvp_full label-free 에서 InternVL3 가 abstract-mode 로 응답하는 cell 이 없음. Alternative-baseline stim 탐색 필요 (다른 prompt 또는 다른 stim category).
 
-4. **M5b 보류**: SIP / activation patching / SAE feature decomposition. paper-section gap.
+4. **v_L10 은 1-d class-mean 축**: Class-mean diff 로 추출되는 단일 방향. **2026-04-28 cross-model SAE 4 모델 학습 완료** (LLaVA-1.5/LLaVA-Next/Idefics2/InternVL3); intervention runs (cross-model SAE feature ablation) 가 다음 단계 — "physics-cue features universal?" 확인. M5b SIP cross-model 은 LLaVA-1.5 만 가능 (Idefics2/InternVL3 saturated, SIP 후보 0).
 
 5. **Single-task evaluation**: "next-state-prediction" 만 검증. 다른 shortcut 행동 (counting / spatial / causality) 미검증.
 
-6. **Human baseline 미수집**: M7 Prolific (20 raters × 50 stim) 예산 있음, 미실시.
+6. **Human baseline 미수집**: M7 Prolific (20 raters × 50 stim) paper-blocking. 다음 단계.
+
+7. **ST5 prompt-steering retire**: 원래 project scope (Gavrikov 2024 식 explicit "treat as abstract / treat as physical" prompt steering) 은 paper 에서 retire. **Reframe**: prompt-variation axis 는 §4.3 KO/JA + label-free + open vs FC 로 cover 됨 — Gavrikov 의 명시적 instantiation 은 reviewer 에게 직접 referrable.
 
 **솔직성의 의의**:
-- 본 연구의 강점은 5-model × 3-stim × bootstrap CI 의 *robustness*.
-- 약점은 **single-task** 와 **LM-only counterfactual 부재**.
-- Future work clearly identified.
+- 본 연구의 강점은 5-model × 3-stim × bootstrap CI 의 *robustness* + **9-layer Idefics2 disambiguation 으로 wrong-relative-depth 가설 falsified**.
+- 약점은 **single-task**, **LM-only counterfactual 부재**, **projector axis isolation 미검증**.
+- Future work clearly identified — controlled projector-swap, cross-model SAE intervention, M7 Prolific.
 
 ---
 
@@ -761,15 +785,17 @@ L10 α=40 (intervention):
 - M5a-ext: v_L10 은 regime axis (+ kinetic / − static), binary toggle 아님.
 - **paper-grade defensible** (Qwen 한정 — 이게 한계인 동시에 *cleanly localized* finding).
 
-**기여 3 — Pixel encodability 는 saturation 특이적**:
+**기여 3 — Pixel encodability 는 architecture-conditional**:
 - Qwen ε=0.05 픽셀 perturbation 으로 5/5 PMR flip + 매칭 random 0/15.
-- §4.6 cross-model null (transfer 0/140 + LLaVA-1.5 자체 v_L10 0/5) → saturation 특이.
-- M9 PMR-ceiling / §4.7 결정-안정성 ceiling 과 평행한 *세 번째 saturation 시그니처*.
+- **5-model n=10 layer sweep + Idefics2 9-layer disambiguation (2026-04-28)**: **3 of 5 testable architectures** 지원 (Qwen broad, LLaVA-Next L20+L25, LLaVA-1.5 L25 weak). Idefics2 9 layers (L5-L31) 모두 0 → wrong-relative-depth falsified, **perceiver-resampler 가 leading remaining candidate** (5-model design isolation 한계 명시). InternVL3 untestable.
+- Random controls 1/250 in aggregate — direction specificity 보존.
+- M9 PMR-ceiling / §4.7 결정-안정성 ceiling 과 평행한 *세 번째 architecture-level signature*, **projector design (MLP vs perceiver) 을 추가 disambiguating axis** 로 노출.
 - **paper-grade defensible** + **cross-model cross-signature 정렬** (3 signatures 의 alignment).
 
 **Big picture**:
 - VLM shortcut 은 단순 "model quirk" 가 아니라 *architecture-level saturation 의 다차원 표현*.
 - 행동 PMR ceiling, 결정 stability ceiling, pixel encodability — 이 3 가지가 같은 architectural property 의 *signature*.
+- **2026-04-28 update**: projector design (MLP vs perceiver) 이 architecture-level disambiguating axis 로 추가 발견 — encoder + LM 만으로는 Idefics2 의 9-layer 0-shortcut 패턴을 설명 못함.
 - Future work: SAE / multi-axis / LM-only counterfactual 로 saturation 의 mechanism-level decomposition.
 
 ---
