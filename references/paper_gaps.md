@@ -145,6 +145,19 @@ This is a **clean dissociation**, but it rests on *one* perceiver-architecture m
 
 **Feasibility risk**: perceiver-resampler is non-trivially integrated into Idefics2's forward pass (cross-attention with learned queries). LoRA-style replacement may require structural surgery, not just LoRA adapters. **1-day feasibility spike at week 4** before committing.
 
+#### Pinned LoRA training spec (2026-04-28, post-advisor)
+
+The week-4 spike must hit a working baseline before week-5 full training kicks off. Spec:
+
+- **Dataset**: `liuhaotian/LLaVA-Instruct-150K` (visual-instruction-tune format, 150K samples, well-trodden). Subsample 10K for the LoRA fit; full 150K reserved for ablation.
+- **Sample budget**: 10K instruction-tune pairs for the projector LoRA (B1) and 10K for each LM LoRA (B2 × 2 = 20K). At 30K total, fits in <2 GPU-hr per run on H200.
+- **LoRA hyperparameters**: rank 32, alpha 64, target modules `q_proj, v_proj, k_proj, o_proj` for LM-side; for B1 (projector swap) replace the perceiver module with a 2-layer GELU-MLP and full-finetune that module (no LoRA — too small to need it).
+- **Optimizer**: AdamW lr=1e-4, batch 8, gradient accumulation 4 (effective 32), 5K-10K steps, bf16, cosine schedule.
+- **Regression eval (gate before §4.6/M5b re-runs)**: run the swapped variant on `lmms-lab/POPE` (Pope hallucination, 9K samples) AND a 50-sample VQA sanity subset. Pass criteria: POPE F1 ≥ 0.70 (LLaVA-1.5 baseline 0.85; B1/B2 must not collapse below 0.70). If a variant fails the gate → re-train with adjusted hparams; if persistent failure after 2 retries → flag B1/B2 architecturally infeasible.
+- **Source code reference**: `transformers` `Idefics2Model.forward` (perceiver path) + Context7 lookup of `transformers` LoRA adapter integration before the spike to confirm LoRA-PEFT compatibility.
+
+**This spec is locked**: once the spike confirms feasibility, week 5 executes the full LoRA fit + regression eval + §4.6/M5b re-run as one chain. Without the regression-eval gate, B1/B2 outputs could be noise and we'd waste week 5 on a broken baseline.
+
 **B2 (Required)** — Controlled **LM-only-swap LoRA**:
 1. Pair CLIP-ViT-L (the LLaVA-1.5 encoder) with Vicuna-7B (LLaVA-1.5's LM) and Mistral-7B (LLaVA-Next's LM).
 2. Train both LoRA variants on identical instruction-tune mixture (~5 GPU-hr each).
@@ -237,3 +250,4 @@ Open. Restructure scheduled for week 9 of `submission_plan.md` (after Pillar A a
 | Date | Change |
 |---|---|
 | 2026-04-28 | Document created. 4 gaps identified (G1–G4) with severity, fix pillar, acceptance criteria, dependencies, status. |
+| 2026-04-28 (advisor-fix) | G3 fix track expanded with **pinned LoRA training spec**: `liuhaotian/LLaVA-Instruct-150K` (10K subsample), rank-32 / alpha-64 LoRA on `q_proj/v_proj/k_proj/o_proj`, AdamW lr=1e-4 batch 32 effective, 5K-10K steps, bf16. Regression-eval gate: POPE F1 ≥ 0.70 + 50-sample VQA sanity before §4.6/M5b re-runs. Without this gate, B1/B2 outputs could be noise. |

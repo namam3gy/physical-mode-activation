@@ -8,12 +8,33 @@
 
 ## 1. Decision summary
 
-- **Track**: **B (ICLR/NeurIPS-grade, ~2–3+ months execution)**, chosen 2026-04-28 over Track A (Findings/TMLR/Workshop).
-- **Primary target**: **ICLR 2027** (deadline ~late Sep 2026, ~5 months from now). Realistic given Track B scope (multi-task + controlled projector-swap + LM-only-swap + Marr-3-level reframing).
-- **Secondary target**: **NeurIPS 2027** (deadline ~mid May 2027, ~12 months). Used as stretch / re-submission slot if ICLR 2027 misses.
-- **Backup**: **TMLR (rolling)** — accepts longer mechanistic-interpretability papers, no fixed deadline; use if both top venues miss.
-- **Why not NeurIPS 2026**: deadline ~late May 2026 (~3 weeks). Track B's controlled experiments (projector-swap LoRA, LM-only-swap LoRA) require >3 weeks; squeezing into NeurIPS 2026 forces dropping back to Track A.
-- **Why not EMNLP 2026 (June)**: borderline feasible (~7 weeks) but EMNLP audience prefers NLP-leaning framing; our paper's mechanistic-interp + world-model angle is a better fit for ICLR/NeurIPS reviewer pool.
+### Venue calendar (verified 2026-04-28)
+
+Sources: trybibby.com/conference-deadlines (cross-venue aggregator); iclr.cc/Conferences/2026/Dates (ICLR 2026 official).
+
+| Venue | Deadline (UTC AoE) | Days from 2026-04-28 | Status |
+|---|---|---|---|
+| **NeurIPS 2026** | Abstract May 5, 2026 / Full May 7, 2026 | 9 days | **too tight — drop** |
+| **AAAI 2027** | Abstract July 26 / Full Aug 2, 2026 | 96 days (~3 months) | possible mid-stage option |
+| **ICLR 2027** (estimated) | Abstract Sep 19 / Full Sep 24, 2026 | 149 days (~5 months) | **primary target** |
+| **NeurIPS 2027** (estimated) | ~May 16, 2027 | ~383 days (~12 months) | secondary / stretch |
+| **EMNLP 2027** (estimated) | ARR May 29, 2027 | ~395 days | tertiary |
+| **TMLR** | rolling | n/a | backup |
+
+**Notes**:
+- ICLR 2026 had Sep 24, 2025 deadline; ICLR 2027 estimate (Sep 24, 2026) follows the same pattern (per `iclr.cc` historical schedule; trybibby aggregator marks it "estimated"). Re-verify on `iclr.cc/Conferences/2027` once the official call posts (typical lead time: ~2 months before deadline → recheck mid-July 2026).
+- NeurIPS 2026 deadline (May 7, 2026) is 9 days from today — Track B's controlled experiments (projector-swap LoRA, LM-only-swap LoRA) cannot fit. Squeezing into NeurIPS 2026 forces a Track A retreat.
+- AAAI 2027 is a viable mid-stage backstop (Aug 2 deadline) if Track B's Pillar A + half of Pillar B complete by week 12.
+
+### Decision
+
+- **Track**: **B (ICLR/NeurIPS-grade, ~5 months execution)**, chosen 2026-04-28 over Track A (Findings/TMLR/Workshop).
+- **Primary target**: **ICLR 2027** (Sep 24, 2026 estimated deadline, ~5 months from now). Realistic given Track B scope (multi-task + controlled projector-swap + LM-only-swap + Marr-3-level reframing).
+- **Mid-stage backstop**: **AAAI 2027** (Aug 2, 2026 deadline) if Pillar A + half-Pillar B done by week 12.
+- **Secondary target**: **NeurIPS 2027** (~May 16, 2027 deadline, ~12 months). Used as stretch / re-submission slot if ICLR 2027 misses.
+- **Backup**: **TMLR (rolling)** — accepts longer mechanistic-interpretability papers, no fixed deadline; use if all top venues miss.
+- **Why not NeurIPS 2026**: deadline May 7, 2026 (~9 days). Track B's controlled experiments cannot fit; squeezing forces a Track A retreat.
+- **Why not EMNLP 2026 (June)**: borderline feasible (~6 weeks) but EMNLP audience prefers NLP-leaning framing; our paper's mechanistic-interp + world-model angle is a better fit for ICLR/NeurIPS reviewer pool.
 
 **Resource available**: H200 × 2 GPUs (per user, 2026-04-28).
 
@@ -67,6 +88,12 @@ The paper currently has 4 weaknesses (per `references/paper_gaps.md`). Track B a
   - **§6.3 Mechanistic level** — M5a runtime steering + M5b SAE intervention, with norm/feature-noise controls.
   - **§6.4 Cross-level triangulation** — same layer L, same direction `v_L`, same SAE features; convergence table.
 - **C2 (Required)** — Rewrite §1 (Introduction) to lead with the **world-model framing**: production VLMs implicitly act as world models in embodied/robotics applications (RT-2, OpenVLA, V-JEPA), and the *first step* of any world model is recognizing "what kind of world am I in?" (physical vs abstract). We localize *when, where, and how* this commitment fires in production VLMs.
+
+  **§1.0 operational definition (drafted 2026-04-28, post-advisor; ~150 words)**: world-model framing must be operationally defined *before* §6 results are written, otherwise reviewers will read it as retrofitted narrative. Working definition for §1.0:
+
+  > *We use **world-model commitment** to refer to the early-pipeline computation by which a vision-language model categorizes its visual input as either (i) a depiction of a real-world physical event with implicit dynamics (mass, gravity, momentum, contact), or (ii) an abstract symbol-system input where physical reasoning is inappropriate (geometry, OCR, mathematical notation). This binary commitment is required for any downstream computation that must condition on world-type — including next-state prediction, spatial-physical reasoning, causal attribution, and embodied action selection. We do not claim production VLMs implement world models in the strict sense of Ha & Schmidhuber (2018); rather, we identify a localizable mechanism that performs **world-type-recognition**, which is a necessary precursor to any explicit world-model architecture.*
+
+  Validate this paragraph fits the current evidence base before writing §6. If we cannot defend it from current data alone, the framing is retrofitting and should be softened (drop "world-model" → "physical-mode commitment").
 - **C3 (Required)** — Rewrite §9 (Discussion) to draw the broader implication: future world-model architectures should include explicit **world-type recognition** modules; our finding suggests current production VLMs solve this implicitly via a single layer + direction, with model-specific routing through encoder vs LM.
 - **C4 (Stretch)** — One paragraph in §10 (Conclusion) connecting our localization claim to potential **interventions for safety / alignment** (e.g., suppressing physics-mode commitment when the model should treat input as abstract — useful for OCR / mathematical reasoning where physical intuition misfires).
 
@@ -163,3 +190,4 @@ If by **end of week 14 (early August)** the paper is still missing key pieces:
 | Date | Change |
 |---|---|
 | 2026-04-28 | Document created. Track B chosen. ICLR 2027 primary, NeurIPS 2027 secondary. 3 pillars defined. 20-week schedule. |
+| 2026-04-28 (advisor-fix) | Verified venue calendar via WebSearch — confirmed ICLR 2027 ~Sep 24, 2026 / NeurIPS 2027 ~May 16, 2027 / NeurIPS 2026 May 7, 2026 (9 days, dropped). Added AAAI 2027 (Aug 2, 2026) as mid-stage backstop. Added §1.0 world-model operational definition (~150 words) for C2 — must validate against current evidence before writing §6 to avoid retrofitting. Sources: trybibby.com/conference-deadlines, iclr.cc/Conferences/2026/Dates. |
