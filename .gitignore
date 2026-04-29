@@ -17,6 +17,9 @@ outputs/
 *.parquet
 *.npz
 
+# Review / paper decks — local only, do not push to GitHub
+*.pptx
+
 # Hand-label sheets (user-specific; agreement results go in docs, not raw labels)
 describe_label_sheet*.csv
 
