@@ -221,6 +221,11 @@ def main() -> None:
                    "merger output activations of dim 3584 for Qwen).")
     p.add_argument("--tag", default=None,
                    help="output subdirectory name (default: <sae-dir>.name + ranking + ts)")
+    p.add_argument("--swapped-ckpt", type=Path, default=None,
+                   help="Idefics2 only: load M-PSwap MLP-pool variant from this checkpoint "
+                        "(directory with mlp_pool_resampler.pt + PEFT LoRA adapters). "
+                        "vision_model is frozen during training, so the same SAE / feature "
+                        "ranking applies; downstream effect on PMR may differ.")
     args = p.parse_args()
 
     if args.tag is None:
@@ -336,10 +341,17 @@ def main() -> None:
         max_new_tokens = 32
 
     print(f"Loading {args.model_id}...")
-    processor = AutoProcessor.from_pretrained(args.model_id)
-    model = AutoModelForImageTextToText.from_pretrained(
-        args.model_id, torch_dtype=torch.bfloat16, device_map=args.device,
-    )
+    if args.swapped_ckpt is not None:
+        from physical_mode.lora.load_swapped import load_idefics2_mlp_pool
+        print(f"  M-PSwap variant: loading Idefics2-MLP from {args.swapped_ckpt}")
+        model, processor = load_idefics2_mlp_pool(
+            args.swapped_ckpt, base_model_id=args.model_id, device=args.device
+        )
+    else:
+        processor = AutoProcessor.from_pretrained(args.model_id)
+        model = AutoModelForImageTextToText.from_pretrained(
+            args.model_id, torch_dtype=torch.bfloat16, device_map=args.device,
+        )
     model.eval()
     if args.hook_target == "merger":
         last_vis_layer, _ = get_post_projection_layer(model)

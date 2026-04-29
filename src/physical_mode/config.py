@@ -123,6 +123,11 @@ class EvalConfig:
     model_id: str = "Qwen/Qwen2.5-VL-7B-Instruct"
     torch_dtype: str = "bfloat16"
     device: str = "cuda"
+    # M-PSwap: optional path to a trained Idefics2-MLP-pool checkpoint dir
+    # (containing mlp_pool_resampler.pt + PEFT LoRA adapters). When set,
+    # PhysModeVLM swaps perceiver_resampler with the trained MLPPoolResampler.
+    # Only valid when model_id points to Idefics2.
+    swapped_ckpt: str | None = None
     max_new_tokens: int = 64
     temperature: float = 0.0
     top_p: float = 1.0

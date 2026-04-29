@@ -39,6 +39,9 @@ MODEL_RUNS: dict[str, str] = {
     "LLaVA-Next": "cross_model_llava_next_capture_*",
     "Idefics2":   "cross_model_idefics2_capture_*",
     "InternVL3":  "cross_model_internvl3_capture_*",
+    # M-PSwap: Idefics2-MLP-pool variant (Pillar B controlled counterfactual).
+    # Skipped automatically by _latest() if no run exists yet.
+    "Idefics2-MPSwap": "cross_model_idefics2_mpswap_capture_*",
 }
 
 
