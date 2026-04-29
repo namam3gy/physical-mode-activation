@@ -46,18 +46,24 @@ The **most surprising** result would be (2): if A and B dissociate on M5b at the
 
 ## 4. Workplan (week 4–5)
 
+**Day 0 (pipeline gate — added 2026-04-29 per advisor)** — *before* any variant training, run a **known-good baseline LoRA smoke**: LLaVA-1.5-7B + canonical LLaVA-finetune subset (e.g., LCS-558K stratified mini-batch, no Idefics2-specific anything), reuse `m_pswap_train.py`'s pipeline (LoRA optimizer, bf16, NaN-abort hook, grad-logging). Run to step ~1000.
+
+- **PASS** (step 1000 clean): pipeline is sound; M-PSwap NaN is architectural/perceiver-specific. Proceed to day 1 with confidence on variants A and B.
+- **FAIL** (NaN at similar step): the pipeline itself has the bug. Diagnose here on a simpler architecture before burning variant-A/B compute. Side benefit: retroactively unblocks M-PSwap.
+
 | Day | Task |
 |---|---|
-| 1 | LM-only-swap LoRA training script (`scripts/m_lmswap_train.py`); fork from `m_pswap_train.py`. Adapt for: target LM = Mistral-7B-Instruct-v0.2 (variant B), held-fixed encoder = openai/clip-vit-large-patch14-336, fresh MLP projector. |
-| 1 | 50-step smoke (variant B); confirm forward/loss looks reasonable, no NaN. |
-| 2 | Streaming `the_cauldron` dataloader (re-use M-PSwap's). Training data budget: ~10K samples (matches M-PSwap; revisit if too small). |
-| 2–4 | Full LoRA training of variant B (LoRA rank-32, alpha-64 on q/v/k/o_proj of Mistral; full FT on projector). NaN-abort + grad logging. |
-| 4 | Regression eval on variant B (`m_pswap_regression_eval.py` pattern): verify M2 inference works and PMR_nolabel is in a sane range (not 0.0 or 1.0). |
-| 5 | M5a runtime steering on variant A (LLaVA-1.5 baseline — already done) + variant B (new). |
-| 5 | M5b SAE intervention on variant A (LLaVA-1.5 vis22 SAE — already trained 2026-04-28) + variant B (train fresh SAE on variant B's vis22 activations). |
+| 0 | **Pipeline gate** — known-good baseline LoRA smoke (above). |
+| 1 | `scripts/m_lmswap_train.py` from `m_pswap_train.py`. **Symmetric design**: train both variants A (CLIP + Vicuna-7B-v1.5 + fresh MLP) and B (CLIP + Mistral-7B-Instruct-v0.2 + fresh MLP) from same starting recipe; encoder held frozen, MLP full-FT, LM LoRA rank-32 alpha-64 on q/v/k/o_proj. |
+| 1 | 50-step smoke for **both** variants on **LCS-558K** (LLaVA-1.5 pretrain corpus; coherent with rest of chain + isolates "was the M-PSwap NaN dataset-driven"). |
+| 2–4 | Full LoRA training **A and B in parallel on H200×2** (one variant per GPU). NaN-abort + per-step `g_lora` vs `g_proj` logging. |
+| 4 | Regression eval on both (`m_pswap_regression_eval.py` pattern): M2 PMR_nolabel must land in 0.2–0.8 range; if 0.0 collapse or 1.0 saturation on either, training under-tuned. |
+| 5 | **Shared encoder SAE**: train one SAE on the held-fixed CLIP `vision_hidden_22` activations (same input distribution for A and B → shared SAE is principled). Per-variant Cohen's d ranking using each variant's own physics/abstract PMR labels. |
+| 5 | M5a runtime steering on variants A and B at L20–L25 (Vicuna 32 LM layers; Mistral 32 LM layers); M5b top-k SAE ablation on both with shared SAE + per-variant ranking. |
 | 5 | Cross-method analysis + insight doc `docs/insights/m_lmswap.md`. |
+| End of W5 | **Stretch decision gate for variant C** (CLIP+Qwen2.5-7B-LM): only run if A↔B is *clean* (clear dissociation or clean shared NULL) **and** schedule has slack. Default: defer. |
 
-If the day-2 smoke runs into the same kind of step-1000 NaN as M-PSwap, the **LoRA training pipeline itself is the suspect**, not perceiver-specific architectural surgery — escalate to advisor before continuing.
+If the day-0 gate fails or the day-1 smoke NaNs the same way as M-PSwap, the **LoRA training pipeline itself is the suspect**, not perceiver-specific architectural surgery — diagnose before continuing.
 
 ## 5. Risks / pre-mortems
 
@@ -75,9 +81,15 @@ The result is interpretable only if:
 
 If any of those gates fail, the experiment is uninterpretable and we fall back to the literature-grounded G3 fallback per `paper_gaps.md`.
 
-## 7. Open questions (for next session / advisor)
+## 7. Locked decisions (advisor-checked 2026-04-29)
 
-1. From-scratch on both A and B vs LLaVA-1.5-A + new-train-B asymmetric — which?
-2. Use `the_cauldron` (M-PSwap's choice) or switch to LLaVA-1.5's pretrain corpus (LCS-558K) for closer baseline match?
-3. M5b SAE — train a fresh SAE per LM variant, or share an encoder-only SAE between A and B? (Encoder is held fixed, so a shared SAE may be principled — but the *features that affect downstream PMR* may be LM-specific to read out.)
-4. Should we add a **C variant** (CLIP+Qwen2.5-7B-LM) to span 3 LMs and start probing whether LM family explains the saturation ladder? Adds a week but turns 2-point comparison into a 3-point ladder.
+The four open questions resolved after advisor review:
+
+| Q | Decision | Rationale |
+|---|---|---|
+| **Q1 — Sym vs asym** | **Symmetric** (both A and B from scratch, same recipe, same data) | Asymmetric design embeds the contrast we want to measure inside unmeasured "LLaVA-1.5 training residue." ~2× cost is the price of the controlled claim. |
+| **Q2 — Dataset** | **LCS-558K** (LLaVA-1.5 pretrain corpus) | Coherent with rest of the LLaVA-family chain. Diagnostic side benefit: M-PSwap NaN'd on `the_cauldron`; switching dataset partially isolates "was the NaN dataset-driven." |
+| **Q3 — SAE** | **Shared encoder SAE + per-variant Cohen's d ranking** | Encoder is held bit-identical across A and B → activations on the same stim are identical → one SAE is principled. Variant-specific PMR labels drive variant-specific feature ranking. |
+| **Q4 — 3-point ladder (variant C)** | **2-point primary; gate-decide C at end of week 4** | Novelty is the *controlled counterfactual itself*, not ladder length. CLIP+Qwen-LM at 10K-sample LoRA is OOD for canonical Qwen-VL training (native = SigLIP); base rate of clearing the §6 falsifiability gate is unfavorable. A failed gate doesn't extend the ladder, it pollutes the figure. Run only if A↔B is clean **and** schedule has slack. |
+
+**Pipeline-NaN concern (not in original list)**: M-LMSwap reuses M-PSwap's LoRA training infra ~entirely. If M-PSwap's NaN was a recipe-pipeline bug, A and B will hit it too. Day 0 of §4 adds a known-good-baseline pipeline smoke gate before the variants run unattended.
