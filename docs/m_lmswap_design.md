@@ -44,15 +44,39 @@ The strongest paper-friendly result is **(1) clean** — both variants NULL on M
 
 The **most surprising** result would be (2): if A and B dissociate on M5b at the same encoder, the encoder bottleneck story collapses and we have a stronger LM-family causal story instead. Either is publishable; only "noisy and inconclusive" is a real loss.
 
-## 4. Workplan (week 4–5)
+## 4. Workplan (week 4–6) — Canonical 2-stage training
 
-**Day 0 (pipeline gate — revised 2026-04-29 after inspecting fp32 run)** — Inspection of `outputs/mpswap_fp32_20260429-053240/` reveals: training was healthy through step 1450 (loss 0.39 → 0.33 descending, coherent generation samples at 750/1000/1250 — *"A man is standing in a field."*), then NaN'd at step 1461 with no warning. **Pipeline is functionally correct**; the M-PSwap NaN is most likely a **single pathological batch in `the_cauldron` stream**, not bf16 attention overflow / mask handling / optimizer state.
+**Day 0 finding (2026-04-29)** — `outputs/mpswap_fp32_20260429-053240/` trained healthy through step 1450 (loss 0.39 → 0.33; coherent generation samples), NaN'd at step 1461. **D0a determinism repro** (`scripts/m_pswap_repro_nan_batch.py`, bf16 forward-only) **completed clean through step 1465** (n_skipped=0). The single-bad-batch hypothesis is **weakened** — the trigger is most likely backward/optimizer/dtype-specific, not data-driven. **D0b skipped per advisor**: the M-PSwap fp32 run already serves as the pipeline smoke. M-PSwap stays backlogged; do not dive back into diagnosing it. Variant A/B training is the new gate.
 
-Lighter gate sequence:
+**Scope correction (advisor 2026-04-29)** — `m_pswap_train.py`'s 5K-step / 10K-sample budget was sufficient for Idefics2 because Idefics2 was already a fully-trained VLM (M-PSwap only swapped projector + LoRA-adapted). M-LMSwap is fundamentally different: **Mistral-7B-Instruct has never seen an image**. Variant B constructs a brand-new VLM from scratch (random projector + vision-LM-naïve LM). 5K step is ~13 % of LLaVA-1.5's canonical 38K step budget — undertrained variants would collapse the §6 falsifiability gate and produce uninterpretable results.
 
-- **D0a — Determinism repro** (cheap, ~10–30 min): run `scripts/m_pswap_repro_nan_batch.py` against `mpswap_fp32_20260429-053240/step1000`. Iterates the_cauldron with same seed, finds the offending batch, saves it to `nan_repro/bad_batch.pkl`. Diagnostic confirmation that the trigger is data-driven.
-- **D0b — Dataset substitution smoke** (~15–30 min): 100-step LoRA smoke on **LLaVA-1.5-7B + LCS-558K** (or any non-`the_cauldron` chat-format VLM dataset) to confirm LCS-558K plumbing + recipe runs clean. Goal is plumbing verification, not architecture diagnosis (architecture already validated via the fp32 run).
-- If both D0a and D0b confirm the data-batch hypothesis, the gate passes with **two side benefits**: (a) variants A and B avoid the trigger by using LCS-558K; (b) M-PSwap unblocks opportunistically by switching dataset (or filtering the offending batch) — flag in roadmap §3.X for resume after M-LMSwap if scheduling allows.
+Adopting **Option 1 (canonical 2-stage symmetric)** per advisor:
+
+| Stage | Trainable | Frozen | Dataset | Steps | Wall (per variant) |
+|---|---|---|---|---|---|
+| **1 — Projector pretrain** | MLP (full FT) | CLIP encoder + LM | LCS-558K (`liuhaotian/LLaVA-Pretrain`) | ~17 K | ~2–2.5 days on H200 |
+| **2 — LoRA instruction tune** | MLP (full FT) + LM LoRA r=32 α=64 (q/k/v/o) | CLIP encoder | LLaVA-Instruct-665K | ~21 K | ~3–3.5 days on H200 |
+
+Symmetric: A and B both run both stages from same recipe, same data, same hyperparameters. Compute per variant: ~5–6 days. Two variants on 1 GPU sequential: ~10–12 days. Fits week 4–6 (Pillar B budget through week 8 leaves slack).
+
+Rejected alternatives:
+- **Option 2 (asymmetric, A = LLaVA-1.5 as-is + B = LLaVA-1.5 weights with LM swap)** — saves ~5 days but reintroduces the LLaVA-training-residue asymmetry advisor explicitly warned against in §7 Q1.
+- **Option 3 (single-stage joint, ~30K steps)** — non-canonical and still potentially undertrained; worst of both worlds.
+
+| Day (relative) | Task |
+|---|---|
+| 1 | Replace `m_lmswap_train.py` `train()` `NotImplementedError` with proper 2-stage fork. Stage 1 + stage 2 selectable via `--stage` flag. Add LCS-558K + LLaVA-Instruct-665K loaders with images-from-tar handling. |
+| 1 | 50-step smoke (variant B stage 1) on a single GPU; confirm loss descends + no NaN. |
+| 2–4 | Variant A stage 1 + stage 2 (sequential on GPU 1). |
+| 4 | Regression eval after variant A stage 2: M2 PMR_nolabel must be in 0.2–0.8; M5a baseline at L20–L25 should fire ~0/10 on `line_blank_none`. If gates fail, recipe under-tuned; pause variant B and diagnose. |
+| 5–7 | Variant B stage 1 + stage 2. |
+| 7 | Regression eval on variant B (same gates). |
+| 8 | Shared encoder SAE on the held-fixed CLIP `vision_hidden_22` activations; per-variant Cohen's d ranking. |
+| 8 | M5a runtime steering on A and B; M5b top-k SAE ablation on A and B. |
+| 8 | Cross-method analysis + insight `docs/insights/m_lmswap.md`. |
+| End of W6 | **Stretch decision gate for variant C** (CLIP+Qwen2.5-7B-LM): only run if A↔B is *clean* and schedule has slack. Default: defer. |
+
+Parallelization opportunity: if vLLM Qwen32B server (currently on GPU 0) is released, A and B can run in parallel on the two H200s, halving wall to ~5–6 days total. Negotiate before committing if schedule slips.
 
 | Day | Task |
 |---|---|
@@ -68,11 +92,12 @@ Lighter gate sequence:
 
 If the day-0 gate fails or the day-1 smoke NaNs the same way as M-PSwap, the **LoRA training pipeline itself is the suspect**, not perceiver-specific architectural surgery — diagnose before continuing.
 
-## 5. Risks / pre-mortems
+## 5. Risks / pre-mortems (revised after advisor scope correction)
 
-- **Same-pipeline NaN**: M-PSwap's NaN may be a generic LoRA-training-recipe bug (bf16 attention, mask handling, the_cauldron edge case). If variant B NaNs at a similar step, M-LMSwap unblocks M-PSwap diagnostics by accident — useful, but loses the week. Mitigation: run smoke + regression-eval at 50, 200, 500, 1000 steps before letting it run unattended overnight.
-- **Vicuna-only baseline asymmetry**: if LLaVA-1.5 is variant A unmodified and variant B is freshly trained, training residue (overfit on `the_cauldron`'s narrow distribution) could make B's M2 evaluation different for reasons unrelated to LM family. Mitigation: regression eval as gate; if delta from LLaVA-1.5 baseline on standard benchmarks is large, retrain variant A from CLIP+Vicuna with same recipe (symmetric).
-- **MLP projector is too weak**: 2-layer GELU MLP may underperform LLaVA-1.5's perfectly tuned projector, dragging down PMR. Mitigation: copy LLaVA-1.5's projector weights to initialize variant B's projector.
+- **Undertraining** (the dominant risk now): canonical LLaVA-1.5 budget = 38K steps total; we run 17K + 21K. Mitigation: regression eval at end of stage 2 — if M2 PMR_nolabel is 0.0 / 1.0 or text generation is gibberish, extend training. Don't proceed to M5a/M5b until A passes the gate.
+- **Backward/optimizer-pass NaN trigger** (M-PSwap legacy): the failed M-PSwap fp32 run NaN'd at step 1461 in forward-loss check during full forward+backward; D0a bf16 forward-only didn't reproduce. The trigger may surface when our LoRA training adds backward + optimizer state. Mitigation: AdamW betas (0.9, 0.999) [advisor flagged 0.95 risky]; grad clip 1.0; periodic ckpt every 1000 steps; NaN-abort hook on forward loss; bf16 (matches M-LMSwap default). If a NaN hits, the diagnostic suite from M-PSwap (`m_pswap_repro_nan_batch.py`, `m_pswap_diagnose_nan_v2.py`) can be re-targeted at the M-LMSwap stack — opportunistic side benefit.
+- **Mistral chat template lacks `<image>`**: Mistral-Instruct's tokenizer chat template doesn't natively integrate `<image>`. Need a custom template or manual placeholder insertion before tokenizing. Day-1 implementation note.
+- **MLP projector underpower**: 2-layer GELU MLP is the LLaVA-1.5 spec; LLaVA-Next went 2-layer too. Default is fine; if regression fails, rescue option = bigger projector or longer pretrain.
 - **Regression on M2 stim**: even a well-trained variant B might score very differently from LLaVA-Next-Mistral on M2 because LLaVA-Next has AnyRes. The comparison is **not** "does B match LLaVA-Next-Mistral" — it's "does B differ from variant A on M5a/M5b in ways that isolate LM family." Anchor analysis on A↔B delta, not A/B-vs-existing-LLaVA-models.
 
 ## 6. Falsifiability
