@@ -145,6 +145,8 @@ This is a **clean dissociation**, but it rests on *one* perceiver-architecture m
 
 **Feasibility risk**: perceiver-resampler is non-trivially integrated into Idefics2's forward pass (cross-attention with learned queries). LoRA-style replacement may require structural surgery, not just LoRA adapters. **1-day feasibility spike at week 4** before committing.
 
+**Status update (2026-04-29)** — feasibility spike done (`38302ec` / `10bafd3`): bypass-only experiment fails (perceiver integral to the forward pass; structural surgery required), full LoRA training is the only path. Training infra built (`d35d512` / `69634e7`): `src/physical_mode/lora/{idefics2_mlp_resampler.py,load_swapped.py}` (MLPPoolResampler with fp32 master weights) + `scripts/m_pswap_{train,smoke,regression_eval,post_training,diagnose_nan*,repro_nan_batch,discriminator}.py`. **Smoke (50 step) PASS**; **full training NaN-blocked at step 1000** (run `outputs/mpswap_run_20260429-033238/step1000`). Diagnostic suite (`m_pswap_diagnose_nan_v2.py`) stress-tests long-text samples / streaming `HuggingFaceM4/the_cauldron` / bf16-vs-fp32 attention-pool / mask-negation patterns — WIP. Until the NaN is resolved, B1's §4.6/M5b re-runs cannot start; the fallback (drop B1, keep B2 + literature-grounded theoretical claim) becomes more likely if the diagnostic suite cannot localize the cause within ~1 week.
+
 #### Pinned LoRA training spec (2026-04-28, post-advisor)
 
 The week-4 spike must hit a working baseline before week-5 full training kicks off. Spec:
