@@ -53,6 +53,9 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--lr", type=float, default=1e-2)
     p.add_argument("--prompt", default=DEFAULT_PROMPT)
     p.add_argument("--model-id", default=DEFAULT_MODEL)
+    p.add_argument("--swapped-ckpt", type=Path, default=None,
+                   help="If set, load M-PSwap Idefics2-MLP variant from this checkpoint dir "
+                        "(mlp_pool_resampler.pt + PEFT LoRA adapters)")
     p.add_argument("--output-dir", type=Path, default=None)
     p.add_argument("--device", default="cuda:0")
     p.add_argument("--seed", type=int, default=42)
@@ -95,10 +98,17 @@ def main() -> None:
 
     print(f"Loading model {args.model_id} on {args.device}...")
     t_load = time.time()
-    processor = AutoProcessor.from_pretrained(args.model_id)
-    model = AutoModelForImageTextToText.from_pretrained(
-        args.model_id, torch_dtype=torch.bfloat16, device_map=args.device,
-    )
+    if args.swapped_ckpt is not None:
+        from physical_mode.lora.load_swapped import load_idefics2_mlp_pool
+        print(f"  M-PSwap variant: loading from {args.swapped_ckpt}")
+        model, processor = load_idefics2_mlp_pool(
+            args.swapped_ckpt, base_model_id=args.model_id, device=args.device
+        )
+    else:
+        processor = AutoProcessor.from_pretrained(args.model_id)
+        model = AutoModelForImageTextToText.from_pretrained(
+            args.model_id, torch_dtype=torch.bfloat16, device_map=args.device,
+        )
     model.eval()
     print(f"  Model loaded in {(time.time()-t_load):.1f} sec.")
 
