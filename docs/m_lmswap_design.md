@@ -46,14 +46,17 @@ The **most surprising** result would be (2): if A and B dissociate on M5b at the
 
 ## 4. Workplan (week 4–5)
 
-**Day 0 (pipeline gate — added 2026-04-29 per advisor)** — *before* any variant training, run a **known-good baseline LoRA smoke**: LLaVA-1.5-7B + canonical LLaVA-finetune subset (e.g., LCS-558K stratified mini-batch, no Idefics2-specific anything), reuse `m_pswap_train.py`'s pipeline (LoRA optimizer, bf16, NaN-abort hook, grad-logging). Run to step ~1000.
+**Day 0 (pipeline gate — revised 2026-04-29 after inspecting fp32 run)** — Inspection of `outputs/mpswap_fp32_20260429-053240/` reveals: training was healthy through step 1450 (loss 0.39 → 0.33 descending, coherent generation samples at 750/1000/1250 — *"A man is standing in a field."*), then NaN'd at step 1461 with no warning. **Pipeline is functionally correct**; the M-PSwap NaN is most likely a **single pathological batch in `the_cauldron` stream**, not bf16 attention overflow / mask handling / optimizer state.
 
-- **PASS** (step 1000 clean): pipeline is sound; M-PSwap NaN is architectural/perceiver-specific. Proceed to day 1 with confidence on variants A and B.
-- **FAIL** (NaN at similar step): the pipeline itself has the bug. Diagnose here on a simpler architecture before burning variant-A/B compute. Side benefit: retroactively unblocks M-PSwap.
+Lighter gate sequence:
+
+- **D0a — Determinism repro** (cheap, ~10–30 min): run `scripts/m_pswap_repro_nan_batch.py` against `mpswap_fp32_20260429-053240/step1000`. Iterates the_cauldron with same seed, finds the offending batch, saves it to `nan_repro/bad_batch.pkl`. Diagnostic confirmation that the trigger is data-driven.
+- **D0b — Dataset substitution smoke** (~15–30 min): 100-step LoRA smoke on **LLaVA-1.5-7B + LCS-558K** (or any non-`the_cauldron` chat-format VLM dataset) to confirm LCS-558K plumbing + recipe runs clean. Goal is plumbing verification, not architecture diagnosis (architecture already validated via the fp32 run).
+- If both D0a and D0b confirm the data-batch hypothesis, the gate passes with **two side benefits**: (a) variants A and B avoid the trigger by using LCS-558K; (b) M-PSwap unblocks opportunistically by switching dataset (or filtering the offending batch) — flag in roadmap §3.X for resume after M-LMSwap if scheduling allows.
 
 | Day | Task |
 |---|---|
-| 0 | **Pipeline gate** — known-good baseline LoRA smoke (above). |
+| 0 | **Pipeline gate (lightweight)** — D0a + D0b above. |
 | 1 | `scripts/m_lmswap_train.py` from `m_pswap_train.py`. **Symmetric design**: train both variants A (CLIP + Vicuna-7B-v1.5 + fresh MLP) and B (CLIP + Mistral-7B-Instruct-v0.2 + fresh MLP) from same starting recipe; encoder held frozen, MLP full-FT, LM LoRA rank-32 alpha-64 on q/v/k/o_proj. |
 | 1 | 50-step smoke for **both** variants on **LCS-558K** (LLaVA-1.5 pretrain corpus; coherent with rest of chain + isolates "was the M-PSwap NaN dataset-driven"). |
 | 2–4 | Full LoRA training **A and B in parallel on H200×2** (one variant per GPU). NaN-abort + per-step `g_lora` vs `g_proj` logging. |
