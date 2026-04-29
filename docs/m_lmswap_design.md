@@ -78,19 +78,17 @@ Rejected alternatives:
 
 Parallelization opportunity: if vLLM Qwen32B server (currently on GPU 0) is released, A and B can run in parallel on the two H200s, halving wall to ~5–6 days total. Negotiate before committing if schedule slips.
 
-| Day | Task |
-|---|---|
-| 0 | **Pipeline gate (lightweight)** — D0a + D0b above. |
-| 1 | `scripts/m_lmswap_train.py` from `m_pswap_train.py`. **Symmetric design**: train both variants A (CLIP + Vicuna-7B-v1.5 + fresh MLP) and B (CLIP + Mistral-7B-Instruct-v0.2 + fresh MLP) from same starting recipe; encoder held frozen, MLP full-FT, LM LoRA rank-32 alpha-64 on q/v/k/o_proj. |
-| 1 | 50-step smoke for **both** variants on **LCS-558K** (LLaVA-1.5 pretrain corpus; coherent with rest of chain + isolates "was the M-PSwap NaN dataset-driven"). |
-| 2–4 | Full LoRA training **A and B in parallel on H200×2** (one variant per GPU). NaN-abort + per-step `g_lora` vs `g_proj` logging. |
-| 4 | Regression eval on both (`m_pswap_regression_eval.py` pattern): M2 PMR_nolabel must land in 0.2–0.8 range; if 0.0 collapse or 1.0 saturation on either, training under-tuned. |
-| 5 | **Shared encoder SAE**: train one SAE on the held-fixed CLIP `vision_hidden_22` activations (same input distribution for A and B → shared SAE is principled). Per-variant Cohen's d ranking using each variant's own physics/abstract PMR labels. |
-| 5 | M5a runtime steering on variants A and B at L20–L25 (Vicuna 32 LM layers; Mistral 32 LM layers); M5b top-k SAE ablation on both with shared SAE + per-variant ranking. |
-| 5 | Cross-method analysis + insight doc `docs/insights/m_lmswap.md`. |
-| End of W5 | **Stretch decision gate for variant C** (CLIP+Qwen2.5-7B-LM): only run if A↔B is *clean* (clear dissociation or clean shared NULL) **and** schedule has slack. Default: defer. |
+If a smoke / stage-1 / stage-2 run NaNs the way M-PSwap did, the **LoRA training pipeline itself is the suspect**, not perceiver-specific architectural surgery — diagnose before continuing (the M-PSwap diagnostic suite is repurposable).
 
-If the day-0 gate fails or the day-1 smoke NaNs the same way as M-PSwap, the **LoRA training pipeline itself is the suspect**, not perceiver-specific architectural surgery — diagnose before continuing.
+### Day-1 implementation outcome (2026-04-29 evening)
+
+`scripts/m_lmswap_train.py` `train()` shipped (commit `eb81b92`). 1-batch dry-runs PASS on both variants × both stages; pytest 210/210. Three non-obvious findings worth re-loading next session:
+
+1. **Image-token off-by-one** — `LlavaProcessor` uses the formula `num_image_tokens = (H/P)·(W/P) + num_additional_image_tokens; if vision_feature_select_strategy == "default": num_image_tokens -= 1`. Default `num_additional_image_tokens=0` strips 1 too many under `"default"` strategy → 575 placeholders per image, while CLIP-336 + strategy=default emits 576 features → forward error `Image features and image tokens do not match, tokens: 1150, features: 4718592`. **Fix**: pass `num_additional_image_tokens=1` to LlavaProcessor (CLS adds 1 then strategy=default strips 1 → net 0; 576 placeholders).
+2. **vocab_size sync** — `mc = AutoConfig.from_pretrained(lm_id)` carries vocab=32000 (Mistral) / 32000 (Vicuna). After `lm.resize_token_embeddings(len(tok))` for the new `<image>` token, the `lm_head` projects to 32001 but `text_config.vocab_size` still says 32000 → cross-entropy loss tries to `view(-1, 32000)` on a 32001-wide logits → `RuntimeError: shape '[-1, 32000]' is invalid for input of size 38529204`. **Fix**: set `mc.vocab_size = len(tok)` before constructing LlavaConfig.
+3. **Chat template manual** — neither Vicuna nor Mistral default `tokenizer.chat_template` jinja has an `<image>` slot. Manual string assembly (Vicuna `USER:/ASSISTANT:` + Mistral `[INST]/[/INST]` with literal `<image>`) is what the LLaVA family actually uses. Don't try to patch the jinja templates.
+
+These three fixes are baked into the committed code — they just have to *not* be reverted in future sessions.
 
 ## 5. Risks / pre-mortems (revised after advisor scope correction)
 

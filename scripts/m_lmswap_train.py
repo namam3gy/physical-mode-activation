@@ -618,6 +618,7 @@ def main() -> None:
                    help="Stage 1 checkpoint dir (required when --stage 2)")
     p.add_argument("--max-steps", type=int, default=17000,
                    help="Stage-1 default 17000; pass 21000 for stage 2")
+    p.add_argument("--warmup-steps", type=int, default=100)
     p.add_argument("--batch-size", type=int, default=4)
     p.add_argument("--grad-accum", type=int, default=8)
     p.add_argument("--lr", type=float, default=None,
@@ -640,6 +641,7 @@ def main() -> None:
         output_dir=args.output_dir,
         stage1_ckpt=args.stage1_ckpt,
         max_steps=args.max_steps,
+        warmup_steps=args.warmup_steps,
         batch_size=args.batch_size,
         grad_accum=args.grad_accum,
         lr=args.lr,
