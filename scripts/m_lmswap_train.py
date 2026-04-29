@@ -250,8 +250,13 @@ def apply_stage2_lora(model, lora_rank: int, lora_alpha: int, lora_dropout: floa
 
 
 def get_mlp_ref(model):
-    """Return the multi_modal_projector module regardless of PEFT wrap depth."""
-    if hasattr(model, "base_model"):
+    """Return the multi_modal_projector module regardless of PEFT wrap depth.
+
+    Don't use `hasattr(model, "base_model")` — every HF PreTrainedModel has a
+    `.base_model` property pointing inside itself, so that check is true even
+    for non-PEFT models. Use `isinstance(model, PeftModel)` instead.
+    """
+    if isinstance(model, PeftModel):
         return model.base_model.model.model.multi_modal_projector
     return model.model.multi_modal_projector
 
