@@ -58,7 +58,7 @@ if [ "$B_S1_RC" -ne 0 ]; then
     exit 1
 fi
 
-B_S1_CKPT=$(ls -d "$B_S1_DIR"/step* 2>/dev/null | sort -t p -k2 -n | tail -1)
+B_S1_CKPT=$(ls -d "$B_S1_DIR"/step* 2>/dev/null | sort -V | tail -1)
 if [ -z "$B_S1_CKPT" ]; then
     log "ERROR: no B Stage 1 checkpoint in $B_S1_DIR — abort chain"
     exit 1
@@ -85,7 +85,7 @@ if [ "$B_S2_RC" -ne 0 ]; then
     exit 1
 fi
 
-B_S2_CKPT=$(ls -d "$B_S2_DIR"/step* 2>/dev/null | sort -t p -k2 -n | tail -1)
+B_S2_CKPT=$(ls -d "$B_S2_DIR"/step* 2>/dev/null | sort -V | tail -1)
 if [ -z "$B_S2_CKPT" ]; then
     log "ERROR: no B Stage 2 checkpoint in $B_S2_DIR — abort chain"
     exit 1
