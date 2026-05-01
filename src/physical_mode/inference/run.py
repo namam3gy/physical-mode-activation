@@ -63,7 +63,7 @@ def run_inference(cfg: EvalConfig, manifest_dir: Path) -> Path:
     # legacy behavior — cfg.labels is the explicit label tuple — is preserved.
     multi_shape = len(getattr(cfg.factorial, "shapes", ("circle",))) > 1
 
-    LABEL_ROLES: tuple[str, ...] = ("physical", "abstract", "exotic")
+    LABEL_ROLES: tuple[str, ...] = ("physical", "abstract", "exotic", "subtype", "style")
 
     def labels_for_row(row_shape: str) -> tuple[str, ...]:
         if not multi_shape:

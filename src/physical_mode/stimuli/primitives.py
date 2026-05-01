@@ -14,7 +14,10 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 ObjectMode = Literal["line", "filled", "shaded", "textured", "block_stack"]
-Shape = Literal["circle", "square", "triangle", "hexagon", "polygon", "car", "person", "bird"]
+Shape = Literal[
+    "circle", "square", "triangle", "hexagon", "polygon",
+    "car", "person", "bird", "boat", "fish", "plant",
+]
 
 
 def blank_canvas(size: int) -> Image.Image:
@@ -122,6 +125,36 @@ def draw_object(
             return _draw_shaded_bird(img, cx, cy, radius)
         if mode == "textured":
             return _draw_textured_bird(img, cx, cy, radius, seed)
+
+    if shape == "boat":
+        if mode == "line":
+            return _draw_line_boat(img, cx, cy, radius)
+        if mode == "filled":
+            return _draw_filled_boat(img, cx, cy, radius)
+        if mode == "shaded":
+            return _draw_shaded_boat(img, cx, cy, radius)
+        if mode == "textured":
+            return _draw_textured_boat(img, cx, cy, radius, seed)
+
+    if shape == "fish":
+        if mode == "line":
+            return _draw_line_fish(img, cx, cy, radius)
+        if mode == "filled":
+            return _draw_filled_fish(img, cx, cy, radius)
+        if mode == "shaded":
+            return _draw_shaded_fish(img, cx, cy, radius)
+        if mode == "textured":
+            return _draw_textured_fish(img, cx, cy, radius, seed)
+
+    if shape == "plant":
+        if mode == "line":
+            return _draw_line_plant(img, cx, cy, radius)
+        if mode == "filled":
+            return _draw_filled_plant(img, cx, cy, radius)
+        if mode == "shaded":
+            return _draw_shaded_plant(img, cx, cy, radius)
+        if mode == "textured":
+            return _draw_textured_plant(img, cx, cy, radius, seed)
 
     raise ValueError(f"unknown (shape, mode): ({shape}, {mode})")
 
@@ -980,3 +1013,327 @@ def draw_cast_shadow(img: Image.Image, cx: int, cy: int, r: int, ground_y: int) 
         fill=(30, 30, 30, 110),
     )
     return Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+
+
+# ===========================================================================
+# C6-orig (2026-05-01) — boat / fish / plant primitives.
+# Three new categories chosen to test cross-category H7 generalization beyond
+# car / person / bird. Each shape has 4 abstraction levels: line, filled,
+# shaded, textured. Geometry intentionally simple so models can recognize at
+# every abstraction level.
+# ===========================================================================
+
+
+def _boat_geometry(cx: int, cy: int, r: int) -> dict:
+    """Sailboat geometry — hull (trapezoid) + mast (vertical) + sail (triangle)."""
+    hull = [
+        (cx - int(r * 0.9), cy),
+        (cx + int(r * 0.9), cy),
+        (cx + int(r * 0.7), cy + int(r * 0.5)),
+        (cx - int(r * 0.7), cy + int(r * 0.5)),
+    ]
+    mast_top = (cx, cy - int(r * 0.95))
+    mast_base = (cx, cy)
+    sail = [
+        (cx, cy - int(r * 0.95)),
+        (cx, cy - int(r * 0.1)),
+        (cx + int(r * 0.65), cy - int(r * 0.45)),
+    ]
+    return dict(hull=hull, mast_top=mast_top, mast_base=mast_base, sail=sail)
+
+
+def _draw_line_boat(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    g = _boat_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.polygon(g["hull"], outline=(0, 0, 0))
+    d.line([g["mast_base"], g["mast_top"]], fill=(0, 0, 0), width=3)
+    d.polygon(g["sail"], outline=(0, 0, 0))
+    return img
+
+
+def _draw_filled_boat(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    g = _boat_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.polygon(g["hull"], fill=(0, 0, 0))
+    d.line([g["mast_base"], g["mast_top"]], fill=(0, 0, 0), width=3)
+    d.polygon(g["sail"], fill=(0, 0, 0))
+    return img
+
+
+def _draw_shaded_boat(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    """Boat with hull gradient (lighter top, darker bottom) + glossy sail."""
+    g = _boat_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    # Hull gradient — fake with 3 horizontal strips of decreasing brightness.
+    hull_top_y = cy
+    hull_bot_y = cy + int(r * 0.5)
+    h_height = hull_bot_y - hull_top_y
+    n_strips = 16
+    for i in range(n_strips):
+        t = i / max(1, n_strips - 1)
+        c = int(180 - 100 * t)
+        y0 = hull_top_y + int(h_height * (i / n_strips))
+        y1 = hull_top_y + int(h_height * ((i + 1) / n_strips))
+        # Strip across the hull width, clipped by trapezoid edges (approx).
+        edge_t = (y0 - hull_top_y) / max(1, h_height)
+        left = cx - int(r * (0.9 - 0.2 * edge_t))
+        right = cx + int(r * (0.9 - 0.2 * edge_t))
+        d.rectangle((left, y0, right, y1), fill=(c, c, c + 15))
+    d.polygon(g["hull"], outline=(40, 40, 40), width=2)
+    # Mast and sail.
+    d.line([g["mast_base"], g["mast_top"]], fill=(60, 40, 20), width=3)
+    d.polygon(g["sail"], fill=(220, 220, 230), outline=(50, 50, 50), width=2)
+    # Sail glare strip.
+    d.line(
+        (cx + 4, cy - int(r * 0.85), cx + int(r * 0.5), cy - int(r * 0.45)),
+        fill=(245, 245, 250), width=2,
+    )
+    return img
+
+
+def _draw_textured_boat(img: Image.Image, cx: int, cy: int, r: int, seed: int) -> Image.Image:
+    """Photorealistic-ish sailboat with painted hull + cloth sail + reflection."""
+    rng = random.Random(seed + 44000)
+    g = _boat_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    # Hull color: nautical palette (red/blue/green hulls).
+    palette = [(160, 30, 30), (30, 60, 130), (30, 110, 70), (200, 150, 30)]
+    hull_color = palette[rng.randrange(len(palette))]
+    d.polygon(g["hull"], fill=hull_color, outline=(20, 20, 20), width=2)
+    # Top hull highlight strip.
+    d.line(
+        (cx - int(r * 0.85), cy + 4, cx + int(r * 0.85), cy + 4),
+        fill=tuple(min(255, c + 60) for c in hull_color), width=2,
+    )
+    # Mast: brown wood color.
+    d.line([g["mast_base"], g["mast_top"]], fill=(110, 70, 30), width=4)
+    # Sail: off-white cloth with slight gradient.
+    d.polygon(g["sail"], fill=(240, 235, 220), outline=(40, 40, 40), width=1)
+    # Sail seam.
+    d.line(
+        (cx + 4, cy - int(r * 0.85), cx + int(r * 0.55), cy - int(r * 0.4)),
+        fill=(190, 180, 160), width=1,
+    )
+    # Small flag at mast top.
+    d.polygon(
+        [(cx, cy - int(r * 0.95)), (cx + int(r * 0.2), cy - int(r * 0.85)), (cx, cy - int(r * 0.75))],
+        fill=(200, 30, 30),
+    )
+    return img
+
+
+def _fish_geometry(cx: int, cy: int, r: int) -> dict:
+    """Fish geometry — body ellipse (head left, tail right) + tail triangle + eye."""
+    body_box = (cx - int(r * 0.8), cy - int(r * 0.45), cx + int(r * 0.55), cy + int(r * 0.45))
+    tail = [
+        (cx + int(r * 0.55), cy),
+        (cx + int(r * 0.95), cy - int(r * 0.55)),
+        (cx + int(r * 0.95), cy + int(r * 0.55)),
+    ]
+    eye = (cx - int(r * 0.5), cy - int(r * 0.12))
+    return dict(body_box=body_box, tail=tail, eye=eye)
+
+
+def _draw_line_fish(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    g = _fish_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.ellipse(g["body_box"], outline=(0, 0, 0), width=3)
+    d.polygon(g["tail"], outline=(0, 0, 0))
+    ex, ey = g["eye"]
+    d.ellipse((ex - 4, ey - 4, ex + 4, ey + 4), outline=(0, 0, 0), width=2)
+    return img
+
+
+def _draw_filled_fish(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    g = _fish_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.ellipse(g["body_box"], fill=(0, 0, 0))
+    d.polygon(g["tail"], fill=(0, 0, 0))
+    # Eye in white so it's visible.
+    ex, ey = g["eye"]
+    d.ellipse((ex - 5, ey - 5, ex + 5, ey + 5), fill=(255, 255, 255))
+    d.ellipse((ex - 2, ey - 2, ex + 2, ey + 2), fill=(0, 0, 0))
+    return img
+
+
+def _draw_shaded_fish(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    """Fish with horizontal gradient (lighter belly, darker back) + tail shading."""
+    g = _fish_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    bx0, by0, bx1, by1 = g["body_box"]
+    body_h = by1 - by0
+    # Vertical gradient strips on the body (lighter near belly = bottom).
+    n_strips = 24
+    overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    od = ImageDraw.Draw(overlay)
+    for i in range(n_strips):
+        t = i / max(1, n_strips - 1)
+        c = int(80 + 130 * t)  # back darker top; belly lighter bottom
+        y0 = by0 + int(body_h * (i / n_strips))
+        y1 = by0 + int(body_h * ((i + 1) / n_strips))
+        od.ellipse((bx0, y0 - 2, bx1, y1 + 2), fill=(c, c, c + 20, 255))
+    img2 = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+    d2 = ImageDraw.Draw(img2)
+    d2.ellipse(g["body_box"], outline=(40, 40, 40), width=2)
+    d2.polygon(g["tail"], fill=(60, 60, 70), outline=(20, 20, 20), width=2)
+    ex, ey = g["eye"]
+    d2.ellipse((ex - 5, ey - 5, ex + 5, ey + 5), fill=(240, 240, 240), outline=(40, 40, 40), width=1)
+    d2.ellipse((ex - 2, ey - 2, ex + 2, ey + 2), fill=(20, 20, 20))
+    return img2
+
+
+def _draw_textured_fish(img: Image.Image, cx: int, cy: int, r: int, seed: int) -> Image.Image:
+    """Photorealistic-ish fish with body color + scale dots + fin highlight."""
+    rng = random.Random(seed + 55000)
+    g = _fish_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    palette = [(180, 90, 50), (90, 150, 180), (150, 130, 60), (130, 60, 130)]
+    body_color = palette[rng.randrange(len(palette))]
+    d.ellipse(g["body_box"], fill=body_color, outline=(20, 20, 20), width=2)
+    # Top highlight strip (back).
+    bx0, by0, bx1, by1 = g["body_box"]
+    body_h = by1 - by0
+    d.ellipse(
+        (bx0 + 4, by0 + 4, bx1 - 4, by0 + body_h // 3),
+        fill=tuple(max(0, c - 40) for c in body_color),
+    )
+    # Belly highlight strip (lighter).
+    d.ellipse(
+        (bx0 + 8, by1 - body_h // 3, bx1 - 8, by1 - 4),
+        fill=tuple(min(255, c + 50) for c in body_color),
+    )
+    # Tail.
+    tail_color = tuple(max(0, c - 30) for c in body_color)
+    d.polygon(g["tail"], fill=tail_color, outline=(20, 20, 20), width=2)
+    # Scale dots.
+    for _ in range(8):
+        sx = rng.randint(bx0 + 10, bx1 - 30)
+        sy = rng.randint(by0 + 6, by1 - 6)
+        d.ellipse((sx - 2, sy - 2, sx + 2, sy + 2), fill=(255, 255, 255, 200))
+    # Eye.
+    ex, ey = g["eye"]
+    d.ellipse((ex - 6, ey - 6, ex + 6, ey + 6), fill=(255, 255, 255), outline=(20, 20, 20), width=1)
+    d.ellipse((ex - 3, ey - 3, ex + 3, ey + 3), fill=(20, 20, 20))
+    return img
+
+
+def _plant_geometry(cx: int, cy: int, r: int) -> dict:
+    """Potted-plant geometry — pot (trapezoid) + stem (vertical) + 3 leaves (ellipses)."""
+    pot = [
+        (cx - int(r * 0.45), cy + int(r * 0.55)),
+        (cx + int(r * 0.45), cy + int(r * 0.55)),
+        (cx + int(r * 0.35), cy + int(r * 0.95)),
+        (cx - int(r * 0.35), cy + int(r * 0.95)),
+    ]
+    stem_top = (cx, cy - int(r * 0.85))
+    stem_base = (cx, cy + int(r * 0.55))
+    leaf_left = (cx - int(r * 0.6), cy - int(r * 0.05), cx - int(r * 0.05), cy + int(r * 0.30))
+    leaf_right = (cx + int(r * 0.05), cy - int(r * 0.40), cx + int(r * 0.6), cy - int(r * 0.05))
+    leaf_top = (cx - int(r * 0.30), cy - int(r * 0.95), cx + int(r * 0.30), cy - int(r * 0.55))
+    return dict(
+        pot=pot, stem_top=stem_top, stem_base=stem_base,
+        leaf_left=leaf_left, leaf_right=leaf_right, leaf_top=leaf_top,
+    )
+
+
+def _draw_line_plant(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    g = _plant_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.polygon(g["pot"], outline=(0, 0, 0))
+    d.line([g["stem_base"], g["stem_top"]], fill=(0, 0, 0), width=3)
+    d.ellipse(g["leaf_left"], outline=(0, 0, 0), width=2)
+    d.ellipse(g["leaf_right"], outline=(0, 0, 0), width=2)
+    d.ellipse(g["leaf_top"], outline=(0, 0, 0), width=2)
+    return img
+
+
+def _draw_filled_plant(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    g = _plant_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    d.polygon(g["pot"], fill=(0, 0, 0))
+    d.line([g["stem_base"], g["stem_top"]], fill=(0, 0, 0), width=3)
+    d.ellipse(g["leaf_left"], fill=(0, 0, 0))
+    d.ellipse(g["leaf_right"], fill=(0, 0, 0))
+    d.ellipse(g["leaf_top"], fill=(0, 0, 0))
+    return img
+
+
+def _draw_shaded_plant(img: Image.Image, cx: int, cy: int, r: int) -> Image.Image:
+    """Plant with terracotta pot (shaded) + green leaves (graded)."""
+    g = _plant_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    # Pot — terracotta-shaded.
+    pot_pts = g["pot"]
+    pot_y0 = pot_pts[0][1]
+    pot_y1 = pot_pts[2][1]
+    pot_h = pot_y1 - pot_y0
+    n_strips = 12
+    for i in range(n_strips):
+        t = i / max(1, n_strips - 1)
+        red = int(190 - 70 * t)
+        grn = int(110 - 50 * t)
+        blu = int(80 - 40 * t)
+        y0 = pot_y0 + int(pot_h * (i / n_strips))
+        y1 = pot_y0 + int(pot_h * ((i + 1) / n_strips))
+        edge_t = (y0 - pot_y0) / max(1, pot_h)
+        left = cx - int(r * (0.45 - 0.10 * edge_t))
+        right = cx + int(r * (0.45 - 0.10 * edge_t))
+        d.rectangle((left, y0, right, y1), fill=(red, grn, blu))
+    d.polygon(g["pot"], outline=(60, 30, 20), width=2)
+    # Stem.
+    d.line([g["stem_base"], g["stem_top"]], fill=(60, 100, 50), width=4)
+    # Leaves — graded green ellipses.
+    for box in (g["leaf_left"], g["leaf_right"], g["leaf_top"]):
+        d.ellipse(box, fill=(60, 150, 70), outline=(20, 80, 30), width=2)
+        # Highlight stripe within leaf.
+        x0, y0, x1, y1 = box
+        d.line(
+            (x0 + 4, (y0 + y1) // 2, x1 - 4, (y0 + y1) // 2),
+            fill=(120, 200, 120), width=2,
+        )
+    return img
+
+
+def _draw_textured_plant(img: Image.Image, cx: int, cy: int, r: int, seed: int) -> Image.Image:
+    """Photorealistic-ish potted plant with detailed leaves + pot rim + soil."""
+    rng = random.Random(seed + 66000)
+    g = _plant_geometry(cx, cy, r)
+    d = ImageDraw.Draw(img)
+    # Pot — terracotta with rim.
+    pot_palette = [(180, 100, 70), (160, 90, 60), (200, 130, 80)]
+    pot_color = pot_palette[rng.randrange(len(pot_palette))]
+    d.polygon(g["pot"], fill=pot_color, outline=(60, 30, 20), width=2)
+    # Pot rim (top edge highlight).
+    pot_pts = g["pot"]
+    d.line(
+        (pot_pts[0][0], pot_pts[0][1], pot_pts[1][0], pot_pts[1][1]),
+        fill=(min(255, pot_color[0] + 40), min(255, pot_color[1] + 40), min(255, pot_color[2] + 40)),
+        width=3,
+    )
+    # Soil at top of pot.
+    soil_y = pot_pts[0][1] + 3
+    d.rectangle(
+        (pot_pts[0][0] + 4, pot_pts[0][1] + 1, pot_pts[1][0] - 4, soil_y + 6),
+        fill=(70, 50, 35),
+    )
+    # Stem — green with darker edge.
+    d.line([g["stem_base"], g["stem_top"]], fill=(60, 110, 50), width=4)
+    # Leaves with vein detail.
+    leaf_palette = [(70, 160, 80), (90, 140, 60), (60, 150, 100)]
+    for box in (g["leaf_left"], g["leaf_right"], g["leaf_top"]):
+        leaf_color = leaf_palette[rng.randrange(len(leaf_palette))]
+        d.ellipse(box, fill=leaf_color, outline=(20, 70, 30), width=2)
+        x0, y0, x1, y1 = box
+        # Central vein.
+        d.line(((x0 + x1) // 2, y0 + 4, (x0 + x1) // 2, y1 - 4), fill=(20, 70, 30), width=1)
+        # Side veins (3 small diagonals).
+        cy_leaf = (y0 + y1) // 2
+        for j in range(-1, 2):
+            yj = cy_leaf + j * (y1 - y0) // 6
+            d.line(((x0 + x1) // 2 - 6, yj, x0 + 8, yj - 3), fill=(20, 70, 30), width=1)
+            d.line(((x0 + x1) // 2 + 6, yj, x1 - 8, yj - 3), fill=(20, 70, 30), width=1)
+    # Small flower / bud on top leaf.
+    tx = (g["leaf_top"][0] + g["leaf_top"][2]) // 2
+    ty = g["leaf_top"][1] + 4
+    d.ellipse((tx - 4, ty - 4, tx + 4, ty + 4), fill=(230, 80, 100))
+    return img

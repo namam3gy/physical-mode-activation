@@ -90,7 +90,7 @@ FC_CHOICES: tuple[str, ...] = ("A", "B", "C", "D")
 #   exotic   : a label whose physical reading is unusual / context-shifted —
 #              the per-shape analogue of "planet" for circle. Tests whether
 #              the H7 GAR-by-label ordering generalizes beyond circle.
-LABELS_BY_SHAPE: dict[str, tuple[str, str, str]] = {
+LABELS_BY_SHAPE: dict[str, tuple[str, ...]] = {
     "circle":   ("ball",   "circle",   "planet"),
     "square":   ("brick",  "square",   "tile"),
     "triangle": ("wedge",  "triangle", "sign"),
@@ -104,14 +104,25 @@ LABELS_BY_SHAPE: dict[str, tuple[str, str, str]] = {
     # M8d non-ball categories. abstract role is depiction-style ("silhouette",
     # "stick figure") rather than a forced geometric class because non-ball
     # categories don't have natural geometric-class names.
-    "car":      ("car",    "silhouette",  "figurine"),
-    "person":   ("person", "stick figure", "statue"),
-    "bird":     ("bird",   "silhouette",  "duck"),
+    # Extended (C6-alt-A, 2026-05-01): adds "subtype" (more specific physical
+    # variant) and "style" (cartoon/sketch/drawing — abstract-leaning style)
+    # roles for paper-relevance "does subtype-vs-category labelling matter?".
+    "car":      ("car",    "silhouette",   "figurine", "sedan",  "cartoon"),
+    "person":   ("person", "stick figure", "statue",   "human",  "sketch"),
+    "bird":     ("bird",   "silhouette",   "duck",     "eagle",  "drawing"),
     # M8c real photographs. `ball` reuses the circle triplet (a ball is a
     # ball regardless of whether it's drawn or photographed). `abstract`
     # gets a fresh triplet for unstructured / depiction-style photos.
     "ball":     ("ball",   "circle",      "planet"),
     "abstract": ("object", "drawing",     "diagram"),
+    # M8d-extended (C6-orig, 2026-05-01): boat / fish / plant — three new
+    # categories chosen to test cross-category H7 generalization beyond the
+    # car / person / bird set. boat = vehicle in water (different physics
+    # context), fish = animal in water (gravity-irrelevant), plant = static
+    # living object (no autonomous motion baseline).
+    "boat":     ("boat",   "silhouette",  "ship"),
+    "fish":     ("fish",   "silhouette",  "shark"),
+    "plant":    ("plant",  "silhouette",  "tree"),
 }
 
 
