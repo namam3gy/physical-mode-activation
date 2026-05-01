@@ -66,6 +66,7 @@ LCS_REPO = "liuhaotian/LLaVA-Pretrain"
 LCS_JSON = "blip_laion_cc_sbu_558k.json"
 LCS_ZIP = "images.zip"
 MIX665K_REPO = "Icey444/llava_v1_5_mix665k"
+MIX665K_LOCAL = "/mnt/nvme/cache/thyun.park/hf/hub/datasets--Icey444--llava_v1_5_mix665k/full"
 
 @dataclass
 class TrainCfg:
@@ -339,38 +340,73 @@ class Mix665kStream(IterableDataset):
         self.shuffle_buffer = shuffle_buffer
 
     def __iter__(self) -> Iterator[dict]:
-        ds = load_dataset(MIX665K_REPO, split="train", streaming=True)
-        ds = ds.shuffle(seed=self.seed, buffer_size=self.shuffle_buffer)
-        for ex in ds:
-            img = ex.get("image")
-            conv = ex.get("conversations") or ex.get("messages") or []
-            if img is None or not conv:
-                continue
-            if not isinstance(img, Image.Image):
-                # Mix665k may ship images as bytes/dict; normalize.
-                if isinstance(img, dict) and "bytes" in img:
-                    img = Image.open(io.BytesIO(img["bytes"])).convert("RGB")
-                elif isinstance(img, (bytes, bytearray)):
-                    img = Image.open(io.BytesIO(img)).convert("RGB")
-                else:
+        import os, glob as _glob, json as _json, random as _random
+        import pyarrow.parquet as _pq
+
+        if os.path.isdir(MIX665K_LOCAL):
+            # Read local parquet files directly with pyarrow — avoids HF datasets
+            # full-schema scan which is very slow on distributed filesystems.
+            files = sorted(_glob.glob(f"{MIX665K_LOCAL}/data/*.parquet"))
+            rng = _random.Random(self.seed)
+            while True:
+                rng.shuffle(files)
+                for fpath in files:
+                    pf = _pq.ParquetFile(fpath)
+                    for batch in pf.iter_batches(batch_size=256):
+                        rows = batch.to_pylist()
+                        rng.shuffle(rows)
+                        for row in rows:
+                            img_obj = row.get("image_object") or {}
+                            img_bytes = img_obj.get("bytes") if isinstance(img_obj, dict) else None
+                            if not img_bytes:
+                                continue
+                            try:
+                                img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+                            except Exception:
+                                continue
+                            raw_conv = row.get("conversations") or row.get("messages") or "[]"
+                            conv = _json.loads(raw_conv) if isinstance(raw_conv, str) else raw_conv
+                            user_text = asst_text = None
+                            for turn in conv:
+                                role = turn.get("from") or turn.get("role")
+                                content = turn.get("value") or turn.get("content")
+                                if role in ("human", "user") and user_text is None:
+                                    user_text = (content or "").strip()
+                                elif role in ("gpt", "assistant") and user_text is not None and asst_text is None:
+                                    asst_text = (content or "").strip()
+                                    break
+                            if not user_text or not asst_text:
+                                continue
+                            yield {"image": img, "user": user_text, "assistant": asst_text}
+        else:
+            ds = load_dataset(MIX665K_REPO, split="train", streaming=True)
+            ds = ds.shuffle(seed=self.seed, buffer_size=self.shuffle_buffer)
+            for ex in ds:
+                img = ex.get("image")
+                conv = ex.get("conversations") or ex.get("messages") or []
+                if img is None or not conv:
                     continue
-            else:
-                img = img.convert("RGB")
-            # conversations format: list of {"from", "value"} alternating human/gpt.
-            # We use only the first user/assistant pair.
-            user_text = None
-            asst_text = None
-            for turn in conv:
-                role = turn.get("from") or turn.get("role")
-                content = turn.get("value") or turn.get("content")
-                if role in ("human", "user") and user_text is None:
-                    user_text = (content or "").strip()
-                elif role in ("gpt", "assistant") and user_text is not None and asst_text is None:
-                    asst_text = (content or "").strip()
-                    break
-            if not user_text or not asst_text:
-                continue
-            yield {"image": img, "user": user_text, "assistant": asst_text}
+                if not isinstance(img, Image.Image):
+                    if isinstance(img, dict) and "bytes" in img:
+                        img = Image.open(io.BytesIO(img["bytes"])).convert("RGB")
+                    elif isinstance(img, (bytes, bytearray)):
+                        img = Image.open(io.BytesIO(img)).convert("RGB")
+                    else:
+                        continue
+                else:
+                    img = img.convert("RGB")
+                user_text = asst_text = None
+                for turn in conv:
+                    role = turn.get("from") or turn.get("role")
+                    content = turn.get("value") or turn.get("content")
+                    if role in ("human", "user") and user_text is None:
+                        user_text = (content or "").strip()
+                    elif role in ("gpt", "assistant") and user_text is not None and asst_text is None:
+                        asst_text = (content or "").strip()
+                        break
+                if not user_text or not asst_text:
+                    continue
+                yield {"image": img, "user": user_text, "assistant": asst_text}
 
 
 # ----------------------------- Collate -----------------------------

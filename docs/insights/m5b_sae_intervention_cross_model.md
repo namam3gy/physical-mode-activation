@@ -17,6 +17,19 @@ hypothesis: SAE-identified physics-cue features at the actually-consumed vision-
 > consume. This invalidated the LLaVA-1.5/Next round and added a propagation
 > caveat to Idefics2. Round-2 retrain at correct per-model layer fixes both.
 
+> **Status update 2026-05-01** — the "NULL" headline below describes the
+> *encoder-side* result on **ball cells**. The complementary
+> **post-projection** sweep (`docs/insights/m5b_post_projection_cross_model.md`)
+> adds **circle cells** for all 5 models and shows the LLaVA "NULL" decomposes
+> into 3 phenomena: (1) genuine NULL (InternVL3); (2) baseline-already-
+> abstract (LLaVA-1.5 + circle: PMR=0 at baseline, no commitment to
+> ablate); (3) binary-PMR concealing real text-level regime shifts
+> (LLaVA-1.5 + ball: text moves fall→hit→roll across k while PMR stays 1).
+> The cross-model picture is best framed as a **regime-cross capacity
+> ladder** (`docs/hypotheses.md` H-regime-cross), not a binary BREAK/NULL
+> split. Read this doc as the **encoder-side, ball-cell** evidence;
+> read the post-projection doc for the full reframe.
+
 ## TL;DR
 
 **3 of 5 models show selective SAE intervention** — top-k feature ablation

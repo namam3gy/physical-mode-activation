@@ -79,10 +79,12 @@ Open. Multi-prompt config design is the first task of week 1 (per `submission_pl
 
 The full mechanistic chain (encoder → SIP-patching → MLP-knockout → SAE-intervention) is **Qwen-only**. Cross-model expansion has gaps:
 
-- **LLaVA-1.5**: M5b SIP+patching ✅ (L20 lock-in confirmed). Per-head knockout / SAE intervention NULL (encoder-side).
-- **LLaVA-Next**: M5a runtime steering ✅ (10/10 LM-side flip). M5b SAE intervention NULL (encoder-side).
-- **Idefics2**: M5a runtime steering ✅ (10/10 at L25). M5b SAE intervention ✅ (k=160 break).
-- **InternVL3**: M5b SAE intervention ✅ (k=160 break). Other tests blocked by baseline saturation.
+- **LLaVA-1.5**: M5b SIP+patching ✅ (L20 lock-in confirmed). Per-head knockout / SAE intervention encoder-side NULL on ball cells. **Post-projection round 2 (2026-05-01)**: circle cells baseline already PMR=0 (abstract regime by default — no commitment to ablate); ball cells text shifts fall→hit→roll across k but binary PMR conceals.
+- **LLaVA-Next**: M5a runtime steering ✅ (10/10 LM-side flip). M5b SAE intervention encoder-side NULL on ball cells. **Post-projection round 2 (2026-05-01)**: circle / filled cell breaks at k=40+ ("expand"), ★★ partial regime-cross capacity.
+- **Idefics2**: M5a runtime steering ✅ (10/10 at L25). M5b SAE intervention ✅ (k=160 break, encoder-side). Post-projection round 2: circle / filled k=20 break ("disappear"); k=40+ scoring artifact ("continue to expand outward" hits `continu` stem).
+- **InternVL3**: M5b SAE intervention ✅ (k=160 break, encoder-side). Other tests blocked by baseline saturation. Post-projection round 2: stays kinetic at all k ≤ 160 across all cells — true NULL on this hook.
+
+**Reframe note (2026-05-01)**: M5b cross-model "NULL" headline decomposes into 3 phenomena (genuine NULL / baseline-already-abstract / binary-PMR-conceals); paper draft should report regime-cross capacity ladder + text-distance metric alongside binary PMR. Insights: `docs/insights/m5b_post_projection_cross_model.md`, `docs/hypotheses.md` H-regime-cross.
 
 The story "encoder-vs-LM dissociation" is supported but rests on partial data per model. Reviewers will ask why we didn't run the *full chain* on at least 3 models.
 

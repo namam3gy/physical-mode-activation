@@ -107,15 +107,29 @@ def get_vision_layer(model, block_idx: int = -1):
 def get_post_projection_layer(model):
     """Resolve the post-projection (merger / projector) module to hook on.
 
-    Qwen2.5-VL: model.model.visual.merger (Qwen2_5_VLPatchMerger). Output dim
-    = LM embedding dim (3584 for 7B). Other architectures may need different
-    paths; for now Qwen-only is supported.
+    Supported architectures:
+      - Qwen2.5-VL: model.model.visual.merger (Qwen2_5_VLPatchMerger). Output dim
+        = LM embedding dim (3584 for 7B).
+      - LLaVA-1.5 / LMSwap A+B: model.model.multi_modal_projector (2-layer MLP).
+        Output shape (batch, 576, lm_hidden=4096).
     """
     if hasattr(model, "model") and hasattr(model.model, "visual") and hasattr(model.model.visual, "merger"):
         return model.model.visual.merger, 1
+    # LLaVA-1.5 / LMSwap / InternVL3 (LlavaForConditionalGeneration / similar):
+    # nested at model.model.multi_modal_projector
+    if (hasattr(model, "model") and hasattr(model.model, "multi_modal_projector")):
+        return model.model.multi_modal_projector, 1
+    # Idefics2 connector (perceiver-resampler + modality projection).
+    if (hasattr(model, "model") and hasattr(model.model, "connector")):
+        return model.model.connector, 1
+    # Some PEFT-wrapped or top-level LlavaForConditionalGeneration paths may expose
+    # multi_modal_projector at the top — fall through to that.
+    if hasattr(model, "multi_modal_projector"):
+        return model.multi_modal_projector, 1
     raise RuntimeError(
-        "Could not resolve post-projection module — this script's --hook-target merger "
-        "currently supports Qwen2.5-VL (model.model.visual.merger) only."
+        "Could not resolve post-projection module — supported: Qwen2.5-VL "
+        "(model.model.visual.merger), LLaVA-* / LMSwap / InternVL3 "
+        "(model.model.multi_modal_projector), Idefics2 (model.model.connector)."
     )
 
 
