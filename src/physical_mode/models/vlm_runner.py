@@ -113,7 +113,19 @@ class PhysModeVLM:
     ) -> dict[str, Any]:
         pil = _to_pil(image)
         msgs = self._build_messages(prompt, system_prompt)
-        text = self.processor.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        try:
+            text = self.processor.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        except TypeError:
+            # Some chat templates (e.g. Pixtral) cannot concatenate a string system
+            # message with a list-typed user content. Retry with system content as
+            # a flat string while keeping user content structured.
+            msgs_flat_sys = [
+                ({**m, "content": m["content"][0]["text"]}
+                 if m["role"] == "system" and isinstance(m["content"], list)
+                 else m)
+                for m in msgs
+            ]
+            text = self.processor.apply_chat_template(msgs_flat_sys, tokenize=False, add_generation_prompt=True)
         inputs = self.processor(images=[pil], text=[text], return_tensors="pt")
         return {
             k: (v.to(self.model.device) if hasattr(v, "to") else v)
