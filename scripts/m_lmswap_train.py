@@ -115,8 +115,15 @@ def format_chat(variant: str, user_text: str, assistant_text: str) -> tuple[str,
         full = f"{_VICUNA_SYSTEM} USER: {user_text} ASSISTANT: {assistant_text}"
         prompt_only = f"{_VICUNA_SYSTEM} USER: {user_text} ASSISTANT:"
     elif variant == "B":  # Mistral
-        full = f"<s>[INST] {user_text} [/INST] {assistant_text}</s>"
-        prompt_only = f"<s>[INST] {user_text} [/INST]"
+        # Mistral tokenizer auto-prepends BOS via add_special_tokens=True (the
+        # processor default). Including a literal `<s>` here would produce
+        # double-BOS [1, 1, ...] in input_ids, which OOD-shifts attention and
+        # destabilizes LoRA training (verified empirically: B Stage 2 NaN at
+        # step 443, A Stage 2 ran clean with no literal <s> in the Vicuna
+        # template). Trailing `</s>` is kept so the assistant span ends with
+        # an explicit EOS for the LM head to learn.
+        full = f"[INST] {user_text} [/INST] {assistant_text}</s>"
+        prompt_only = f"[INST] {user_text} [/INST]"
     else:
         raise ValueError(f"unknown variant {variant!r}")
     return full, prompt_only
