@@ -108,7 +108,7 @@ original scientific motivation.
 
 Next priorities (per `references/roadmap.md`):
 - **M7** — paper draft (EMNLP long primary) + Prolific human baseline (20 raters × 50 stim).
-- **§4.6 follow-ups** — InternVL3 alternative-baseline exploration (no in-distribution abstract-baseline cell exists under the §4.6 "circle" prompt). ~~Idefics2 deeper-layer test~~ ✅ done 2026-04-28 — perceiver-resampler is leading remaining candidate (not isolated; controlled projector-swap test out of scope).
+- **§4.6 follow-ups** — ~~InternVL3 alternative-baseline exploration~~ ✅ done 2026-05-03 — under modified protocol (M8a `square_filled_ground_none_fall` / `open_no_label` / square-only v_L) InternVL3 shows L10 strong shortcut (5/5, baseline 0.0 → synth 1.0) + L15/L20 partial; H-shortcut now architecture × baseline-saturation conditional, projector-design (perceiver-vs-MLP) the leading remaining axis for genuinely-null Idefics2. Insight: `docs/insights/sec4_6_internvl3_alt_baseline.md`. ~~Idefics2 deeper-layer test~~ ✅ done 2026-04-28 — perceiver-resampler is leading remaining candidate (not isolated; controlled projector-swap test out of scope).
 - **§4.8 follow-up** — Qwen 72B on M2 to extend the scaling curve (predicted to land near 32B).
 - **§4.4** — Michotte 2-frame causality (needs 2-image prompt support).
 - **M5b follow-ups** — post-projection SAE. ~~Cross-model SAE intervention runs~~ ✅ done 2026-04-28 evening (3 of 5 models break PMR cleanly; LLaVA family NULL — encoder-vs-LM mechanism dissociation locked).
