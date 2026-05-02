@@ -153,6 +153,16 @@ def build_variant_model(variant: str, device: str):
     if tok.pad_token is None:
         # Vicuna and Mistral lack a pad token by default.
         tok.pad_token = tok.eos_token
+    # Force right-padding. The cut formula in `_build_batch`
+    # (`cut = n_real - n_assistant`) assumes the assistant span occupies
+    # the LAST n_assistant positions of the sequence, which only holds for
+    # right-padded inputs. Vicuna's tokenizer defaults to padding_side="right"
+    # (path A worked); Mistral-Instruct defaults to "left" (path B leaked
+    # `n_pad` prompt tokens into the loss labels per sample, producing the
+    # observed loss-collapse-and-recovery oscillation pattern that destabilized
+    # LoRA training and ended in NaN at step 443). Forcing "right" here makes
+    # the cut formula correct for any LM choice.
+    tok.padding_side = "right"
 
     # The LM's embedding matrix gets resized to len(tok) below to accommodate
     # the new <image> token; mirror that in text_config so the cross-entropy
