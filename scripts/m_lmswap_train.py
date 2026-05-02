@@ -151,8 +151,15 @@ def build_variant_model(variant: str, device: str):
         tok.add_special_tokens({"additional_special_tokens": ["<image>"]})
     image_token_index = tok.convert_tokens_to_ids("<image>")
     if tok.pad_token is None:
-        # Vicuna and Mistral lack a pad token by default.
-        tok.pad_token = tok.eos_token
+        # Vicuna already has pad_token=<unk> (id=0) by default. Mistral has
+        # pad_token=None and we need to assign one. Prefer UNK over EOS so
+        # that the masking line `labels[input_ids == pad_id] = -100` doesn't
+        # also mask the legitimate trailing `</s>` in the assistant span —
+        # which would prevent the model from ever learning to terminate
+        # generation (verified: B step1000/step8000 both show "coherent first
+        # sentence then runs forever" pattern that's the EOS-not-learned
+        # signature). Mirrors A's setup (Vicuna pad_id=0, eos_id=2 distinct).
+        tok.pad_token = tok.unk_token if tok.unk_token is not None else tok.eos_token
     # Force right-padding. The cut formula in `_build_batch`
     # (`cut = n_real - n_assistant`) assumes the assistant span occupies
     # the LAST n_assistant positions of the sequence, which only holds for
