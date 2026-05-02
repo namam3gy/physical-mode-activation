@@ -14,8 +14,10 @@
 set -u
 
 cd /mnt/ddn/prod-runs/thyun.park/src/physical_mode_activation
-unset CUDA_VISIBLE_DEVICES
+export CUDA_VISIBLE_DEVICES=3
 
+# DEVICE=cuda:0 maps to physical GPU 3 because CUDA_VISIBLE_DEVICES filters
+# the device list — the process only sees one GPU and indexes it as 0.
 DEVICE=cuda:0
 LOG=outputs/chain_lmswap_b_s2_resume.log
 mkdir -p outputs
