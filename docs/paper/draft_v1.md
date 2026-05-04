@@ -391,48 +391,9 @@ These three controls together address paper-gap G1 (single-task evaluation) with
 
 ### 6.2 Representational level — does the model encode physics-mode?
 
-(Migrated from §OLD-§5.1 + §OLD-§5.4 in step 3 of restructure plan.)
+The Representational level asks whether the model's *internal activations* encode the physics-vs-abstract distinction — independent of whether it acts on that information. We probe two stages: the vision encoder (§6.2.1) and the LM at visual-token positions (§6.2.2). Their convergence answers the within-level robustness question; their disagreement (e.g., Idefics2's LM AUC > vision AUC) is itself diagnostic of the perceiver-resampler architecture.
 
-### 6.3 Mechanistic level — does that encoding cause behavior?
-
-(Migrated from §OLD-§6 + §OLD-§7 in steps 4-5 of restructure plan, next session.)
-
-### 6.4 Cross-level triangulation
-
-(Convergence table + architecture-level identity reading + dissociation cases. Built in step 6, after §6.1–§6.3 are populated.)
-
-#### 6.4.1 Convergence table (placeholder — finalized in step 6 of restructure plan)
-
-| Marr level → | Computational (§6.1) | Representational (§6.2) | Mechanistic (§6.3) |
-|---|---|---|---|
-| **Question** | enters physics-mode behaviorally? | encodes physics-mode in activations? | causally bound to behavior? |
-| Qwen2.5-VL-7B | PMR 0.94 | M3 AUC 0.99 / M4 AUC 0.96 (peak L20) | M5a L10 α=40 10/10; M5b k=20 0/20; §4.6 5/5 ε=0.05 |
-| LLaVA-Next-7B | PMR 0.70 | M3 AUC 0.81 / M4 AUC 0.79 | M5a L20+L25 10/10; M5b k=160 NULL; §4.6 L20+L25 10/10 |
-| Idefics2-8B | PMR 0.88 | M3 AUC 0.93 / M4 AUC 0.995 | M5a L25 α=20 10/10; M5b k=160 0/20; §4.6 0/90 across L5-L31 |
-| InternVL3-8B | PMR 0.92 | M3 AUC 0.89 / M4 untestable (n_neg=1) | M5a untestable (baseline=1); M5b k=160 0/20; §4.6 testable under M8a alt-baseline (L10 5/5) |
-| LLaVA-1.5-7B | PMR 0.18 | M3 AUC 0.73 / M4 AUC 0.76 | M5a 0/10; M5b NULL ≤ k=800; §4.6 weak L25 only (40 % at n=10); deeper L28-L31 sweep pending (2026-05-04) |
-
-Each row reads consistently across the 3 columns — that is the convergence claim. The systematic exception (LLaVA-1.5) is a convergent low end, not a contradiction.
-
-#### 6.4.2 Architecture-level identity (to migrate from §OLD-§5.2 + §OLD-§5.3 + §OLD-§5.5 in step 3)
-
-#### 6.4.3 Dissociation cases — proof that the three levels are not tautological
-
-| Model | Dissociation | What it shows |
-|---|---|---|
-| Idefics2 | M4 AUC 0.995 + M5a 10/10 + §4.6 0/90 | Information presence ≠ pixel-space routability. Forward pathway works; inverse pathway blocked. (Perceiver-resampler signature.) |
-| LLaVA-Next | M5a 10/10 + M5b NULL | LM-side direction operative; encoder-side features absent. (CLIP family routes physics-mode commitment through LM, not encoder.) |
-| LLaVA-1.5 | M5a 0/10 + M5b NULL + §4.6 weak only | Both encoder-side localization and pixel-side routability missing. The cross-level *low-end consistency* itself is informative (not a dissociation, but a convergent floor). |
-
-These are not "5 measurements giving the same answer"; they are 3 different probes giving *different* answers per model, with the pattern of agreement/disagreement characterizing each architecture.
-
----
-
-## OLD-§5. Encoder vs LM disambiguation
-
-(Target: 1.5 pages.)
-
-### 5.1 Vision encoder probes — uniform discriminability
+#### 6.2.1 Vision encoder probes — uniform discriminability
 
 ![Figure 2: 5-model encoder probe AUC chain](../figures/encoder_chain_5model.png)
 
@@ -456,33 +417,9 @@ The encoder discriminability gap (0.77 vs 0.93) is much smaller than
 the PMR gap (0.18 vs 0.92). On a stim-defined y target, every
 encoder hits AUC = 1.0 — the information is uniform across encoders.
 
-### 5.2 The 2-CLIP-point insight
+The Representational level's specific failure mode at the encoder is *low-level visual stats / token-frequency confounds*: a probe trained on per-stim PMR could be fitting any artifact of the stim distribution that correlates with PMR, not the physics-vs-abstract abstraction. The stim-y vs behavioral-y dissociation directly addresses this — when the probe target is the stim factorial cell (a structural label, not a behavioral one), every encoder reaches AUC=1.0; when the target is per-stim behavioral PMR, the AUC ladder appears. The information is uniformly available; what varies is alignment with downstream behavior.
 
-LLaVA-1.5 (CLIP-ViT-L + Vicuna): PMR(_nolabel) = 0.18.
-LLaVA-Next (CLIP-ViT-L + Mistral + AnyRes tiling): PMR(_nolabel) =
-0.70. Same encoder family, 0.52-PMR jump. This rules out
-vision-encoder family as the sole determinant.
-
-(The jump is 4-axis-confounded — AnyRes tiling, fusion projector,
-training, LM family — so we cannot isolate the LM-only contribution
-from this comparison alone. We flag this as a future-work LM-swap
-counterfactual.)
-
-### 5.3 §4.5 cross-encoder swap
-
-![Figure 9: §4.5 cross-encoder swap heatmap (Idefics2 vs Qwen vs LLaVA)](../figures/encoder_swap_heatmap.png)
-
-*Figure 9.* PMR(_nolabel) per (model × shape) on M8a. Idefics2
-(SigLIP-SO400M + Mistral) clusters with Qwen (SigLIP + Qwen2);
-LLaVA (CLIP-ViT-L + Vicuna) is the outlier.
-
-Idefics2-8B (SigLIP-SO400M + Mistral-7B) provides a causal
-counterfactual at the encoder-family level. Patterns identically
-with Qwen on PMR + H7. With LLaVA at 0.18 (CLIP + Vicuna) and
-Idefics2 at 0.88 (SigLIP-SO400M + Mistral), the encoder type drives
-PMR ceiling regardless of LM (Qwen2-7B vs Mistral-7B).
-
-### 5.4 LM logit-lens cross-model — second downstream signature (M4)
+#### 6.2.2 LM logit-lens — second downstream signature (M4)
 
 The encoder-saturation chain extends downstream into the LM. M4
 cross-model trains a logistic-regression probe on per-stim mean PMR
@@ -506,22 +443,66 @@ states." (2) **Idefics2 LM AUC (0.995) > Idefics2 vision AUC (0.93)**:
 the perceiver-resampler does not strip the physics-mode signal — if
 anything, it concentrates the signal on the compressed 320-token
 budget, raising the LM-side probe AUC above the pre-compression vision
-encoder AUC. (3) Combined with the §4.6 Idefics2 0/9 layers shortcut
-result, this triangulates as **"information presence ≠ pixel-space
+encoder AUC. (3) Combined with the Idefics2 §4.6 0/9 layers shortcut
+result (§6.3.3), this triangulates as **"information presence ≠ pixel-space
 shortcut routability"** — the LM has the physics-mode signal at high
 quality, yet pixel-space gradient ascent cannot find a perturbation
 that flips PMR. The bottleneck is on the inverse (pixel-side) pathway,
 not the forward (encoder → LM) pathway. InternVL3 untestable
-(n_neg = 1 → probe degenerate).
+(n_neg = 1 → probe degenerate). The full dissociation reading lives in §6.4.3.
 
-### 5.5 The architecture-level reframe
+The Representational level's LM-side failure mode is *token-frequency confounds*: the LM hidden states might encode the physics-mode signal because physics-related stim tend to co-occur with physics-related tokens at training time, not because the model is genuinely categorizing. The label-free arms (M4b/M4c, summarized in §6.1.5) cut this loop — the AUC ladder is preserved when the label is removed from the prompt, ruling out a label-driven reading of the LM probe signal.
 
-Reading: behavioral PMR(_nolabel) saturation on synthetic stim is
-determined at the **architecture level (joint encoder + LM)**, not
-at encoder representational capacity alone. Stim-defined AUC = 1.0
-across all encoders; behavioral-y AUC and PMR vary 0.18-0.92. The
-PMR ladder reflects each LM's reading of encoder output as
-"physics-mode signal" — downstream-conditional, not encoder-info.
+### 6.3 Mechanistic level — does that encoding cause behavior?
+
+(Migrated from §OLD-§6 + §OLD-§7 in steps 4-5 of restructure plan, next session.)
+
+### 6.4 Cross-level triangulation
+
+(Convergence table + architecture-level identity reading + dissociation cases. Built in step 6, after §6.1–§6.3 are populated.)
+
+#### 6.4.1 Convergence table (placeholder — finalized in step 6 of restructure plan)
+
+| Marr level → | Computational (§6.1) | Representational (§6.2) | Mechanistic (§6.3) |
+|---|---|---|---|
+| **Question** | enters physics-mode behaviorally? | encodes physics-mode in activations? | causally bound to behavior? |
+| Qwen2.5-VL-7B | PMR 0.94 | M3 AUC 0.99 / M4 AUC 0.96 (peak L20) | M5a L10 α=40 10/10; M5b k=20 0/20; §4.6 5/5 ε=0.05 |
+| LLaVA-Next-7B | PMR 0.70 | M3 AUC 0.81 / M4 AUC 0.79 | M5a L20+L25 10/10; M5b k=160 NULL; §4.6 L20+L25 10/10 |
+| Idefics2-8B | PMR 0.88 | M3 AUC 0.93 / M4 AUC 0.995 | M5a L25 α=20 10/10; M5b k=160 0/20; §4.6 0/90 across L5-L31 |
+| InternVL3-8B | PMR 0.92 | M3 AUC 0.89 / M4 untestable (n_neg=1) | M5a untestable (baseline=1); M5b k=160 0/20; §4.6 testable under M8a alt-baseline (L10 5/5) |
+| LLaVA-1.5-7B | PMR 0.18 | M3 AUC 0.73 / M4 AUC 0.76 | M5a 0/10; M5b NULL ≤ k=800; §4.6 weak L25 only (40 % at n=10); deeper L28-L31 sweep pending (2026-05-04) |
+
+Each row reads consistently across the 3 columns — that is the convergence claim. The systematic exception (LLaVA-1.5) is a convergent low end, not a contradiction.
+
+#### 6.4.2 Architecture-level identity
+
+Reading the convergence table (§6.4.1) one row at a time gives a per-model phenotype; reading it one column at a time gives the cross-model gradient at one Marr level. The cross-architectural gradient is the architecture-level reading: behavioral PMR(_nolabel) saturation on synthetic stim is determined at the **architecture level (joint encoder + LM)**, not at encoder representational capacity alone. Stim-defined AUC = 1.0 across all encoders; behavioral-y AUC and PMR vary 0.18–0.92. The PMR ladder reflects each LM's reading of encoder output as "physics-mode signal" — downstream-conditional, not encoder-info.
+
+Two pieces of evidence support the architecture-level reading directly, beyond the convergence table:
+
+**The 2-CLIP-point insight.** LLaVA-1.5 (CLIP-ViT-L + Vicuna): PMR(_nolabel) = 0.18. LLaVA-Next (CLIP-ViT-L + Mistral + AnyRes tiling): PMR(_nolabel) = 0.70. Same encoder family, 0.52-PMR jump. This rules out vision-encoder family as the sole determinant. The jump is 4-axis-confounded (AnyRes tiling, fusion projector, training, LM family) so it does not isolate the LM-only contribution; we flag this as motivation for the future controlled LM-swap counterfactual (paper-gap G3 — Pillar B B2).
+
+**§4.5 cross-encoder swap.**
+
+![Figure 9: §4.5 cross-encoder swap heatmap (Idefics2 vs Qwen vs LLaVA)](../figures/encoder_swap_heatmap.png)
+
+*Figure 9.* PMR(_nolabel) per (model × shape) on M8a. Idefics2
+(SigLIP-SO400M + Mistral) clusters with Qwen (SigLIP + Qwen2);
+LLaVA (CLIP-ViT-L + Vicuna) is the outlier.
+
+Idefics2-8B (SigLIP-SO400M + Mistral-7B) provides a causal counterfactual at the encoder-family level. It patterns identically with Qwen on PMR + H7. With LLaVA at 0.18 (CLIP + Vicuna) and Idefics2 at 0.88 (SigLIP-SO400M + Mistral), the encoder type drives PMR ceiling regardless of LM (Qwen2-7B vs Mistral-7B). This is the encoder-side architecture-level evidence; the LM-side evidence is the 2-CLIP-point insight above. Together they bracket the joint (encoder + LM) reading.
+
+#### 6.4.3 Dissociation cases — proof that the three levels are not tautological
+
+| Model | Dissociation | What it shows |
+|---|---|---|
+| Idefics2 | M4 AUC 0.995 + M5a 10/10 + §4.6 0/90 | Information presence ≠ pixel-space routability. Forward pathway works; inverse pathway blocked. (Perceiver-resampler signature.) |
+| LLaVA-Next | M5a 10/10 + M5b NULL | LM-side direction operative; encoder-side features absent. (CLIP family routes physics-mode commitment through LM, not encoder.) |
+| LLaVA-1.5 | M5a 0/10 + M5b NULL + §4.6 weak only | Both encoder-side localization and pixel-side routability missing. The cross-level *low-end consistency* itself is informative (not a dissociation, but a convergent floor). |
+
+These are not "5 measurements giving the same answer"; they are 3 different probes giving *different* answers per model, with the pattern of agreement/disagreement characterizing each architecture.
+
+---
 
 ## OLD-§6. Causal localization — M5a (LM-side) + M5b (encoder-side) cross-model
 
