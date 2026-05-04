@@ -306,7 +306,88 @@ The remainder of this section instantiates these four subsections.
 
 ### 6.1 Computational level — does the model behaviorally enter physics-mode?
 
-(Migrated from §OLD-§4 in step 2 of restructure plan.)
+The Computational level asks the most direct question: under our open-prompt next-state-prediction protocol, does the model's response classify as physics-mode? PMR (physics-mode reading rate) is our keyword-based scorer over the model's free-text response (definition: §3.3). All findings in this subsection are behavioral — no probes, no interventions.
+
+#### 6.1.1 The PMR(_nolabel) ladder
+
+![Figure 1: 5-model × 3-stim PMR(_nolabel) ladder with bootstrap CIs](../figures/session_5model_cross_stim_pmr.png)
+
+*Figure 1.* Mean PMR(_nolabel) ± 95% bootstrap CI per
+(model × stim source). Encoder-family split is clean on synthetic
+stim (M8a, M8d) and collapses on real photos (M8c).
+
+Across the 5 models on M8a synthetic shapes:
+
+| Model | PMR(_nolabel) | 95 % CI |
+|---|---|---|
+| Qwen2.5-VL | 0.838 | [0.79, 0.88] |
+| LLaVA-1.5 | 0.175 | [0.14, 0.21] |
+| LLaVA-Next | 0.700 | [0.65, 0.74] |
+| Idefics2 | 0.882 | [0.84, 0.92] |
+| InternVL3 | 0.917 | [0.88, 0.95] |
+
+Three clusters: **saturated** (Qwen / Idefics2 / InternVL3 ≥ 0.84),
+**mid-band** (LLaVA-Next 0.70), **floor** (LLaVA-1.5 0.18). CIs are
+fully separated between the three clusters.
+
+#### 6.1.2 H1 (abstraction ramp) — unsaturated-only
+
+![Figure 6: M8a abstraction ramp per shape per model](../figures/m8a_pmr_ramp.png)
+
+*Figure 6.* PMR(line / filled / shaded / textured) per (shape × model)
+on M8a. LLaVA-1.5 shows clean monotone ramps; Qwen / Idefics2 /
+InternVL3 are at ceiling and the ramp is invisible.
+
+LLaVA-1.5 (the unsaturated model) shows a clean monotone S-curve
+(line 0.45 → textured 0.78). Qwen / Idefics2 / InternVL3 are at
+ceiling and the ramp is invisible. Strict pre-registered scoring
+(M8a) on 5 shapes: Qwen 1/4 PASS, LLaVA 4/4 PASS — the asymmetry
+*is* the cross-shape validation of the architecture-level reframe.
+
+#### 6.1.3 H7 (label selects regime) — cross-category replication
+
+![Figure 7: M8d paired-delta per (model × category × label_role)](../figures/m8d_paired_delta.png)
+
+*Figure 7.* PMR_regime(physical) − PMR_regime(abstract) per
+(model × category) on M8d. LLaVA shows positive deltas in all 3
+categories; Qwen is flat (ceiling).
+
+Cross-category strict scoring (M8d):
+- LLaVA: 3/3 PASS (car +0.525, person +0.138, bird +0.550 on
+  PMR_regime physical−abstract).
+- Qwen: 0/3 binary (ceiling-flat) but regime distribution shows
+  figurine 17.5% static, statue 22.5% static — the label-selects-
+  regime claim is now category-general, not circle-specific.
+
+#### 6.1.4 Photo collapse (M8c)
+
+![Figure 8: M8c synthetic vs photo paired comparison](../figures/m8c_paired_synthetic_vs_photo.png)
+
+*Figure 8.* Per-category mean PMR(_nolabel) on synthetic vs photo
+stim, paired across (model × category). Photos compress the encoder-
+family gap and reduce Qwen PMR by 18-48 pp.
+
+Real photographs reduce Qwen PMR(_nolabel) by 18-48 pp across
+categories. All 3 tested models converge to PMR [0.18, 0.67] on
+photos. The encoder gap that was clean on synthetic stim collapses
+on rich photos — synthetic-stim minimality is a co-factor of
+behavioral saturation, not just encoder representation.
+
+#### 6.1.5 Failure-mode controls — defending against the next-state-prediction shortcut alternative
+
+The Computational level's specific failure mode is *prompt-wording bias*: an alternative reading of the §6.1.1–§6.1.4 results is that the models have a "predict next state" shortcut, not a "physics-mode commitment" shortcut. Under this alternative, our PMR signal would not transfer to other physics-loaded prompts (description, meta-categorization). We address this with three controls.
+
+**Cross-language labels (§OLD-§8.1, KO/JA).** Korean (공/원/행성) and Japanese (ボール/円/惑星) labels on M8a circle stim produce the same cross-label PMR ordering in 4/5 models, with LLaVA-1.5 showing the largest swing — the label-selects-regime mechanism survives translation, falsifying "the prompt's English wording drives PMR".
+
+**Open vs forced-choice (M4c).** Qwen reproduces the M4b "circle suppression" pattern under FC; the open-vs-FC paired delta at no-label is −0.131, showing the H4 (open-FC gap) is measurable independent of the kinetic-prediction wording.
+
+**Multi-prompt evaluation (Pillar A — M-MP).** A 5-model × 4-prompt design (open kinetic-prediction, describe-scene, meta-categorization yes/no, multiple-choice MCQ) on M8a stim yields **19 of 20 (model × prompt) cells with positive H2 paired-delta**, with Qwen × MCQ as the lone exception (Δ = −0.050, label-image-mismatch interaction at MCQ format). LLaVA-1.5 has the strongest classical H2 signal (+0.458) and replicates across all 4 prompts. The saturation × prompt interaction observed across the multi-prompt sweep is internally consistent: saturated models (Qwen / Idefics2 / InternVL3) yield the most informative signal under describe-scene; unsaturated models (LLaVA-1.5 / LLaVA-Next) yield the most informative signal under open kinetic prediction. The mechanism is task-agnostic in that it survives prompt format; the *measurement* is task-conditioned.
+
+These three controls together address paper-gap G1 (single-task evaluation) within the Computational level. The next-state-prediction-shortcut alternative is not viable given 19/20-cell positive H2 paired-delta cross-prompt.
+
+---
+
+
 
 ### 6.2 Representational level — does the model encode physics-mode?
 
@@ -346,75 +427,6 @@ Each row reads consistently across the 3 columns — that is the convergence cla
 These are not "5 measurements giving the same answer"; they are 3 different probes giving *different* answers per model, with the pattern of agreement/disagreement characterizing each architecture.
 
 ---
-
-## OLD-§4. Behavioral findings — cross-model PMR ladder
-
-(Target: 1.5 pages with 1-2 figures.)
-
-### 4.1 The PMR(_nolabel) ladder
-
-![Figure 1: 5-model × 3-stim PMR(_nolabel) ladder with bootstrap CIs](../figures/session_5model_cross_stim_pmr.png)
-
-*Figure 1.* Mean PMR(_nolabel) ± 95% bootstrap CI per
-(model × stim source). Encoder-family split is clean on synthetic
-stim (M8a, M8d) and collapses on real photos (M8c).
-
-Across the 5 models on M8a synthetic shapes:
-
-| Model | PMR(_nolabel) | 95 % CI |
-|---|---|---|
-| Qwen2.5-VL | 0.838 | [0.79, 0.88] |
-| LLaVA-1.5 | 0.175 | [0.14, 0.21] |
-| LLaVA-Next | 0.700 | [0.65, 0.74] |
-| Idefics2 | 0.882 | [0.84, 0.92] |
-| InternVL3 | 0.917 | [0.88, 0.95] |
-
-Three clusters: **saturated** (Qwen / Idefics2 / InternVL3 ≥ 0.84),
-**mid-band** (LLaVA-Next 0.70), **floor** (LLaVA-1.5 0.18). CIs are
-fully separated between the three clusters.
-
-### 4.2 H1 (abstraction ramp) — unsaturated-only
-
-![Figure 6: M8a abstraction ramp per shape per model](../figures/m8a_pmr_ramp.png)
-
-*Figure 6.* PMR(line / filled / shaded / textured) per (shape × model)
-on M8a. LLaVA-1.5 shows clean monotone ramps; Qwen / Idefics2 /
-InternVL3 are at ceiling and the ramp is invisible.
-
-LLaVA-1.5 (the unsaturated model) shows a clean monotone S-curve
-(line 0.45 → textured 0.78). Qwen / Idefics2 / InternVL3 are at
-ceiling and the ramp is invisible. Strict pre-registered scoring
-(M8a) on 5 shapes: Qwen 1/4 PASS, LLaVA 4/4 PASS — the asymmetry
-*is* the cross-shape validation of the architecture-level reframe.
-
-### 4.3 H7 (label selects regime) — cross-category replication
-
-![Figure 7: M8d paired-delta per (model × category × label_role)](../figures/m8d_paired_delta.png)
-
-*Figure 7.* PMR_regime(physical) − PMR_regime(abstract) per
-(model × category) on M8d. LLaVA shows positive deltas in all 3
-categories; Qwen is flat (ceiling).
-
-Cross-category strict scoring (M8d):
-- LLaVA: 3/3 PASS (car +0.525, person +0.138, bird +0.550 on
-  PMR_regime physical−abstract).
-- Qwen: 0/3 binary (ceiling-flat) but regime distribution shows
-  figurine 17.5% static, statue 22.5% static — the label-selects-
-  regime claim is now category-general, not circle-specific.
-
-### 4.4 Photo collapse (M8c)
-
-![Figure 8: M8c synthetic vs photo paired comparison](../figures/m8c_paired_synthetic_vs_photo.png)
-
-*Figure 8.* Per-category mean PMR(_nolabel) on synthetic vs photo
-stim, paired across (model × category). Photos compress the encoder-
-family gap and reduce Qwen PMR by 18-48 pp.
-
-Real photographs reduce Qwen PMR(_nolabel) by 18-48 pp across
-categories. All 3 tested models converge to PMR [0.18, 0.67] on
-photos. The encoder gap that was clean on synthetic stim collapses
-on rich photos — synthetic-stim minimality is a co-factor of
-behavioral saturation, not just encoder representation.
 
 ## OLD-§5. Encoder vs LM disambiguation
 
