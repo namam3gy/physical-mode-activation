@@ -289,7 +289,65 @@ the vision tower → projector → LM 0..10 path is end-to-end
 differentiable. Adam, lr=1e-2, n_steps=200. L∞-bounded on
 `pv_leaf − pv_initial` ∈ {±0.05, ±0.1, ±0.2} or unconstrained.
 
-## 4. Behavioral findings — cross-model PMR ladder
+## 6. Evidence at three Marr levels
+
+(Target: 5-7 pages combining the four current sections §OLD-§4 + §OLD-§5 + §OLD-§6 + §OLD-§7. Replaces the "5 signatures" framing with three Marr levels of evidence; addresses paper-gap G4. Restructure plan: `docs/paper/marr_restructure_plan.md`.)
+
+We organize the evidence into three Marr levels (Marr, 1982). Each level addresses a *distinct question* about the data; cross-method redundancy *within* a level provides robustness against that level's specific failure modes; cross-level convergence is informative because each level can in principle disagree, and the cases where it does (the dissociation cases in §6.4.3) are the strongest single-finding evidence in the paper.
+
+| Marr level | Question | Methods | Failure mode | Within-level controls |
+|---|---|---|---|---|
+| **§6.1 Computational** | Does the model behaviorally enter physics-mode? | PMR (M2 + cross-model) | Prompt-wording bias / next-state-prediction shortcut | KO/JA labels (§OLD-§8.1); open vs FC; multi-prompt 5-model × 4-prompt (Pillar A) |
+| **§6.2 Representational** | Does the model encode physics-mode in its activations? | M3 vision-encoder probe + M4 LM logit-lens probe | Low-level visual stats / token-frequency confounds | Stim-y vs behavioral-y AUC dissociation; random-direction baseline; label-free (M4b/M4c); 5-fold StratifiedKFold |
+| **§6.3 Mechanistic** | Does that encoding cause behavior? | M5a runtime steering (LM-side) + M5b SAE intervention (encoder-side) + §4.6 pixel-encodability (input-side) | Norm-scaling / feature noise / "any sufficient perturbation flips" | Mass-matched random (M5a); 3 random feature sets (M5b); random-direction control at matched ε (§4.6) |
+| **§6.4 Cross-level triangulation** | Do the levels converge on the same layer × direction × features? | Convergence table + dissociation cases | Cross-level redundancy mistaken for independent claims | Within-row dissociations (Idefics2 §4.6 0/9 + M5a 10/10; LLaVA-Next M5a+ / M5b NULL) prove levels are not tautological |
+
+The remainder of this section instantiates these four subsections.
+
+### 6.1 Computational level — does the model behaviorally enter physics-mode?
+
+(Migrated from §OLD-§4 in step 2 of restructure plan.)
+
+### 6.2 Representational level — does the model encode physics-mode?
+
+(Migrated from §OLD-§5.1 + §OLD-§5.4 in step 3 of restructure plan.)
+
+### 6.3 Mechanistic level — does that encoding cause behavior?
+
+(Migrated from §OLD-§6 + §OLD-§7 in steps 4-5 of restructure plan, next session.)
+
+### 6.4 Cross-level triangulation
+
+(Convergence table + architecture-level identity reading + dissociation cases. Built in step 6, after §6.1–§6.3 are populated.)
+
+#### 6.4.1 Convergence table (placeholder — finalized in step 6 of restructure plan)
+
+| Marr level → | Computational (§6.1) | Representational (§6.2) | Mechanistic (§6.3) |
+|---|---|---|---|
+| **Question** | enters physics-mode behaviorally? | encodes physics-mode in activations? | causally bound to behavior? |
+| Qwen2.5-VL-7B | PMR 0.94 | M3 AUC 0.99 / M4 AUC 0.96 (peak L20) | M5a L10 α=40 10/10; M5b k=20 0/20; §4.6 5/5 ε=0.05 |
+| LLaVA-Next-7B | PMR 0.70 | M3 AUC 0.81 / M4 AUC 0.79 | M5a L20+L25 10/10; M5b k=160 NULL; §4.6 L20+L25 10/10 |
+| Idefics2-8B | PMR 0.88 | M3 AUC 0.93 / M4 AUC 0.995 | M5a L25 α=20 10/10; M5b k=160 0/20; §4.6 0/90 across L5-L31 |
+| InternVL3-8B | PMR 0.92 | M3 AUC 0.89 / M4 untestable (n_neg=1) | M5a untestable (baseline=1); M5b k=160 0/20; §4.6 testable under M8a alt-baseline (L10 5/5) |
+| LLaVA-1.5-7B | PMR 0.18 | M3 AUC 0.73 / M4 AUC 0.76 | M5a 0/10; M5b NULL ≤ k=800; §4.6 weak L25 only (40 % at n=10); deeper L28-L31 sweep pending (2026-05-04) |
+
+Each row reads consistently across the 3 columns — that is the convergence claim. The systematic exception (LLaVA-1.5) is a convergent low end, not a contradiction.
+
+#### 6.4.2 Architecture-level identity (to migrate from §OLD-§5.2 + §OLD-§5.3 + §OLD-§5.5 in step 3)
+
+#### 6.4.3 Dissociation cases — proof that the three levels are not tautological
+
+| Model | Dissociation | What it shows |
+|---|---|---|
+| Idefics2 | M4 AUC 0.995 + M5a 10/10 + §4.6 0/90 | Information presence ≠ pixel-space routability. Forward pathway works; inverse pathway blocked. (Perceiver-resampler signature.) |
+| LLaVA-Next | M5a 10/10 + M5b NULL | LM-side direction operative; encoder-side features absent. (CLIP family routes physics-mode commitment through LM, not encoder.) |
+| LLaVA-1.5 | M5a 0/10 + M5b NULL + §4.6 weak only | Both encoder-side localization and pixel-side routability missing. The cross-level *low-end consistency* itself is informative (not a dissociation, but a convergent floor). |
+
+These are not "5 measurements giving the same answer"; they are 3 different probes giving *different* answers per model, with the pattern of agreement/disagreement characterizing each architecture.
+
+---
+
+## OLD-§4. Behavioral findings — cross-model PMR ladder
 
 (Target: 1.5 pages with 1-2 figures.)
 
@@ -358,7 +416,7 @@ photos. The encoder gap that was clean on synthetic stim collapses
 on rich photos — synthetic-stim minimality is a co-factor of
 behavioral saturation, not just encoder representation.
 
-## 5. Encoder vs LM disambiguation
+## OLD-§5. Encoder vs LM disambiguation
 
 (Target: 1.5 pages.)
 
@@ -453,7 +511,7 @@ across all encoders; behavioral-y AUC and PMR vary 0.18-0.92. The
 PMR ladder reflects each LM's reading of encoder output as
 "physics-mode signal" — downstream-conditional, not encoder-info.
 
-## 6. Causal localization — M5a (LM-side) + M5b (encoder-side) cross-model
+## OLD-§6. Causal localization — M5a (LM-side) + M5b (encoder-side) cross-model
 
 (Target: 2-2.5 pages with the L10 plot, the cross-model M5a table,
 and the M5b SAE drop curve figure.)
@@ -624,7 +682,7 @@ but pixel→v_L route blocked), the architectural picture is:
 > pixel-space routability, but the LM-side direction is still
 > causally operative when injected directly.
 
-## 7. Pixel encodability — §4.6
+## OLD-§7. Pixel encodability — §4.6
 
 (Target: 1.5 pages with the §4.6 panel + trajectory figures.)
 
